@@ -1,9 +1,29 @@
 
+# Program entry point
 <program> ::= <statement list>
+
 <statement list> ::= <statement> <statement list> | <statement>
-<statement> ::= "if" <boolean> "then" [OpenBrack] [CloseBrack] [NewLine]
-<statement> ::= "while" <boolean> [OpenBrack] [CloseBrack] [NewLine]
+
+<statement> ::= "if" <boolean> "then" $OpenBrack $Identifier $CloseBrack $NewLine
+<statement> ::= "while" <boolean> $OpenBrack $Identifier $CloseBrack $NewLine
+<statement> ::= "for" $Identifier "=" $Number "," <boolean-statement> "," <math-statement> $OpenBrack $Identifier $CloseBrack $NewLine
+
 <param list> ::= <param> <param list> | <empty>
-<param> ::= <identifier>
+
+<param> ::= <term>
+
+<boolean-statement> ::= <boolean> | <term> <cmp> <term>
+
+<math-statement> ::= "++" $Identifier | $Identifier "++"
+
+<cmp> ::= "<" | ">" | "<=" | ">=" | "=="
+
 <boolean> ::= "true" | "false"
-<identifier> ::= "var" [Identifier]
+
+<term> ::= $Identifier | $Number
+
+
+# { ... } - any number ( >= 0 )
+# ( ... ) - grouping
+# [ ... ] - zero or one instance
+# \ ... / - Lexeme type

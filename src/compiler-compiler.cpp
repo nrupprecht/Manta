@@ -21,6 +21,8 @@ namespace Manta {
     char c;
     fin.get(c);
     while (!fin.eof()) {
+      // Make sure there is a space before each newline. For parsing purposes.
+      if (c=='\n') parser_description.push_back(' '); 
       parser_description.push_back(c);
       fin.get(c);
     }
@@ -89,8 +91,8 @@ namespace Manta {
 
       }
       // Start of an enum reference
-      else if (c=='[') {
-        string ref = get_word(i, ']');
+      else if (c=='$') {
+        string ref = get_word(i, ' ');
         // If there is no current production rule, this is an error
         if (production_name.empty()) {
           cout << "Error in parsing description. A literal has occured before a production definition. Exiting.\n";
@@ -237,17 +239,17 @@ namespace Manta {
     // Namespace
     header += "namespace Manta {\n\n";
     // CC_Parser class
-    header += "\tclass " + parser_class_name + " {\n\tpublic:\n\t\tbool parse(const vector<Lexeme>&);\n\n\tprivate:\n";
-    header += "\t\t// Production identification functions.\n";
-    for (const auto &prod : productions) header += "\t\tbool check_" + prod.first + "(int&);\n";
-    header += "\n\t\t// List of lexemes\n";
-    header += "\t\tvector<" + lexeme_struct_name + "> lex_list;\n";
+    header += "  class " + parser_class_name + " {\n  public:\n    bool parse(const vector<Lexeme>&);\n\n  private:\n";
+    header += "    // Production identification functions.\n";
+    for (const auto &prod : productions) header += "    bool check_" + prod.first + "(int&);\n";
+    header += "\n    // List of lexemes\n";
+    header += "    vector<" + lexeme_struct_name + "> lex_list;\n";
     if (use_debug_statements) {
-      header += "\n\t\t//! \\brief Debug pretty printing.\n\t\tint level = 0;\n\n";
-      header += "\t\t//! \\brief Function for printing spaces, for pretty printing of debug messages.\n";
-      header += "\t\tinline string tabs() {\n\t\t\tstring tbs;\n\t\t\tfor (int i=0; i<level; ++i) tbs += \"| \";\n\t\t\treturn tbs;\n\t\t}\n";
+      header += "\n    //! \\brief Debug pretty printing.\n    int level = 0;\n\n";
+      header += "    //! \\brief Function for printing spaces, for pretty printing of debug messages.\n";
+      header += "    inline string tabs() {\n      string tbs;\n      for (int i=0; i<level; ++i) tbs += \"| \";\n      return tbs;\n    }\n";
     }
-    header += "\t};\n\n}\n";
+    header += "  };\n\n}\n";
     header += "#endif // __CC_PARSER_HPP__MANTA__";
   }
 
@@ -262,16 +264,17 @@ namespace Manta {
     // Write .cpp file
     program += "namespace Manta {\n\n";
     // Main parse function
-    program += "\tbool " + parser_class_name + "::parse(const vector<" + lexeme_struct_name + ">& input) {\n";
-    program += "\t\tlex_list = input;\n";
-    program += "\t\tint point = 0;\n";
+    program += "  bool " + parser_class_name + "::parse(const vector<" + lexeme_struct_name + ">& input) {\n";
+    program += "    lex_list = input;\n";
+    program += "    int point = 0;\n";
     if (use_debug_statements) program += "\t\tlevel = 0;\n";
-    program += "\t\tbool success = check_program(point);\n";
+    program += "    bool success = check_program(point);\n";
     if (use_debug_statements) {
-      program += "\t\tcout << (point==lex_list.size() ? \"Whole program parsed.\" : \"Not all parsed.\") << endl;\n";
+      program += "    if (point==lex_list.size()) cout << \"Whole program parsed.\\n\";\n";
+      program += "    else cout << \"Not all parsed. Point is \" << point << \", size is \" << lex_list.size() << \".\\n\";\n";
     }
-    program += "\t\treturn (success && point==lex_list.size());\n";
-    program += "\t}\n\n";
+    program += "    return (success && point==lex_list.size());\n";
+    program += "  }\n\n";
 
     // Finder functions
     for (const auto &prod : productions) {
@@ -279,82 +282,84 @@ namespace Manta {
       string name = prod.first;
       auto &rules = prod.second.rules;
       // Write a function
-      program += "\tbool " + parser_class_name + "::check_" + prod.first + "(int& point) {\n";
-      program += "\t\tbool valid = false;\n";
-      program += "\t\tint local_point = point;\n\n";
+      program += "  bool " + parser_class_name + "::check_" + prod.first + "(int& point) {\n";
+      program += "    bool valid = false;\n";
+      program += "    int local_point = point;\n\n";
 
       if (use_debug_statements) {
-        program += "\t\t// Debug statement.\n";
-        program += "\t\tcout << tabs() << \"Entering function [" + prod.first + "]. Point = \" << point << \"";
+        program += "    // Debug statement.\n";
+        program += "    cout << tabs() << \"Entering function [" + prod.first + "]. Point = \" << point << \"";
         program += ", First lexeme: [\" << lex_list[point].literal << \"]\\n\";\n";
-        program += "\t\t++level;\n";
-        program += "\t\t// <---\n\n";
+        program += "    ++level;\n";
+        program += "    // <---\n\n";
       }
 
       for (int r=0; r<rules.size(); ++r) {
         int i=0;
-        bool literal = false;
+        bool terminal = false;
         for (auto &tok : rules[r]) {
           // If the first token in the rule
           if (i==0) {
             // If this is the first rule
-            if (r==0) program += "\t\tif (";
-            else program += "\t\tif (!valid && ";
+            if (r==0) program += "    if (";
+            else program += "    if (!valid && ";
             program += create_check(tok) +") ";
-            // If the first check was a check on a literal, then we must add an "else --local_point;" clause.
-            literal = (tok.type==TokenType::Literal);
+            // If the first check was a check on a terminal, then we must add an "else --local_point;" clause.
+            terminal = (tok.type!=TokenType::Production);
 
             // If the rule size is 1, we can simplify.
             if (rules[r].size()==1) program += "valid = true;\n";
             // Else.
-            else program += "{\n\t\t\tbool valid_branch = true;\n";
+            else program += "{\n      bool valid_branch = true;\n";
           }
           // Not the first token in the rule.
           else {
             if (use_debug_statements) {
-              program += "\t\t\t// Debug statement.\n";
-              program += "\t\t\tif (valid_branch) cout << tabs() << \"Checking for ";
+              program += "      // Debug statement.\n";
+              program += "      if (valid_branch) cout << tabs() << \"Checking for ";
               if (tok.type==TokenType::Production) program += "production [" + tok.identifier + "]";
               else if (tok.type==TokenType::Literal) program += "literal \\\"" + tok.identifier + "\\\"";
               else if (tok.type==TokenType::LexType) program += "lex type [" + tok.identifier + "]";
               program += ". Next token has literal [\"<< lex_list[local_point].literal << \"].\\n\";\n";
-              program += "\t\t\t// <---\n\n";
+              program += "      // <---\n\n";
             }
-            program += "\t\t\tif (valid_branch && " + create_check(tok, false) + ") valid_branch = false;\n";
+            program += "      if (valid_branch && " + create_check(tok, false) + ") valid_branch = false;\n";
           }
           // Increment token counter
           ++i;
         }
         // If the rule size is 1, we can simplify.
-        if (rules[r].size()==1);
+        if (rules[r].size()==1) {
+          if (terminal) program += "    else if (!valid) --local_point;\n";
+        }
         // Else.
         else {
-          program += "\t\t\t// If all test have been passed.\n";
-          program += "\t\t\tif (valid_branch) valid = true;\n";
-          program += "\t\t\telse local_point = point; // To be ready to try the next option.\n";
-          program += "\t\t}\n";
+          program += "      // If all test have been passed.\n";
+          program += "      if (valid_branch) valid = true;\n";
+          program += "      else local_point = point; // To be ready to try the next option.\n";
+          program += "    }\n";
           // If the first check was a check on a literal, then we must add an "else --local_point;" clause.
-          if (literal) program += "\t\telse --local_point;\n";
+          if (terminal) program += "    else if (!valid) --local_point;\n";
         }
       }
       program += "\n";
 
 
       if (use_debug_statements) {
-        program += "\t\t// Debug statement.\n";
-        program += "\t\t--level;\n\n";
-        program += "\t\tcout << tabs() << \"Exiting function [" + prod.first + "] with \" << (valid ? \"success\" : \"failure\") << \".\\n\";\n";
-        program += "\t\t// <---\n";
+        program += "    // Debug statement.\n";
+        program += "    --level;\n\n";
+        program += "    cout << tabs() << \"Exiting function [" + prod.first + "] with \" << (valid ? \"success\" : \"failure\") << \".\\n\";\n";
+        program += "    // <---\n";
       }
 
       // End of the function - determine return value.
-      program += "\t\t// Did any rule succeed?\n";
-      program += "\t\tif (valid) {\n";
-      program += "\t\t\tpoint = local_point;\n";
-      program += "\t\t\treturn true;\n";
-      program += "\t\t}\n\t\t// Else, return false.\n";
-      program += "\t\treturn false;\n";
-      program += "\t}\n\n";
+      program += "    // Did any rule succeed?\n";
+      program += "    if (valid) {\n";
+      program += "      point = local_point;\n";
+      program += "      return true;\n";
+      program += "    }\n    // Else, return false.\n";
+      program += "    return false;\n";
+      program += "  }\n\n";
 
     }
     program += "}";

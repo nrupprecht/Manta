@@ -68,14 +68,15 @@ int main(int argc, char** argv) {
 
   // Lex the program string.
   lexer.lex_string(input);
-
-  cout << "Input: " << input << endl;
-  cout << "\n-------\n";
-  cout << "Progr: " << lexer.getProgram() << endl;
-
-  cout << "\n-------\n";
   auto tokens = lexer.getLexemes();
-  for (auto lx : tokens) cout << "\"" << lx.type << "\" - " << lx.literal << endl;
+
+  if (true) {
+    cout << "Input: " << input << endl;
+    cout << "\n-------\n";
+    cout << "Progr: " << lexer.getProgram() << endl;
+    cout << "\n-------\n";
+    for (auto lx : tokens) cout << "\"" << lx.type << "\" - " << lx.literal << endl;
+  }
 
   #ifdef CPARSE
   cout << "Ready to test Parser.\n\n";

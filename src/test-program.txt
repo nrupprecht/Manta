@@ -1,8 +1,11 @@
-if true then {}
-while false {}
-while true {}
-if true then {}
-while true {}
-if true then {}
-while true {}
-if true then {}
+if true then { a1 }
+while false { b1 }
+while true { c1}
+if true then { d1 }
+while true { e1 }
+if true then { f1 }
+while true { g1 }
+if true then { h1 }
+if true then { i1 }
+for i= 0, i< 5, ++i { j1 }
+if true then { k1 }

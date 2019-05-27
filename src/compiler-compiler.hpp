@@ -6,6 +6,7 @@
 namespace Manta {
 
   enum class TokenType { Production, Literal, LexType };
+  // enum class RepeatType { Single, Optional, Kleene }
 
   struct Token {
     //! \brief Constructor.
@@ -34,6 +35,26 @@ namespace Manta {
     //! \brief Whether there is at least one rule for this production.
     bool defined() { return !rules.empty(); }
   };
+
+
+  //! TEST STRUCT
+  /*
+  struct ProductionNode {
+    ProductionNode(string n) : identifier(n);
+    //! \brief The name of the production rule, lexeme type, or literal.
+    string identifier;
+    //! \brief What type of node this is.
+    TokenType type;
+
+    typedef list<ProductionNode> ProductionRuleNode;
+
+    //! \brief 
+    vector<ProductionRuleNode> rules;
+
+    //! \brief True if the production can be <empty>
+    bool can_be_empty = false;
+  };
+  */
 
 
   class CompilerCompiler {
