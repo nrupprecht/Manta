@@ -1,0 +1,9 @@
+
+<program> ::= <statement list>
+<statement list> ::= <statement> <statement list> | <statement>
+<statement> ::= "if" <boolean> "then" [OpenBrack] [CloseBrack] [NewLine]
+<statement> ::= "while" <boolean> [OpenBrack] [CloseBrack] [NewLine]
+<param list> ::= <param> <param list> | <empty>
+<param> ::= <identifier>
+<boolean> ::= "true" | "false"
+<identifier> ::= "var" [Identifier]
