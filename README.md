@@ -1,0 +1,2 @@
+# Manta
+Manta programming language
