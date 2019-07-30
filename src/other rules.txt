@@ -1,0 +1,58 @@
+
+<function def> ::= $Identifier $Identifier ":" $Identifier { "," $Identifier ":" $Identifier }
+
+<declaration> ::= "var" (<var spec> "=" <expression> | <typed var spec> )
+
+<var spec> ::= $Identifier [ ":" <type spec> ]
+
+<typed var spec> ::= $Identifier ":" <type spec>
+<type spec> ::= $BaseType | <type spec> "->" <type spec> | "(" <type spec> ")"
+
+<lambda> ::= "\(" { $Identifier ":" <type spec> "." } ")" "->" <expression>
+
+
+
+
+
+
+
+
+
+
+
+\(x, y) -> x+y
+
+fnc add(x, y) -> x + y // Int -> Int -> Int
+
+var my_array = {x, 1, 100}, {y, 1, 100} -> {x, y, 2*x+y} // Array<100,100>
+
+var my_vector = Array (3)
+
+var my_tuple = (1, "Hello", 2.3:Float) // Tuple<Int, String, Float>
+
+TypeClass Optional A:* = Nothing | Something A
+
+fnc fmap (f:A->B, x: Maybe A) -> Maybe B
+  Match x:
+    Nothing -> Nothing
+    Something y -> f(y)
+  End
+
+TypeClass Sum A:*, B:* = Inl A | Inr B
+
+filter isPrime [ x | x in 1...100 ]
+
+// Recursive construct
+fnc generate_primes (N:Int) ->
+  ret RConstruct (\(n, array) -> forall k in array :: mod (n, k)!=0) [ x | x in 2...N ]
+
+
+
+class Particle <dims:Int> {
+  Array<dims> pos
+  Array<dims> vel
+  Int type
+
+
+
+}

@@ -67,14 +67,14 @@ all: $(BIN)/$(APP)
 $(BIN)/$(APP): obj/src/$(APP).o $(OBJS)
 	@mkdir -p `dirname $@`
 	@echo "Linking $@..."
-	@$(CC) -o $@ $(OBJS) $(LDFLAGS)
+	$(CC) -o $@ $(OBJS) $(LDFLAGS)
 
 # General object files
 
 $(OBJ)/%.o: %.cpp
 	@mkdir -p `dirname $@`
 	@echo "Compiling $<..."
-	@$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< -o $@
 
 .PHONY : clean
 clean:

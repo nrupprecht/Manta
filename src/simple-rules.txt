@@ -1,0 +1,19 @@
+
+<start> = <expr>
+
+<expr> = "(" <expr> ")" : replace($1) 
+  | <sum> : replace($0)
+
+<sum> = <sum> "+" <mult> : node($1) add($0) add($2)
+  | <mult> : replace($0)
+
+<mult> = <mult> "*" <term> : node($1) add($0) add($2)
+  | <term> : replace($0)
+
+<term> = @identifier : replace($0)
+  | @number : replace($0)
+
+#<tuple> = "(" <tuple rec> ")" : adopt($1)
+#
+#<tuple rec> = <tuple rec> "," <term> : adopt($0) add($2)
+#  | <term> : replace($0)
