@@ -1,19 +1,30 @@
+start = E @eof
+E = "+" E E
+ | "num"
 
-<start> = <expr>
+!
 
-<expr> = "(" <expr> ")" : replace($1) 
-  | <sum> : replace($0)
-
-<sum> = <sum> "+" <mult> : node($1) add($0) add($2)
-  | <mult> : replace($0)
-
-<mult> = <mult> "*" <term> : node($1) add($0) add($2)
-  | <term> : replace($0)
-
-<term> = @identifier : replace($0)
-  | @number : replace($0)
-
-#<tuple> = "(" <tuple rec> ")" : adopt($1)
+#<start> = <expr>
 #
-#<tuple rec> = <tuple rec> "," <term> : adopt($0) add($2)
+#<expr> = "(" <expr> ")" : replace($1) 
+#  | <sum> : replace($0)
+#
+#<sum> = <sum> "+" <mult> : node($1) add($0) add($2)
+#  | <mult> : replace($0)
+#
+#<mult> = <mult> "*" <term> : node($1) add($0) add($2)
 #  | <term> : replace($0)
+#
+#<term> = @identifier : replace($0)
+#  | @number : replace($0)
+
+
+start = S
+S = A C
+C = "c"
+  | @null
+A = "a" B C "d"
+  | B Q
+B = "b" B
+Q = "q"
+  | @null

@@ -11,20 +11,19 @@ namespace Manta {
     int pid;
 
     fin.get(c);
-    while (!fin.eof()) {
+    bool continue_parse = true;
+    while (!fin.eof() && continue_parse) {
       // Pass whitespaces.
       if (c==' ');
       // Start of production
-      else if (c=='<') {
+      else if (isalpha(c)) {
         production_name.clear();
-        fin.get(c);
-        while (c!='>' && !fin.eof()) {
-          if (!isspace(c)) production_name.push_back(c);
-          else production_name.push_back('_');
+        do {
+          production_name.push_back(c);
           fin.get(c);
-        }
+        } while (!isspace(c) && !fin.eof());
 
-        // We should have stopped because we encountered a '>', not because of an eof.
+        // We should have stopped because we encountered a space, not because of an eof.
         if (fin.eof()) throw false;
 
         // Log production.
@@ -48,6 +47,8 @@ namespace Manta {
         // Pass comments.
         while (c!='\n' && !fin.eof()) fin.get(c);
       }
+      // Stop parsing description.
+      else if (c=='!') continue_parse = false;
 
       // Get next character.
       fin.get(c);
@@ -62,6 +63,20 @@ namespace Manta {
     // Complete the table
     completeTable();
 
+    cout << "All productions:\n";
+    for (auto &item : all_productions) cout << item << endl;
+    cout << endl;
+    cout << printTable() << endl;
+
+    cout << "States and closures:" << endl;
+    for (int i=0; i<all_states.size(); ++i) {
+      cout << "State " << i << ": " << all_states[i] << endl;
+      cout << "Closure: " << closure(i) << endl << endl;
+    }
+    cout << endl;
+
+    cout << repeat('-', 20) << endl << endl;
+
     return true;
   }
 
@@ -73,32 +88,126 @@ namespace Manta {
     // Symbols being fed into the parser.
     std::deque<Token> incoming_deque;
 
-    cout << endl << endl << "Number of productions: " << num_productions << endl;
-    cout << productions_for.size() << endl;
+    list<int> working_stack_types; // For debugging.
 
+    // Open the file with the lexer.
     lexer.openFile(fileName);
 
-    int state = 0; // Starting state.
-    while (true) {
+    // Push starting state onto the stack.
+    working_stack.push(Token(start_production, 0));
+    working_stack_types.push_back(start_production); // For debugging.
 
+    while (true) {
       // Refill incoming_deque.
       if (incoming_deque.empty() && !lexer.isEOF()) {
         Token tok = lexer.getNext();
-
-        cout << "Literal: " << tok.literal << ", Type: " << tok.type << endl;
-
         incoming_deque.push_back(tok);
       }
 
-      // If shift
-      working_stack.push(incoming_deque.front());
-      incoming_deque.pop_front();
+      int state = working_stack.top().state;
+      int incoming_symbol = incoming_deque.front().type;
+      
+      if (incoming_symbol<0 || total_symbols<=incoming_symbol) {
+        cout << "ERROR - bad symbol: " << incoming_symbol << ". Exiting.\n";
+        return false;
+      }
 
+      cout << "State: " << working_stack.top().state << " : input = " << incoming_deque.front().type << endl;
+      for (auto ty : working_stack_types) cout << ty << " ";
+      cout << " | ";
+      cout << incoming_deque.front().type << endl;
+
+      // Get action from the parse table.
+      Entry action = parse_table[state][incoming_symbol];
+
+      Token transfer = incoming_deque.front();
+      
+
+      // If shift
+      if (action.isShift()) {
+        transfer.state = action.state; // Set state
+        incoming_deque.pop_front();    // Pop off the incoming stack... 
+        working_stack.push(transfer);  // and shift onto the working stack.
+        working_stack_types.push_back(transfer.type); // For debugging.
+
+        cout << "Shift. State is now " << action.state << "\n";
+      }
+      else if (action.isReduce()) {
+        int size = action.rule.size();
+        int production = action.rule.production;
+        // Put (newly reduced) production onto the input statck.
+        incoming_deque.push_front(Token(production, ""));
+        for (int i=0; i<size; ++i) {
+          working_stack.pop();
+          working_stack_types.pop_back(); // For debugging.
+        }
+
+        cout << "Reduce by " << size << ". Reduce to a " << production << " (via " << action.rule << ").\n";
+      }
+      else if (action.isAccept()) {
+        cout << "ACCEPT!\n\n";
+        return true;
+      }
+      else if (action.isError()) {
+        cout << "ERROR! Exiting.\n\n";
+        exit(0);
+      }
+
+      cout << "Working stack size: " << working_stack.size() << endl;
+
+
+      cout << endl;
+
+      /*
       // EXIT for now.
-      if (lexer.isEOF()) return true;
+      if (lexer.isEOF() && incoming_deque.empty()) {
+        cout << "We be here." << endl;
+        return true;
+      }
+      */
     }
 
     return true;
+  }
+
+  //! \brief Pretty print the transition table.
+  string LALRGenerator::printTable() {
+    string str;
+
+    // Print out definitions.
+    str += repeat('_', (total_symbols+1)*5) + '_';
+    str += '\n';
+    str += "Token and production definitions:\n";
+    str += repeat('-', (total_symbols+1)*5) + '-';
+    str += '\n';
+    int i=0;
+    for (; i<lexer.size(); ++i) {
+      str += buffered(i, 4) + ": " + lexer.getTokenLiteral(i) + "\n";
+    }
+    str += "   -- (Productions) -- \n";
+    for (; i<total_symbols; ++i) {
+      str += buffered(i, 4) + ": " + inverse_production_map.find(i)->second + "\n";
+    }
+
+    // Print table header.
+    str += repeat('_', (total_symbols+1)*5) + '_';
+    str += '\n';
+    str += "St.  |";
+    for (int i=0; i<total_symbols; ++i) str += buffered(i, 5);
+    str += "\n";
+    str += repeat('-', (total_symbols+1)*5) + '-';
+    str += '\n';
+    // Print transition table.
+    for (int s=0; s<all_states.size(); ++s) {
+      str += buffered(s, 4) + " | ";
+      for (int i=0; i<total_symbols; ++i) str += parse_table[s][i].write(4) + " ";
+      str += "\n";
+    }
+    str += repeat('_', (total_symbols+1)*5) + '_';
+    str += '\n';
+
+    // Return the table string.
+    return str;
   }
 
   inline void LALRGenerator::getProductions(std::ifstream& fin, int production_id) {
@@ -136,23 +245,21 @@ namespace Manta {
         acc.clear();
       }
       // Start of a production.
-      else if (c=='<') {
-        fin.get(c);
-        while (c!='>' && !fin.eof()) {
-          if (!isspace(c)) acc.push_back(c);
-          else acc.push_back('_');
+      else if (isalpha(c)) {
+        do {
+          acc.push_back(c);
           fin.get(c);
-        }
+        } while (!isspace(c) && !fin.eof());
         // Found the production. Make sure it is registered.
         int id = registerProduction(acc);
         // If this is the start state
-        if (acc=="start") start_state = id;
+        if (acc=="start") start_production = id;
         // Add production to rule.
         production.add(id);
         // Clear accumulator.
         acc.clear();
       }
-      // Start of a default lexer type (terminal).
+      // Start of a default lexer type (terminal), or the @null symbol.
       else if (c=='@') {
         fin.get(c);
         while (!isspace(c) && !fin.eof()){
@@ -161,11 +268,12 @@ namespace Manta {
         }
 
         // Found the default lexer type. Register.
-        if (acc=="eof")             production.add(0);
-        else if (acc=="newline")    production.add(1);
-        else if (acc=="number")     production.add(2);
-        else if (acc=="identifier") production.add(3);
-        else if (acc=="operator")   production.add(4);
+        if (acc=="eof")             production.add(lexer.getBuiltInType(0));
+        else if (acc=="newline")    production.add(lexer.getBuiltInType(1));
+        else if (acc=="number")     production.add(lexer.getBuiltInType(2));
+        else if (acc=="identifier") production.add(lexer.getBuiltInType(3));
+        else if (acc=="operator")   production.add(lexer.getBuiltInType(4));
+        else if (acc=="null"); // Null. We don't have to do anything.
         else {
           cout << "Unrecognized default lexer type [" << acc << "], exiting.\n";
           exit(0);
@@ -197,8 +305,11 @@ namespace Manta {
     if (prod==productions_for.end()) {
       productions_for.insert(pair<int, State>(production_id, State()));
       prod = productions_for.find(production_id);
-    } 
+    }
+    // Add production to the productions for production_id
     prod->second.insert(production);
+    // Add production to all productions.
+    all_productions.push_back(production);
   }
 
   inline void LALRGenerator::getInstructions(std::ifstream& fin, int pid) {
@@ -219,7 +330,9 @@ namespace Manta {
   inline int LALRGenerator::registerProduction(const string& production) {
     auto it = production_map.find(production);
     if (it==production_map.end()) {
-      production_map.insert(pair<string, int>(production, num_productions--));
+      production_map.insert(pair<string, int>(production, num_productions));
+      inverse_production_map.insert(pair<int, string>(num_productions, production));
+      --num_productions;
       return num_productions+1;
     }
     return it->second;
@@ -232,8 +345,22 @@ namespace Manta {
     // Shift the ids in production map.
     for (auto &p : production_map) p.second = lids - p.second;
 
+    // Shift the ids in all productions
+    for (auto &item : all_productions) {
+      // Correct production.
+      item.production = lids-item.production;
+      // Correct productions in the rhs.
+      for (auto &i : item.rhs) 
+        if (i<0) i = lids-i;
+    }
+
+    // Shift the ids in inverse map
+    map<int, string> new_inverse_map;
+    for (auto &p : inverse_production_map) new_inverse_map.insert(pair<int, string>(lids - p.first, p.second));
+    inverse_production_map = new_inverse_map;
+
     // Shift the start state.
-    start_state = lids - start_state;
+    start_production = lids - start_production;
 
     // Shift the ids in productions_for.
     map<int, State> new_productions_for;
@@ -250,21 +377,13 @@ namespace Manta {
       new_productions_for.insert(pair<int, State>(lids - p.first, state));
     }
     productions_for = new_productions_for;
-
+    // Set total_symbols.
     total_symbols = lids + production_map.size();
   }
 
   void LALRGenerator::computeLR0() {
-    /*
-    states <- 0;
-    StartItems <- { Start -> RHS(p) | p in ProductionsFor(Start) }
-    StartState <- addState(States, StartItems);
-    while (s <- WorkList.ExtractElement() != empty) 
-      computeGoto(s);
-    return (States, StartState);
-    */ 
-
-    auto st = productions_for.find(start_state);
+    // Find productions for the state state.
+    auto st = productions_for.find(start_production);
     if (st==productions_for.end()) {
       cout << "Error - could not find productions for the start state.\n";
       exit(0);
@@ -272,45 +391,27 @@ namespace Manta {
     
     // I can't figure out why the compiler insists on using const objects here, so here's a hacky work around.
     State startItems = st->second;
-    for (auto & item : startItems) {
-      const int *i = &item.bookmark;
-      *const_cast<int*>(i) = 0;
-    }
+    startItems.zero_bookmarks();
 
     // Add the start state.
     addState(startItems);
-
+    // Go through the work list untill it is empty.
     while (!work_list.empty()) {
       int s = work_list.front();
-
-      cout << "Extracting state from work_list: " << s << endl;
-
       work_list.pop_front();
       computeGoto(s);
     }
-
-    cout << "Done with computeLR0.\n\n";
   }
 
   int LALRGenerator::addState(State items) {
-    /*
-    if (items not in states) {
-      s <- newState(items)
-      States += {s};
-      WorkList += {s}
-      Table[s][*] = ERROR; // Error is the default.
-    }
-    else s = FindState(items);
-    return s;
-    */
-
     // Try to find a state that is the given collection of items.
     int s = findState(items); 
     // If the items are not a state, create a state for them.
     if (s==-1) {
       all_states.push_back(items);
       s = all_states.size() - 1;
-      parse_table.push_back(vector<pair<int,int> >(total_symbols, pair<int, int>(0,0) ));
+      // Initialize entries to Error.
+      parse_table.push_back(vector<Entry>(total_symbols, Entry())); 
       work_list.push_back(s);
     }
     // Return the state number.
@@ -318,51 +419,20 @@ namespace Manta {
   }
 
   void LALRGenerator::computeGoto(int s) {
-    /*
-    closed <- Closure(s)
-    for (x in productions and terminals) {
-      relevantItems <- advanceDot(closed, x);
-      if (!relevantItems.empty()) {
-        Table[s][x] <- shift addState(States, relevantItems);
-      }
-    }
-    */
-
-    cout << "Compute goto for " << s << endl;
-
+    // Find the closure of state s.
     State closed = closure(s);
-    cout << "State (" << s << "): " << all_states[s] << endl;
-    cout << "Closure = " << closed << endl;
-
-    cout << "Table " << s << ":\t";
-
+    // Try advancing the dot for every symbol.
     for (int x=0; x<total_symbols; ++x) {
       State relevantItems = advanceDot(closed, x);
       if (!relevantItems.empty()) {
         int sn = addState(relevantItems);
-        parse_table[s][x] = pair<int, int>(1, sn);
-
-        cout << sn << " ";
+        parse_table[s][x] = Entry(sn);
       }
-      else cout << "x ";
     }
-    cout << "\nDone.\n\n";
   } 
 
   State LALRGenerator::closure(int s) {
-    /*
-    ans <- state
-    prev <- 0
-    while (ans!=prev) {
-      prev <- ans
-      foreach (A -> a * B b  in ans) {
-        foreach (p in ProductionsFor(B))
-          ans += B -> * RHS(p)
-      }
-    }
-    return ans;
-    */
-
+    // Initialize ans
     State ans = all_states[s];
     int prev_size = 0;
 
@@ -377,35 +447,25 @@ namespace Manta {
 
         // If the bookmark was behind a non-terminal, we need to add that nonterminal to the closure.
         if (lexer.getNumberOfIDs() < next) { 
-
+          // Find the production for next.
           auto it = productions_for.find(next);
           if (it==productions_for.end()) continue;
 
           // Productions for next.
           State &state = it->second;
           // Set productions' bookmarks so they are like next -> * RHS(next)
-          for (auto & item : state) {
-            const int *i = &item.bookmark;
-            *const_cast<int*>(i) = 0;
-          }
+          state.zero_bookmarks();
 
           for (auto &st : state)
             if (ans.find(st)==ans.end()) ans.insert(st);
         }
       }
     }
-
-
     return ans;
   }
 
   State LALRGenerator::advanceDot(const State& state, int symb) {
     // symb may be terminal or nonterminal
-
-    /*
-    return ( { A-> a X * b | A -> a * X b in state})
-    */
-
     State advance_set;
     // Create set: { A -> a X * b | A -> a * X b in state}
     for (const auto item : state) {
@@ -421,29 +481,19 @@ namespace Manta {
   }
 
   void LALRGenerator::completeTable() {
-    /*
-    foreach (state in Table)
-      foreach (rule in Productions)
-        tryRuleInState(state, rule)
-    assertEntry(startState, goalSymbol, ACCEPT)
-    */
-
+    for (int s=0; s<all_states.size(); ++s)
+      for (const auto& rule : all_productions)
+        tryRuleInState(s, rule);
+    // Assert the accept state.
+    assertEntry(0, start_production, Entry(true));
 
     // Used by LALR(k) parser.
     computeLookahead();
-
-    /*
-    for (int s=0; s<parse_table.size(); ++s) {
-      auto entry = parse_table[s];
-      for (int i=0; i<total_symbols; ++i)
-        tryRuleInState(s, )
-    }
-    */
   }
 
-  void LALRGenerator::assertEntry(int state, int symbol, int action) {
-    if (parse_table[state][symbol]==pair<int, int>(0, 0)) // == Error
-      parse_table[state][symbol].first = action; // <- action
+  void LALRGenerator::assertEntry(int state, int symbol, const Entry& action) {
+    if (parse_table[state][symbol].isError()) // == Error
+      parse_table[state][symbol] = action; // <- action
     else {
       cout << "Error - Entry already exists!!!\n";
       exit(0);
@@ -454,12 +504,13 @@ namespace Manta {
     /* Used in LALR(1) parser */
   }
 
-  void LALRGenerator::tryRuleInState(int state, Item rule) {
-    /*
-    if (LHS(rule) -> RHS(rule) * in State(state))
-      foreach X in productions and terminals
-        assertEntry(state, X, reduce rule)
-    */
+  void LALRGenerator::tryRuleInState(int state, const Item rule) {
+    // Make rule into LHS(rule) -> RHS(rule) 
+    rule.endBookmark();
+    // If LHS(rule) -> RHS(rule) * is in State(state)
+    if (all_states[state].contains(rule))
+      for (int sym=0; sym<total_symbols; ++sym)
+        assertEntry(state, sym, Entry(rule));
   }
 
   inline int LALRGenerator::findState(State items) {

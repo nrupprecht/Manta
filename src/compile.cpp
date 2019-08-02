@@ -10,7 +10,7 @@ int main(int argc, char** argv) {
   LALRGenerator generator;
   generator.parseDescription("src/simple-rules.txt");
 
-  //generator.parseCodeFile("src/code-ex.txt");
+  generator.parseCodeFile("src/code-ex.txt");
 
   return 0;
 }

@@ -72,5 +72,38 @@ namespace Manta {
     else return a.size()<b.size();
   }
 
+  inline string repeat(char c, int length) {
+    string str;
+    for (int i=0; i<length; ++i) str += c;
+    return str;
+  }
+
+  inline int max(int a, int b) {
+    return a>b ? a : b;
+  }
+
+  inline string buffered(int i, int length) {
+    int ai = abs(i);
+    int l = i<0 ? 1 : 0;
+
+    int tens = 10;
+    for (int j=1; j<length; ++j) {
+      if (ai<tens) {
+        l += j;
+        break;
+      }
+      tens *= 10;
+    }
+    // Put into a string.
+    string str = repeat(' ', length-l);
+    str += toString(i);
+    // Return the string.
+    return str;
+  }
+
+  inline string buffered(string str, int length) {
+    return repeat(' ', max(length-str.size(), 0)) + str;
+  }
+
 }
 #endif // __UTILITY_HPP__MANTA__
