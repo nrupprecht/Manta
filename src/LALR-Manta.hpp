@@ -8,6 +8,41 @@
 
 namespace Manta {
 
+  struct ParseNode {
+    ParseNode(string d) : designator(d) {};
+
+    ~ParseNode() {
+      for (auto child : children) delete child;
+      children.clear();
+    }
+
+    inline void add(ParseNode *c) {
+      children.push_back(c);
+    }
+
+    friend ostream& operator << (ostream& out, const ParseNode& node) {
+      out << "[ " << node.designator;
+      int size = node.children.size();
+      if (0<size) {
+        out << ": {";
+        for (int i=0; i<size; ++i) {
+          out << *node.children[i];
+          if (i!=size-1) out << ", ";
+        }
+        out << "}";
+      }
+      out << " ]";
+      // Return the stream.
+      return out;
+    }
+
+    //! Node label.
+    string designator;
+
+    ParseNode* parent = nullptr;
+    vector<ParseNode*> children;
+  };
+
   // Terminals can either be represented as literals (if they are reserved words or keywords)
   // or by by %eof, %newline, %number, %string, or %operator.
   // Productions are written with angled brackets, e.g. <declaration>
@@ -21,7 +56,7 @@ namespace Manta {
     bool parseDescription(const string&);
 
     //! \brief Use the parser to parse the code in the file.
-    bool parseCodeFile(const string&);
+    ParseNode* parseCodeFile(const string&);
 
     //! \brief Pretty print the transition table.
     string printTable();
@@ -41,7 +76,7 @@ namespace Manta {
     Lexer lexer;
 
     // Compute the LR0 table from the grammar.
-    void computeLR0();
+    bool computeLR0();
 
     int addState(State);
     void computeGoto(int);
@@ -92,6 +127,9 @@ namespace Manta {
 
     //! \brief Work list for creating table.
     std::deque<int> work_list;
+
+    //! \brief A flag that should be set to false if something fails.
+    bool status = true;
   };
 
 }

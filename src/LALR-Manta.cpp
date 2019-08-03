@@ -68,60 +68,82 @@ namespace Manta {
     cout << endl;
     cout << printTable() << endl;
 
+    /*
     cout << "States and closures:" << endl;
     for (int i=0; i<all_states.size(); ++i) {
       cout << "State " << i << ": " << all_states[i] << endl;
       cout << "Closure: " << closure(i) << endl << endl;
     }
     cout << endl;
+    */
 
     cout << repeat('-', 20) << endl << endl;
 
     return true;
   }
 
-  bool LALRGenerator::parseCodeFile(const string& fileName) {
-    if (!lexer.openFile(fileName)) return false;
+  ParseNode* LALRGenerator::parseCodeFile(const string& fileName) {
+    if (!lexer.openFile(fileName)) return nullptr;
 
     // Stack of symbols that the parser has read.
     std::stack<Token> working_stack;
     // Symbols being fed into the parser.
     std::deque<Token> incoming_deque;
 
+
+    // Building the AST.
+    std::deque<ParseNode*> incoming_parse_deque;
+    std::deque<ParseNode*> working_parse_deque;
+
     list<int> working_stack_types; // For debugging.
 
     // Open the file with the lexer.
     lexer.openFile(fileName);
 
+    ParseNode *start_node = nullptr; //new ParseNode("Start");
+
     // Push starting state onto the stack.
     working_stack.push(Token(start_production, 0));
+    working_parse_deque.push_front(start_node);
     working_stack_types.push_back(start_production); // For debugging.
 
-    while (true) {
+    int count = 0;
+    bool accept = false;
+    for ( ; !accept; ++count) {
+
+      //****
+      cout << "Step: " << count << endl;
+      //****
+
       // Refill incoming_deque.
-      if (incoming_deque.empty() && !lexer.isEOF()) {
+      if (incoming_deque.empty()) {
         Token tok = lexer.getNext();
         incoming_deque.push_back(tok);
+        incoming_parse_deque.push_back(new ParseNode(tok.literal)); // For now, use literal.
+
+        //****
+        cout << "Getting token: " << tok.type << ", Literal: [" << tok.literal << "]\n";
+        //****
       }
 
       int state = working_stack.top().state;
       int incoming_symbol = incoming_deque.front().type;
       
       if (incoming_symbol<0 || total_symbols<=incoming_symbol) {
-        cout << "ERROR - bad symbol: " << incoming_symbol << ". Exiting.\n";
-        return false;
+        cout << "ERROR - bad symbol: " << incoming_symbol << ", Literal: [" << incoming_deque.front().literal << "]. Exiting.\n";
+        break;
       }
 
+      //****
       cout << "State: " << working_stack.top().state << " : input = " << incoming_deque.front().type << endl;
       for (auto ty : working_stack_types) cout << ty << " ";
       cout << " | ";
       cout << incoming_deque.front().type << endl;
+      //****
 
       // Get action from the parse table.
       Entry action = parse_table[state][incoming_symbol];
-
       Token transfer = incoming_deque.front();
-      
 
       // If shift
       if (action.isShift()) {
@@ -129,45 +151,69 @@ namespace Manta {
         incoming_deque.pop_front();    // Pop off the incoming stack... 
         working_stack.push(transfer);  // and shift onto the working stack.
         working_stack_types.push_back(transfer.type); // For debugging.
+        
+        // Shift ParseNode
+        working_parse_deque.push_front(incoming_parse_deque.front());
+        incoming_parse_deque.pop_front();
 
+        //****
         cout << "Shift. State is now " << action.state << "\n";
+        //****
       }
       else if (action.isReduce()) {
         int size = action.rule.size();
         int production = action.rule.production;
         // Put (newly reduced) production onto the input statck.
         incoming_deque.push_front(Token(production, ""));
+
+        ParseNode *production_node = new ParseNode(inverse_production_map.find(production)->second);
+
+        incoming_parse_deque.push_front(production_node);
         for (int i=0; i<size; ++i) {
+
+          production_node->add(working_parse_deque.front());
+          working_parse_deque.pop_front();
+
           working_stack.pop();
           working_stack_types.pop_back(); // For debugging.
         }
 
+        //****
         cout << "Reduce by " << size << ". Reduce to a " << production << " (via " << action.rule << ").\n";
+        //****
       }
       else if (action.isAccept()) {
-        cout << "ACCEPT!\n\n";
-        return true;
+        // Set start node to be the parsed program.
+        start_node = incoming_parse_deque.front();
+        incoming_parse_deque.pop_front();
+        // Set accept to true.
+        accept = true;
+
+        //****
+        cout << "ACCEPT!\n";
+        //****
       }
       else if (action.isError()) {
         cout << "ERROR! Exiting.\n\n";
-        exit(0);
+        break;
       }
 
-      cout << "Working stack size: " << working_stack.size() << endl;
-
-
+      //****
       cout << endl;
-
-      /*
-      // EXIT for now.
-      if (lexer.isEOF() && incoming_deque.empty()) {
-        cout << "We be here." << endl;
-        return true;
-      }
-      */
+      //****
     }
 
-    return true;
+    // Clean up incoming_parse_deque, which shouldn't contain any parse nodes we need.
+    for (auto p : incoming_parse_deque) delete p;
+
+    // If the parser accepted, return the AST node
+    if (accept) return start_node;
+    else {
+      // Clean up.
+      if (start_node) delete start_node;
+      for (auto p : working_parse_deque) delete p;
+      return nullptr;
+    }
   }
 
   //! \brief Pretty print the transition table.
@@ -381,12 +427,15 @@ namespace Manta {
     total_symbols = lids + production_map.size();
   }
 
-  void LALRGenerator::computeLR0() {
+  bool LALRGenerator::computeLR0() {
+    status = true;
+
     // Find productions for the state state.
     auto st = productions_for.find(start_production);
     if (st==productions_for.end()) {
       cout << "Error - could not find productions for the start state.\n";
-      exit(0);
+      status = false;
+      return status;
     }
     
     // I can't figure out why the compiler insists on using const objects here, so here's a hacky work around.
@@ -394,13 +443,17 @@ namespace Manta {
     startItems.zero_bookmarks();
 
     // Add the start state.
+    work_list.clear();
     addState(startItems);
     // Go through the work list untill it is empty.
-    while (!work_list.empty()) {
+    while (!work_list.empty() && status) {
       int s = work_list.front();
       work_list.pop_front();
       computeGoto(s);
     }
+
+    // Return success.
+    return status;
   }
 
   int LALRGenerator::addState(State items) {
@@ -432,7 +485,7 @@ namespace Manta {
   } 
 
   State LALRGenerator::closure(int s) {
-    // Initialize ans
+    // Initialize ans.
     State ans = all_states[s];
     int prev_size = 0;
 
@@ -496,7 +549,10 @@ namespace Manta {
       parse_table[state][symbol] = action; // <- action
     else {
       cout << "Error - Entry already exists!!!\n";
-      exit(0);
+      cout << "State: " << state << ", Symbol: " << symbol << ". Old entry: " << parse_table[state][symbol];
+      cout << ", " << " New entry: " << action << endl;
+
+      status = false;
     }
   }
 

@@ -68,8 +68,6 @@ namespace Manta {
     set<Item> item_set;
   };
 
-  
-
   //! \brief Table entry.
   //!
   //! Actions
@@ -93,6 +91,8 @@ namespace Manta {
     bool isAccept() const;
 
     string write(int length) const;
+
+    friend ostream& operator << (ostream&, const Entry&);
 
     //! \brief The action.
     int action = 0;

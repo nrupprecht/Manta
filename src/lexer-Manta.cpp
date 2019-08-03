@@ -5,6 +5,8 @@ namespace Manta {
   Lexer::Lexer() {
     // Unused by default.
     for (int i=0; i<5; ++i) built_in_token[i] = -1;
+    // Always use EOF.
+    built_in_token[next_lexeme_id++] = 0;
   }
   
   Token Lexer::getNext() {
@@ -26,6 +28,8 @@ namespace Manta {
           acc.push_back(c);
           instream.get(c);
         } while (!instream.eof() && (isdigit(c) || c=='.'));
+        // Return the last token.
+        if (!instream.eof()) instream.putback(c);
         // Return a number token.
         return Token(built_in_token[2], acc);
       }
@@ -36,6 +40,7 @@ namespace Manta {
           acc.push_back(c);
           instream.get(c);
         } while (!instream.eof() && (isalpha(c) || c=='_'));
+        instream.putback(c);
 
         auto key = reserved_words.find(acc);
         if (key!=reserved_words.end()) return Token(key->second, acc);
@@ -46,7 +51,9 @@ namespace Manta {
         do {
           acc.push_back(c);
           instream.get(c);
-        } while (!instream.eof() && !isdigit(c) && !isspace(c) && !isalpha(c));
+        } while (!instream.eof() && !isdigit(c) && !isspace(c) && !isalpha(c) && isOperatorPrefix(acc+c));
+        // Return the last token.
+        if (!instream.eof()) instream.putback(c);
         // Returns an operator token.
         auto op = reserved_operators.find(acc);
         if (op!=reserved_operators.end()) return Token(op->second, acc);
@@ -54,7 +61,8 @@ namespace Manta {
       }
     }
 
-    return Token(built_in_token[0], "");
+    // Return EOF
+    return Token(built_in_token[0], "@eof");
   }
 
   bool Lexer::openFile(const string& fileName) {
@@ -141,6 +149,18 @@ namespace Manta {
 
   bool Lexer::isEOF() const {
     return instream.eof();
+  }
+
+  bool Lexer::isOperatorPrefix(const string& opstring) {
+    for (const auto & res : reserved_operators) {
+      const string &op = res.first;
+      if (op.size()<opstring.size()) continue;
+      bool match = true;
+      for (int i=0; i<opstring.size(); ++i)
+        if (op[i]!=opstring[i]) match = false;
+      if (match) return true;
+    }
+    return false;
   }
 
 }

@@ -124,7 +124,7 @@ namespace Manta {
         break;
       }
       case 2: {
-        str = "R";;
+        str = "R";
         break;
       }
       case 3: {
@@ -138,6 +138,34 @@ namespace Manta {
     }
     // Make sure the string is of the correct length.
     return buffered(str, 4);
+  }
+
+
+  ostream& operator << (ostream& out, const Entry& entry) {
+    switch (entry.action) {
+      case 0: {
+        out << "x";
+        break;
+      }
+      case 1: {
+        out << "S: " << entry.state;
+        break;
+      }
+      case 2: {
+        out << "R: " << entry.rule;
+        break;
+      }
+      case 3: {
+        out << "A";
+        break;
+      }
+      default: {
+        cout << "[Bad Entry]";
+        break;
+      }
+    }
+
+    return out;
   }
 
 }

@@ -8,9 +8,17 @@ int main(int argc, char** argv) {
   // Test CC
 
   LALRGenerator generator;
-  generator.parseDescription("src/simple-rules.txt");
+  bool success = generator.parseDescription("src/simple-rules.txt");
 
-  generator.parseCodeFile("src/code-ex.txt");
+  if (success) {
+    cout << "Description parse successful.\n\n";
+    ParseNode *program = generator.parseCodeFile("src/code-ex.txt");
+
+    cout << "Program:\n" << *program << endl;
+  }
+  else {
+    cout << "Failure." << endl;
+  }
 
   return 0;
 }

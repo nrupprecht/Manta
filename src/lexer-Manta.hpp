@@ -78,6 +78,9 @@ namespace Manta {
     bool isEOF() const;
 
   private:
+
+    bool isOperatorPrefix(const string&);
+
     //! \brief Input stream.
     std::ifstream instream;
 
