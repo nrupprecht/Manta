@@ -32,12 +32,12 @@ namespace Manta {
   };
 
   // Tokens IDs:
-  //   0 -> End of file @eof.
-  //   1 -> Newline @newline.
-  //   2 -> Number @number.
-  //   3 -> String (generic) @identifier.
-  //   4 -> Operator (generic) @operator.
-  //   5 <=  -> Reserved operators or keywords.
+  //  @eof - End of file.
+  //  @newline -> Newline.
+  //  @number -> Number.
+  //  @identifier -> String (generic).
+  //  @operator -> Operator (generic).
+  //  @string -> String, "..."
   class Lexer {
   public:
     //! \brief Default constructor.
@@ -77,9 +77,22 @@ namespace Manta {
     //! \brief Is the instream at EOF.
     bool isEOF() const;
 
-  private:
+    int getLine() const { return line; }
 
+    int getCharacter() const { return character; }
+
+  private:
+    //! \brief Is this string the prefix to any reserved operator?
     bool isOperatorPrefix(const string&);
+
+    //! \brief Get a character from the instream, keeping track of the line and character pointers.
+    void get(char&);
+
+    //! \brief Put back a character into instream, keeping track of the line and character pointers.
+    void putback(char c);
+
+    //! \brief Keep track of what line and character (in the line) of the file we are in.
+    int line = 1, character = 1;
 
     //! \brief Input stream.
     std::ifstream instream;
@@ -93,7 +106,7 @@ namespace Manta {
     map<int, string> inverse_map;
 
     //! \brief The int values for the built in tokens. A -1 value means they are not needed.
-    int built_in_token[5];
+    int built_in_token[6];
 
     //! \brief The number that should be assigned to the next lexeme.
     int next_lexeme_id = 0;

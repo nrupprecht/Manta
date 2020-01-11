@@ -11,29 +11,94 @@ namespace Manta {
   struct ParseNode {
     ParseNode(string d) : designator(d) {};
 
+    ParseNode(string d, ParseNode* p) : designator(d), parent(p) {};
+
+    ParseNode(const ParseNode& node) {
+      *this = node;
+    }
+
+    ParseNode& operator=(const ParseNode& node) {
+      designator = node.designator;
+      parent = node.parent;
+      for (auto child : node.children) {
+        ParseNode *new_child = new ParseNode("");
+        *new_child = *child;
+        new_child->parent = this;
+        children.push_back(new_child);
+      }
+      return *this;
+    }
+
     ~ParseNode() {
       for (auto child : children) delete child;
       children.clear();
     }
 
+    inline void add(const string& str) {
+      children.push_back(new ParseNode(str, this));
+    }
+
     inline void add(ParseNode *c) {
+      c->parent = this;
       children.push_back(c);
     }
 
     friend ostream& operator << (ostream& out, const ParseNode& node) {
-      out << "[ " << node.designator;
+      // Make sure we dont print actual newlines or things like that.
+      string alias = node.designator;
+      if      (alias=="\n") alias = "\\n";
+      else if (alias=="\t") alias = "\\t";
+
+      // Print out node.
+      out << "[ " << alias;
       int size = node.children.size();
       if (0<size) {
         out << ": {";
+        //for (int i=size-1; i>=0; --i) {
         for (int i=0; i<size; ++i) {
           out << *node.children[i];
-          if (i!=size-1) out << ", ";
+          if (i!=0) out << ", ";
         }
         out << "}";
       }
       out << " ]";
       // Return the stream.
       return out;
+    }
+
+    string printTerminals() {
+      // If this is a terminal.
+      if (children.empty()) {
+        string alias = designator;
+        if      (alias=="\n") alias = "\\n";
+        else if (alias=="\t") alias = "\\t";
+        return alias + " ";
+      }
+      // If this is a production.
+      string str;
+      //for (auto it = children.rbegin(); it!=children.rend(); ++it)
+      for (auto it = children.begin(); it!=children.end(); ++it)
+        str += (*it)->printTerminals();
+      // Return.
+      return str;
+    }
+
+    string printTree(int level=0) {
+      string str;
+      string alias = designator;
+      if      (alias=="\n") alias = "\\n";
+      else if (alias=="\t") alias = "\\t";
+      str += repeat('|', level) + alias;
+      if (!children.empty()) {
+        str += '\n';
+        //for (int i=children.size()-1; 0<=i; --i) {
+        for (int i=0; i<children.size(); ++i) {
+          str += children[i]->printTree(level+1);
+          if (i!=children.size()-1) str += "\n";
+        }
+      }
+      // Return the string.
+      return str;
     }
 
     //! Node label.
@@ -61,10 +126,13 @@ namespace Manta {
     //! \brief Pretty print the transition table.
     string printTable();
 
+    //! \brief Get the parse trace string.
+    string getParseTrace();
+
   private:
     inline void getProductions(std::ifstream&, int);
 
-    inline void getInstructions(std::ifstream&, int);
+    inline ParseNode* getInstructions(std::ifstream&, int);
 
     inline int registerProduction(const string&);
 
@@ -130,6 +198,9 @@ namespace Manta {
 
     //! \brief A flag that should be set to false if something fails.
     bool status = true;
+
+    //! \brief A string that records the history of the parse.
+    string parse_trace;
   };
 
 }

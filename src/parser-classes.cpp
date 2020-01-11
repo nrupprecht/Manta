@@ -1,4 +1,6 @@
 #include "parser-classes.hpp"
+// Other files
+#include "LALR-Manta.hpp"
 
 namespace Manta {
 
@@ -8,15 +10,57 @@ namespace Manta {
 
   Item::Item() : production(-1), bookmark(-1) {};
 
-  void Item::add(int r) { rhs.push_back(r); }
+  Item::Item(const Item& item) {
+    *this = item;
+  }
+
+  Item::Item(Item&& item) {
+    *this = item;
+  }
+
+  Item& Item::operator=(const Item& item) {
+    production = item.production;
+    rhs = std::move(item.rhs);
+    bookmark = item.bookmark;
+    if (item.instructions) {
+      instructions = new ParseNode("");
+      *instructions = *item.instructions;
+    }
+    return *this;
+  }
+
+  Item& Item::operator=(Item&& item) {
+    production = item.production;
+    rhs = std::move(item.rhs);
+    bookmark = item.bookmark;
+    instructions = item.instructions;
+    item.instructions = nullptr;
+    return *this;
+  }
+
+  Item::~Item() {
+    if (instructions) delete instructions;
+  }
+
+  void Item::add(int r) { 
+    rhs.push_back(r); 
+  }
  
-  int Item::at(int i) { return rhs.at(i); }
+  int Item::at(int i) { 
+    return rhs.at(i); 
+  }
  
-  int Item::at(int i) const { return rhs.at(i); }
+  int Item::at(int i) const { 
+    return rhs.at(i); 
+  }
  
-  int Item::size() const { return rhs.size(); }
+  int Item::size() const { 
+    return rhs.size(); 
+  }
  
-  void Item::endBookmark() const { bookmark = rhs.size(); }
+  void Item::endBookmark() const { 
+    bookmark = rhs.size(); 
+  }
 
   bool operator < (const Item& a, const Item& b) {
     return a.production<b.production || a.bookmark<b.bookmark || less_than(a.rhs, b.rhs);
@@ -34,6 +78,20 @@ namespace Manta {
     if (item.bookmark<0) out << "[*] ";
     else if (item.bookmark==item.size()) out << "* ";
     return out;
+  }
+
+  string toString(const Item& item) {
+    stringstream out;
+    string str;
+    out << item.production << " -> ";
+    for (int i=0; i<item.size() ; ++i) {
+      if (i==item.bookmark) out << "* ";
+      out << item.rhs[i] << " ";
+    }
+    if (item.bookmark<0) out << "[*] ";
+    else if (item.bookmark==item.size()) out << "* ";
+    out >> str;
+    return str;
   }
 
   void State::insert(const Item& item) {
@@ -68,17 +126,29 @@ namespace Manta {
     return out;
   }
  
-  int State::size() const { return item_set.size(); }
+  int State::size() const { 
+    return item_set.size(); 
+  }
  
-  bool State::empty() const { return item_set.empty(); }
+  bool State::empty() const { 
+    return item_set.empty(); 
+  }
  
-  set<Item>::iterator State::begin() { return item_set.begin(); }
+  set<Item>::iterator State::begin() { 
+    return item_set.begin(); 
+  }
  
-  set<Item>::iterator State::end() { return item_set.end(); }
+  set<Item>::iterator State::end() { 
+    return item_set.end(); 
+  }
  
-  set<Item>::iterator State::begin() const { return item_set.begin(); }
+  set<Item>::iterator State::begin() const { 
+    return item_set.begin(); 
+  }
  
-  set<Item>::iterator State::end() const { return item_set.end(); }
+  set<Item>::iterator State::end() const { 
+    return item_set.end(); 
+  }
  
   set<Item>::iterator State::find(const Item& item) { 
     return item_set.find(item); 
@@ -139,8 +209,7 @@ namespace Manta {
     // Make sure the string is of the correct length.
     return buffered(str, 4);
   }
-
-
+  
   ostream& operator << (ostream& out, const Entry& entry) {
     switch (entry.action) {
       case 0: {

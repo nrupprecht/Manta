@@ -9,11 +9,22 @@ namespace Manta {
   //!
   //! A state is a set of state items.
   struct Item {
-    Item(int p);
-    Item(int p, int b);
+    Item(int);
+    Item(int, int);
 
     //! \brief Create an empty item.
     Item();
+
+    Item(const Item& item);
+
+    Item(Item&& item);
+
+    Item& operator=(const Item& item);
+
+    Item& operator=(Item&& item);
+
+    //! \brief Destructor.
+    ~Item();
 
     void add(int r);
     int at(int i);
@@ -23,8 +34,10 @@ namespace Manta {
 
     friend bool operator < (const Item& a, const Item& b);
     friend bool operator == (const Item& a, const Item& b);
+    friend ostream& operator << (ostream& out, const Item& item);
+    friend string toString(const Item&);
 
-    friend ostream& operator<<(ostream& out, const Item& item);
+    // --- Data items ---
 
     //! \brief The production this is a rule for.
     int production;
@@ -38,6 +51,9 @@ namespace Manta {
     //! A -1 means no bookmark, this is used when an item is being used to encode a pure production,
     //! not a state item.
     mutable int bookmark = 0;
+
+    //! \brief 
+    class ParseNode *instructions = nullptr;
   };
 
   //! \brief Define a state to be a set of Items, with some extra features for convenience.

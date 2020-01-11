@@ -56,6 +56,15 @@ namespace Manta {
     return str;
   }
 
+  // \todo Change this to atoi or somthing related.
+  template<typename T> inline int toInt(const T x) {
+    stringstream stream;
+    stream << x;
+    int y;
+    stream >> y;
+    return y;
+  }
+
   // Less than comparison for vectors.
   template<typename T>
   inline bool less_than(const vector<T> &a, const vector<T> &b) {
