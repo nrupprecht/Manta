@@ -11,6 +11,16 @@ namespace Manta {
         built_in_token[next_lexeme_id++] = 0;
     }
 
+    Lexer::Lexer(const Lexer& lexer) {
+        reserved_words = lexer.reserved_words;
+        reserved_operators = lexer.reserved_operators;
+        inverse_map = lexer.inverse_map;
+        for (int i = 0; i < 6; ++i) {
+            built_in_token[i] = lexer.built_in_token[i];
+        }
+        next_lexeme_id = lexer.next_lexeme_id;
+    }
+
     Token Lexer::getNext() {
         char c;
         std::string acc;

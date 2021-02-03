@@ -59,6 +59,7 @@ namespace Manta {
 
     //! \brief Define a state to be a set of Items, with some extra features for convenience.
     struct State {
+        State() = default;
 
         void insert(const Item& item);
 

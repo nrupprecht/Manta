@@ -1,32 +1,32 @@
 
-#include "LALR-Manta.hpp"
-#include "LexerGenerator.h"
 
+#include "LexerGenerator.h"
 #include "LexerDFA.hpp"
+
+#include "ParserGenerator.h"
+#include "LALR-Manta.hpp"
 
 using namespace Manta;
 
 void testParser(const string& rulesFilepath, const string& codeFilepath) {
     // Parser
-    LALRGenerator generator;
-
+    ParserGenerator generator;
     std::cout << "Parsing rules from \"" << rulesFilepath << "\"\n";
-
-    bool success = generator.parseDescription(rulesFilepath);
-    if (success) {
+    auto parser = generator.createParserFromFile(rulesFilepath);
+    if (parser) {
         // Print out the transition table.
-        cout << generator.printTable() << endl << endl;
-        cout << "Description parse successful.\n\n";
-        auto program = generator.parseCodeFile(codeFilepath);
+        std::cout << parser->printTable() << endl << endl;
+        std::cout << "Description parse successful.\n\n";
+        auto program = parser->parseCodeFile(codeFilepath);
         if (program) {
-            cout << program->printTree() << endl;
+            std::cout << program->printTree() << endl;
         }
         else {
-            cout << "Failure. Printing parse trace:\n";
-            cout << generator.getParseTrace() << endl;
+            std::cout << "Failure. Printing parse trace:\n";
+            std::cout << parser->getParseTrace() << endl;
         }
     }
-    else cout << "Failure." << endl;
+    else std::cout << "Failure." << endl;
 }
 
 int main(int argc, char** argv) {
@@ -36,11 +36,11 @@ int main(int argc, char** argv) {
     gen.add_reserved("float");
     gen.add_reserved("string");
     auto lexer = gen.create_lexer("../config/lexer-description.txt");
-    
+
     lexer->set_string_to_parse("hello 123 +234.3\nWorld! \n int x, ++x,   string str = \"hi guys\"\n\n");
 
     if (0 <= lexer->accepts_empty()) {
-        cout << "\nAccepts empty: " << lexer->lexeme_name(lexer->accepts_empty()) << "\n\n";
+        std::cout << "\nAccepts empty: " << lexer->lexeme_name(lexer->accepts_empty()) << "\n\n";
     }
 
     bool continuing_possible = true;

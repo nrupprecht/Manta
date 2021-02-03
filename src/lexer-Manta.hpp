@@ -53,6 +53,8 @@ namespace Manta {
         //! \brief Default constructor.
         Lexer();
 
+        Lexer(const Lexer& lexer);
+
         //! \brief Get the next token from the instream
         Token getNext();
 
@@ -117,7 +119,7 @@ namespace Manta {
         std::map<int, string> inverse_map;
 
         //! \brief The int values for the built in tokens. A -1 value means they are not needed.
-        int built_in_token[6];
+        int built_in_token[6]{};
 
         //! \brief The number that should be assigned to the next lexeme.
         int next_lexeme_id = 0;
