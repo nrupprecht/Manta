@@ -6,155 +6,168 @@
 #include <istream>
 
 #include <set>
-using std::set;
-
-using std::make_pair;
-using std::tuple;
-using std::get;
-using std::make_tuple;
+#include <utility>
+#include "istream_container.hpp"
 
 namespace Manta {
 
-  //! \brief Helper function that checks whether a set contains a value.
-  template<typename T> inline bool set_contains(set<T> &container, T &value) {
-    return std::find(container.begin(), container.end(), value)!=container.end();
-  }
+    //! \brief Helper function that checks whether a set contains a value.
+    template<typename T> inline bool set_contains(std::set<T> &container, T &value) {
+        return std::find(container.begin(), container.end(), value)!=container.end();
+    }
 
-  //! \brief Print out a set.
-  inline void print(set<int> &container) {
-    cout << "{ ";
-    for (int s : container) cout << s << " ";
-    cout << "}";
-  }
+    //! \brief Print out a set.
+    inline void print(std::set<int> &container) {
+        std::cout << "{ ";
+        for (int s : container) {
+            std::cout << s << " ";
+        }
+        std::cout << "}";
+    }
 
-  //! \brief A structure that represents a transition between FiniteAutomatonNodes in a FiniteAutomaton.
-  struct TransitionType {
-    //! \brief Create a transition, specifying all its data.
-    TransitionType(unsigned ts, char ri, char rf) : transition_state(ts), range_initial(ri), range_final(rf) {};
-    //! \brief Single character transition.
-    TransitionType(unsigned ts, char c) : transition_state(ts), range_initial(c), range_final(c) {};
-    //! \brief Create a lambda transition.
-    TransitionType(unsigned ts) : transition_state(ts), range_initial(1), range_final(0) {};
+    //! \brief A structure that represents a transition between FiniteAutomatonNodes in a FiniteAutomaton.
+    struct TransitionType {
+        //! \brief Create a transition, specifying all its data.
+        TransitionType(unsigned ts, char ri, char rf) : transition_state(ts), range_initial(ri), range_final(rf) {};
 
-    //! \brief The state this transition leads to.
-    unsigned transition_state;
-    //! \brief The initial and final characters in the range.
+        //! \brief Single character transition.
+        TransitionType(unsigned ts, char c) : transition_state(ts), range_initial(c), range_final(c) {};
+
+        //! \brief Create a lambda transition.
+        explicit TransitionType(unsigned ts) : transition_state(ts), range_initial(1), range_final(0) {};
+
+        //! \brief The state this transition leads to.
+        unsigned transition_state;
+
+        //! \brief The initial and final characters in the range.
+        //!
+        //! While in NFA mode, range_final < range_initial represents a lambda transition.
+        char range_initial, range_final;
+
+        //! \brief Whether to accept the character or not.
+        bool accept(const char c) const { return (range_initial<=c && c<=range_final) || range_final<range_initial; }
+
+        //! \brief Return whether this is a lambda (null) transition.
+        bool lambda() const { return range_final < range_initial; }
+    };
+
+    //! \brief A structure that represents a FiniteAutomaton node.
+    struct FiniteAutomatonNode {
+        FiniteAutomatonNode (std::vector<TransitionType> t, int accepting)
+            : transitions(std::move(t)), accepting_state(accepting) {};
+
+        explicit FiniteAutomatonNode(int accepting) : accepting_state(accepting) {};
+
+        FiniteAutomatonNode() = default;
+
+        //! \brief Will this character cause a transition.
+        bool accept(char c) const;
+
+        //! \brief Print a representation of this node.
+        void print() const;
+
+        //! \brief Possible transition to other nodes in the FiniteAutomaton.
+        vector<TransitionType> transitions;
+
+        //! \brief Is this an accepting state. If not, this is -1.
+        //!
+        //! The FiniteAutomaton should have at most one accepting lexeme per node.
+        int accepting_state = -1;
+    };
+
+    //! \brief A class that acts as a finite automaton.
     //!
-    //! While in NFA mode, range_final < range_initial represents a lambda transition.
-    char range_initial, range_final;
+    //! Creates an NFA from a specification in a file, then converts the NFA to a DFA.
+    class FiniteAutomaton {
+    public:
+        //! \brief Set the istream.
+        void set_stream(std::istream&);
+        void set_stream(istream_container&);
 
-    //! \brief Whether to accept the character or not.
-    bool accept(const char c) const { return (range_initial<=c && c<=range_final) || range_final<range_initial; }
-    //! \brief Return whether this is a lambda (null) transition.
-    bool lambda() const { return range_final<range_initial; }
-  };
+        //! \brief Get the next token.
+        Token get_token();
 
-  //! \brief A structure that represents a FiniteAutomaton node.
-  struct FiniteAutomatonNode {
-    FiniteAutomatonNode (vector<TransitionType> t, int accepting) : transitions(t), accepting_state(accepting) {};
-    FiniteAutomatonNode(int accepting) : accepting_state(accepting) {};
-    FiniteAutomatonNode() {};
+        //! \brief Return a FiniteAutomaton from this (assumed to be) NFA.
+        FiniteAutomaton nfa_to_dfa();
 
-    //! \brief Will this character cause a transition.
-    bool accept(const char c) const;
+        //! \brief Return the number of nodes in the FiniteAutomaton.
+        int size() const;
 
-    //! \brief Print a representation of this node.
-    void print() const;
+        //! \brief Add a specific node to the FiniteAutomaton, return the node id.
+        int add_node(const FiniteAutomatonNode&);
+        //! \brief Add an empty node to the FiniteAutomaton, return the node id.
+        int add_node();
 
-    //! \brief Possible transition to other nodes in the FiniteAutomaton.
-    vector<TransitionType> transitions;
+        //! \brief Add a transition object.
+        void add_transition(int, TransitionType);
+        //! \brief Add a char range transition.
+        void add_transition(int, int, char, char);
+        //! \brief Add a single char transition.
+        void add_transition(int, int, char);
+        //! \brief Add a lambda transition.
+        void add_transition(int, int);
 
-    //! \brief Is this an accepting state. If not, this is -1.
-    //!
-    //! The FiniteAutomaton should have at most one accepting lexeme per node.
-    int accepting_state = -1;
-  };
+        //! \brief Set a FiniteAutomaton node to have an accepting value.
+        void set_accepting(int, int);
 
-  //! \brief A class that acts as a finite automaton.
-  //!
-  //! Creates an NFA from a specification in a file, then converts the NFA to a DFA.
-  class FiniteAutomaton {
-  public:
-    //! \brief Set the istream.
-    void set_stream(std::istream&);
+        //! \brief Print a representation of the FiniteAutomaton.
+        void print() const;
 
-    //! \brief Get the next token.
-    Token get_token();
+        //! \brief Return the accepting state of a string.
+        int accepts(const std::string&) const;
 
-    //! \brief Return a FiniteAutomaton from this (assumed to be) NFA.
-    FiniteAutomaton nfa_to_dfa();
+        //! \brief Returns the accepting state of node 0.
+        int accepts_empty() const;
 
-    //! \brief Return the number of nodes in the FiniteAutomaton.
-    int size() const;
+        //! \brief Return true if there are any characters left to analyze.
+        bool any_remaining() const;
 
-    //! \brief Add a specific node to the FiniteAutomaton, return the node id.
-    int add_node(FiniteAutomatonNode);
-    //! \brief Add an empty node to the FiniteAutomaton, return the node id.
-    int add_node();
+        //! \brief Check the internal status of the parser.
+        //!
+        //! 0: normal, 1: did not accept, 2: instream is null.
+        int check_status() const;
 
-    //! \brief Add a transition object.
-    void add_transition(int, TransitionType);
-    //! \brief Add a char range transition.
-    void add_transition(int, int, char, char);
-    //! \brief Add a single char transition.
-    void add_transition(int, int, char);
-    //! \brief Add a lambda transition.
-    void add_transition(int, int);
+        //! \brief Peek at the next char in the stream.
+        char peek() const;
 
-    //! \brief Set a FiniteAutomaton node to have an accepting value.
-    void set_accepting(int, int);
+        //! \brief Clear all the states from the dfa.
+        void clear();
 
-    //! \brief Print a representation of the FiniteAutomaton.
-    void print() const;
+    private:
 
-    //! \brief Return the accepting state of a string.
-    int accepts(const string&) const;
+        inline bool will_accept(char c);
 
-    //! \brief Returns the accepting state of node 0.
-    int accepts_empty() const;
+        //! \brief Returns whether a state is either accepting, or lambda transitionable to an accepting state.
+        //! Returns the (first reachable) accepting state number if accepting, or -1 if not accepting.
+        inline int accepting_state_lambda(const unsigned);
 
-    //! \brief Return true if there are any characters left to analyze.
-    bool any_remaining() const;
+        inline void compute_goto(std::set<int>& state,
+                                 int state_id,
+                                 std::deque<pair<int, set<int>>>& working_stack,
+                                 std::vector<std::set<int>>& dfa_states,
+                                 FiniteAutomaton& dfa);
 
-    //! \brief Check the internal status of the parser.
-    //!
-    //! 0: normal, 1: did not accept, 2: instream is null.
-    int check_status() const;
+        inline void compute_transitions(int node_id,
+                                        std::map<int, std::vector<std::pair<char, char>>>& transition_ranges,
+                                        std::set<int>& lambda_set);
 
-    //! \brief Peek at the next char in the stream.
-    char peek() const;
+        inline void consolidate_ranges(vector<pair<char, char>>&);
 
-    //! \brief Clear all the states from the dfa.
-    void clear();
+        inline void create_transition_sets(std::map<int, std::vector<pair<char, char>>>& transition_ranges,
+                                           std::vector<std::tuple<set<int>, char, char>>& all_transition_sets);
 
-  private:
+        //! \brief Pointer to an istream. Could be a stringstream or an ifstream.
+        istream_container instream;
 
-    inline bool will_accept(char c);
+        //! \brief The current state of the FiniteAutomaton.
+        unsigned state_pointer = 0;
 
-    //! \brief Returns whether a state is either accepting, or lambda transitionable to an accepting state.
-    //! Returns the (first reachable) accepting state number if accepting, or -1 if not accepting.
-    inline int accepting_state_lambda(const unsigned);
+        //! \brief The zero-th node is the initial node.
+        std::vector<FiniteAutomatonNode> dfa_nodes;
 
-    inline void compute_goto(set<int>&, int, std::deque<pair<int, set<int> > >&, vector<set<int> >&, FiniteAutomaton&);
-
-    inline void compute_transitions(const int, map<int, vector<pair<char, char> > >&, set<int>&);
-
-    inline void consolidate_ranges(vector<pair<char, char> >&);
-
-    inline void create_transition_sets(map<int, vector<pair<char, char> > >&, vector<tuple<set<int>, char, char> >&);
-
-    //! \brief Pointer to an istream. Could be a stringstream or an ifstream.
-    std::istream *in = nullptr;
-
-    //! \brief The current state of the FiniteAutomaton.
-    unsigned state_pointer = 0;
-
-    //! \brief The zero-th node is the initial node.
-    vector<FiniteAutomatonNode> dfa_nodes;
-
-    //! \brief Status flag.
-    int status_flag = 0;
-  };
+        //! \brief Status flag.
+        int status_flag = 0;
+    };
 
 }
 #endif // __FiniteAutomaton_HPP__MANTA__

@@ -4,204 +4,217 @@
 // http://smlweb.cpsc.ucalgary.ca/start.html
 // https://web.cs.dal.ca/~sjackson/lalr1.html
 
+#include <utility>
+
 #include "parser-classes.hpp"
 
 namespace Manta {
 
-  struct ParseNode {
-    ParseNode(string d) : designator(d) {};
+    struct ParseNode : public std::enable_shared_from_this<ParseNode> {
+        explicit ParseNode(string d) : designator(std::move(d)) {};
 
-    ParseNode(string d, ParseNode* p) : designator(d), parent(p) {};
+        ParseNode(string d, std::shared_ptr<ParseNode> p)
+                : designator(std::move(d)), parent(std::move(p)) {};
 
-    ParseNode(const ParseNode& node) {
-      *this = node;
-    }
-
-    ParseNode& operator=(const ParseNode& node) {
-      designator = node.designator;
-      parent = node.parent;
-      for (auto child : node.children) {
-        ParseNode *new_child = new ParseNode("");
-        *new_child = *child;
-        new_child->parent = this;
-        children.push_back(new_child);
-      }
-      return *this;
-    }
-
-    ~ParseNode() {
-      for (auto child : children) delete child;
-      children.clear();
-    }
-
-    inline void add(const string& str) {
-      children.push_back(new ParseNode(str, this));
-    }
-
-    inline void add(ParseNode *c) {
-      c->parent = this;
-      children.push_back(c);
-    }
-
-    friend ostream& operator << (ostream& out, const ParseNode& node) {
-      // Make sure we dont print actual newlines or things like that.
-      string alias = node.designator;
-      if      (alias=="\n") alias = "\\n";
-      else if (alias=="\t") alias = "\\t";
-
-      // Print out node.
-      out << "[ " << alias;
-      int size = node.children.size();
-      if (0<size) {
-        out << ": {";
-        //for (int i=size-1; i>=0; --i) {
-        for (int i=0; i<size; ++i) {
-          out << *node.children[i];
-          if (i!=0) out << ", ";
+        ParseNode(const ParseNode& node) {
+            *this = node;
         }
-        out << "}";
-      }
-      out << " ]";
-      // Return the stream.
-      return out;
-    }
 
-    string printTerminals() {
-      // If this is a terminal.
-      if (children.empty()) {
-        string alias = designator;
-        if      (alias=="\n") alias = "\\n";
-        else if (alias=="\t") alias = "\\t";
-        return alias + " ";
-      }
-      // If this is a production.
-      string str;
-      //for (auto it = children.rbegin(); it!=children.rend(); ++it)
-      for (auto it = children.begin(); it!=children.end(); ++it)
-        str += (*it)->printTerminals();
-      // Return.
-      return str;
-    }
-
-    string printTree(int level=0) {
-      string str;
-      string alias = designator;
-      if      (alias=="\n") alias = "\\n";
-      else if (alias=="\t") alias = "\\t";
-      str += repeat('|', level) + alias;
-      if (!children.empty()) {
-        str += '\n';
-        //for (int i=children.size()-1; 0<=i; --i) {
-        for (int i=0; i<children.size(); ++i) {
-          str += children[i]->printTree(level+1);
-          if (i!=children.size()-1) str += "\n";
+        ParseNode& operator=(const ParseNode& node) {
+            designator = node.designator;
+            parent = node.parent;
+            for (const auto& child : node.children) {
+                auto new_child = std::make_shared<ParseNode>("");
+                *new_child = *child;
+                new_child->parent = shared_from_this();
+                children.push_back(new_child);
+            }
+            return *this;
         }
-      }
-      // Return the string.
-      return str;
-    }
 
-    //! Node label.
-    string designator;
+        inline void add(const string& str) {
+            children.push_back(std::make_shared<ParseNode>(str, shared_from_this()));
+        }
 
-    ParseNode* parent = nullptr;
-    vector<ParseNode*> children;
-  };
+        inline void add(const std::shared_ptr<ParseNode>& node) {
+            node->parent = shared_from_this();
+            children.push_back(node);
+        }
 
-  // Terminals can either be represented as literals (if they are reserved words or keywords)
-  // or by by %eof, %newline, %number, %string, or %operator.
-  // Productions are written with angled brackets, e.g. <declaration>
-  //   e.g. "for" <declaration> "in" <range> ":"
-  //   <range> ::= "[" %number "..." %number "]"
-  //   etc...
+        friend ostream& operator<<(ostream& out, const ParseNode& node) {
+            // Make sure we dont print actual newlines or things like that.
+            string alias = node.designator;
+            if      (alias=="\n") alias = "\\n";
+            else if (alias=="\t") alias = "\\t";
 
-  class LALRGenerator {
-  public:
-    //! \brief Parse a description of a grammer to create a parser.
-    bool parseDescription(const string&);
+            // Print out node.
+            out << "[ " << alias;
+            int size = node.children.size();
+            if (0<size) {
+                out << ": {";
+                for (int i = 0; i < size; ++i) {
+                    out << *node.children[i];
+                    if (i != 0) {
+                        out << ", ";
+                    }
+                }
+                out << "}";
+            }
+            out << " ]";
+            // Return the stream.
+            return out;
+        }
 
-    //! \brief Use the parser to parse the code in the file.
-    ParseNode* parseCodeFile(const string&);
+        std::string printTerminals() {
+            // If this is a terminal.
+            if (children.empty()) {
+                string alias = designator;
+                if      (alias=="\n") alias = "\\n";
+                else if (alias=="\t") alias = "\\t";
+                return alias + " ";
+            }
+            // If this is a production.
+            string str;
+            //for (auto it = children.rbegin(); it!=children.rend(); ++it)
+            for (auto & it : children) {
+                str += it->printTerminals();
+            }
+            // Return.
+            return str;
+        }
 
-    //! \brief Pretty print the transition table.
-    string printTable();
+        string printTree(int level=0) {
+            string str;
+            string alias = designator;
+            if      (alias=="\n") alias = "\\n";
+            else if (alias=="\t") alias = "\\t";
+            str += repeat('|', level) + alias;
+            if (!children.empty()) {
+                str += '\n';
+                //for (int i=children.size()-1; 0<=i; --i) {
+                for (int i=0; i<children.size(); ++i) {
+                    str += children[i]->printTree(level+1);
+                    if (i!=children.size()-1) str += "\n";
+                }
+            }
+            // Return the string.
+            return str;
+        }
 
-    //! \brief Get the parse trace string.
-    string getParseTrace();
+        //! Node label.
+        std::string designator;
 
-  private:
-    inline void getProductions(std::ifstream&, int);
+        std::shared_ptr<ParseNode> parent = nullptr;
+        vector<std::shared_ptr<ParseNode>> children;
+    };
 
-    inline ParseNode* getInstructions(std::ifstream&, int);
+    // Terminals can either be represented as literals (if they are reserved words or keywords)
+    // or by by %eof, %newline, %number, %string, or %operator.
 
-    inline int registerProduction(const string&);
+    class LALRGenerator {
+    public:
+        //! \brief Parse a description of a grammer to create a parser.
+        bool parseDescription(const string&);
 
-    //! \brief Shifts the production numbers from being negative to being positive numbers after the last lexer 
-    //! token number.
-    inline void shiftProductionNumbers();
+        bool parseDescription(std::istream& stream);
 
-    //! \brief A lexer.
-    Lexer lexer;
+        //! \brief Use the parser to parse the code in the file.
+        std::shared_ptr<ParseNode> parseCodeFile(const string&);
 
-    // Compute the LR0 table from the grammar.
-    bool computeLR0();
+        //! \brief Pretty print the transition table.
+        std::string printTable();
 
-    int addState(State);
-    void computeGoto(int);
-    State closure(int);
-    State advanceDot(const State&, int);
+        //! \brief Get the parse trace string.
+        std::string getParseTrace();
 
-    void completeTable();
-    void assertEntry(int, int, const Entry&);
-    void computeLookahead();
-    void tryRuleInState(int, Item);
+        class UnrecognizedSymbol;
 
-    //! \brief Trys to find a state in all_states. Returns -1 for failure.
-    inline int findState(State);
+    private:
+        inline void getProductions(std::istream&, int);
 
-    //! \brief Maps production names to production numbers.
-    map<string, int> production_map;
-    map<int, string> inverse_production_map;
+        inline std::shared_ptr<ParseNode> getInstructions(std::istream& fin, int pid);
 
-    //! \brief The number of terminals in the correspondence vector.
-    int num_productions = 0;
+        inline int registerProduction(const string&);
 
-    //! \brief The productions for each nonterminal. A State (here) is essentially a set of production rules.
-    map<int, State> productions_for;
+        //! \brief Shifts the production numbers from being negative to being positive numbers after the last lexer
+        //! token number.
+        inline void shiftProductionNumbers();
 
-    //! \brief All the productions.
-    vector<Item> all_productions;
+        //! \brief A lexer.
+        Lexer lexer;
 
-    //! \brief Which production start points to.
-    int start_production = 0;
+        // Compute the LR0 table from the grammar.
+        bool computeLR0();
 
-    //! \brief The total number of lexer ids plus production symbols. The number of columns in the parse_table.
-    int total_symbols = 0;
+        int addState(const State&);
+        void computeGoto(int);
+        State closure(int);
+        State advanceDot(const State&, int);
 
-    //! \brief The number to assign to the next production.
-    int next_production_number = -1;
+        void completeTable();
+        void assertEntry(int, int, const Entry&);
+        void computeLookahead();
+        void tryRuleInState(int, const Item&);
 
-    //! \brief The parse table. It is a vector so we can add new states.
-    //!
-    //! The pair is [ action, state ].
-    //! 0 - Error.
-    //! 1 - Shift.
-    //! 2 - Reduce.
-    //! 3 - Accept.
-    vector<vector<Entry> > parse_table;
+        //! \brief Trys to find a state in all_states. Returns -1 for failure.
+        inline int findState(const State&);
 
-    //! \brief All the different states.
-    vector<State> all_states;
+        //! \brief Maps production names to production numbers.
+        std::map<string, int> production_map;
+        std::map<int, string> inverse_production_map;
 
-    //! \brief Work list for creating table.
-    std::deque<int> work_list;
+        //! \brief The number of terminals in the correspondence vector.
+        int num_productions = 0;
 
-    //! \brief A flag that should be set to false if something fails.
-    bool status = true;
+        //! \brief The productions for each nonterminal. A State (here) is essentially a set of production rules.
+        std::map<int, State> productions_for;
 
-    //! \brief A string that records the history of the parse.
-    string parse_trace;
-  };
+        //! \brief All the productions.
+        std::vector<Item> all_productions;
+
+        //! \brief Which production start points to.
+        int start_production = 0;
+
+        //! \brief The total number of lexer ids plus production symbols. The number of columns in the parse_table.
+        int total_symbols = 0;
+
+        //! \brief The number to assign to the next production.
+        int next_production_number = -1;
+
+        //! \brief The parse table. It is a vector so we can add new states.
+        //!
+        //! The pair is [ action, state ].
+        //! 0 - Error.
+        //! 1 - Shift.
+        //! 2 - Reduce.
+        //! 3 - Accept.
+        std::vector<std::vector<Entry> > parse_table;
+
+        //! \brief All the different states.
+        std::vector<State> all_states;
+
+        //! \brief Work list for creating table.
+        std::deque<int> work_list;
+
+        //! \brief A flag that should be set to false if something fails.
+        bool status = true;
+
+        //! \brief A string that records the history of the parse.
+        std::string parse_trace;
+    };
+
+    class LALRGenerator::UnrecognizedSymbol : public std::exception {
+    public:
+        UnrecognizedSymbol(const std::string& symbol) {
+            message = "Unrecognized symbol: " + symbol;
+        }
+
+        const char* what() const noexcept override {
+            return message.c_str();
+        }
+    private:
+        std::string message;
+    };
 
 }
 #endif // __LALR_PARSER_GENERATOR_HPP__

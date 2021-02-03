@@ -34,22 +34,24 @@ using std::stringstream;
 
 namespace Manta {
 
-  template<typename T> inline bool contains(const set<T>& s, T el) {
+  template<typename T> inline bool contains(const set<T>& s, T&& el) {
     return s.find(el)!=s.end();
   }
 
-  inline bool prepends(const set<string>& s, string op) {
+  inline bool prepends(const set<string>& s, const std::string& op) {
     // Check if the string is the first part of any string in the set.
-    for (auto str : s) {
+    for (const auto& str : s) {
       int index = str.find(op);
-      if (index==0) return true;
+      if (index==0) {
+          return true;
+      }
     }
     // It wasn't.
     return false;
   }
 
-  template<typename T> inline string toString(const T x) {
-    stringstream stream;
+  template<typename T> inline string toString(T&& x) {
+    std::stringstream stream;
     stream << x;
     string str;
     stream >> str;
@@ -57,7 +59,7 @@ namespace Manta {
   }
 
   // \todo Change this to atoi or somthing related.
-  template<typename T> inline int toInt(const T x) {
+  template<typename T> inline int toInt(T&& x) {
     stringstream stream;
     stream << x;
     int y;
@@ -71,19 +73,28 @@ namespace Manta {
     // If the sizes are the same, compare in dictionary order.
     if (a.size()==b.size()) {
       for (int i=0; i<a.size(); ++i) {
-        if (a[i]==b[i]) continue;
-        else return a[i]<b[i];
+        if (a[i]==b[i]) {
+            continue;
+        }
+        else {
+            return a[i]<b[i];
+        }
       }
       // The vectors are equal.
       return false;
     }
     // Otherwise, the shorter vector is "lesser."
-    else return a.size()<b.size();
+    else {
+        return a.size() < b.size();
+    }
   }
 
   inline string repeat(char c, int length) {
-    string str;
-    for (int i=0; i<length; ++i) str += c;
+    std::string str;
+    str.reserve(length);
+    for (int i=0; i<length; ++i) {
+        str += c;
+    }
     return str;
   }
 
@@ -97,21 +108,21 @@ namespace Manta {
 
     int tens = 10;
     for (int j=1; j<length; ++j) {
-      if (ai<tens) {
+      if (ai < tens) {
         l += j;
         break;
       }
       tens *= 10;
     }
     // Put into a string.
-    string str = repeat(' ', length-l);
+    std::string str = repeat(' ', length-l);
     str += toString(i);
     // Return the string.
     return str;
   }
 
-  inline string buffered(string str, int length) {
-    return repeat(' ', max(length-str.size(), 0)) + str;
+  inline string buffered(const string& str, int length) {
+    return repeat(' ', max(length - str.size(), 0)) + str;
   }
 
 }
