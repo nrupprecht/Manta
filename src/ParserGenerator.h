@@ -12,18 +12,20 @@ namespace Manta {
     class ParserGenerator {
     public:
 
-        //! \brief Parse a description of a grammer to create a parser.
+        //! \brief Parse a description of a grammer from a file to create a parser.
         std::shared_ptr<class LALRParser> createParserFromFile(const std::string& filename);
-
+        //! \brief Parse a description of a grammer from an istream to create a parser.
         std::shared_ptr<class LALRParser> createParserFromStream(std::istream &stream);
 
+
+        std::string generateCodeFile();
     private:
 
-        inline void getProductions(std::istream &, int);
+        inline void getProductions(std::istream &in, int production_id);
 
         inline std::shared_ptr<ParseNode> getInstructions(std::istream &fin, int pid);
 
-        inline int registerProduction(const string &);
+        inline int registerProduction(const string &production);
 
         //! \brief Shifts the production numbers from being negative to being positive numbers after the last lexer
         //! token number.
@@ -97,6 +99,30 @@ namespace Manta {
         //! \brief A string that records the history of the parse.
         std::string parse_trace;
 
+        // ---- New entries to support user defined functions
+        std::vector<std::string> funcs;
+
+        std::vector<std::string> builtIns { "\tstd::string toChars(const std::string& str) {\n"
+                                            "\t\tstd::string out;\n"
+                                            "\t\tstd::for_each(str.begin(), str.end(), [&] (char c) {\n"
+                                            "\t\t\tif (c == '\\n') out += \"\\\\n\";\n"
+                                            "\t\t\telse if (c == '\"') out += \"\\\\\";\n"
+                                            "\t\t\telse if (c == '\\t') out += \"\\\\t\";\n"
+                                            "\t\t\telse out += c;\n"
+                                            "\t\t});\n"
+                                            "\t\treturn out;\n"
+                                            "\t}" };
+
+        std::string toChars(const std::string& str) {
+            std::string out;
+            std::for_each(str.begin(), str.end(), [&] (char c) {
+                if (c == '\n') out += "\\n";
+                else if (c == '\"') out += "\\\"";
+                else if (c == '\t') out += "\\t";
+                else out += c;
+            });
+            return out;
+        }
     };
 
 }

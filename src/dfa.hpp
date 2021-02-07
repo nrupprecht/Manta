@@ -12,8 +12,8 @@
 namespace Manta {
 
     //! \brief Helper function that checks whether a set contains a value.
-    template<typename T> inline bool set_contains(std::set<T> &container, T &value) {
-        return std::find(container.begin(), container.end(), value)!=container.end();
+    template<typename T> inline bool set_contains(const std::set<T>& container, const typename std::remove_cv<T>::type& value) {
+        return std::find(container.begin(), container.end(), value) != container.end();
     }
 
     //! \brief Print out a set.
@@ -53,10 +53,10 @@ namespace Manta {
 
     //! \brief A structure that represents a FiniteAutomaton node.
     struct FiniteAutomatonNode {
-        FiniteAutomatonNode (std::vector<TransitionType> t, int accepting)
-            : transitions(std::move(t)), accepting_state(accepting) {};
+        FiniteAutomatonNode (std::vector<TransitionType> t, int accepting, int prec = 1)
+            : transitions(std::move(t)), accepting_state(accepting), precedence(prec) {};
 
-        explicit FiniteAutomatonNode(int accepting) : accepting_state(accepting) {};
+        explicit FiniteAutomatonNode(int accepting, int prec = 1) : accepting_state(accepting), precedence(prec) {};
 
         FiniteAutomatonNode() = default;
 
@@ -73,6 +73,9 @@ namespace Manta {
         //!
         //! The FiniteAutomaton should have at most one accepting lexeme per node.
         int accepting_state = -1;
+
+        //! \brief The precedence of a state. This is used to resolve NDFA -> DFA conflicts.
+        int precedence = 1;
     };
 
     //! \brief A class that acts as a finite automaton.
@@ -94,21 +97,23 @@ namespace Manta {
         int size() const;
 
         //! \brief Add a specific node to the FiniteAutomaton, return the node id.
-        int add_node(const FiniteAutomatonNode&);
+        int add_node(const FiniteAutomatonNode& node);
         //! \brief Add an empty node to the FiniteAutomaton, return the node id.
         int add_node();
 
         //! \brief Add a transition object.
-        void add_transition(int, TransitionType);
+        void add_transition(int index, TransitionType type);
         //! \brief Add a char range transition.
-        void add_transition(int, int, char, char);
+        void add_transition(int source, int dest, char ci, char cf);
         //! \brief Add a single char transition.
-        void add_transition(int, int, char);
+        void add_transition(int source, int dest, char c);
         //! \brief Add a lambda transition.
-        void add_transition(int, int);
+        void add_transition(int source, int dest);
 
         //! \brief Set a FiniteAutomaton node to have an accepting value.
-        void set_accepting(int, int);
+        void set_accepting(int index, int value);
+
+        void set_precedence(int index, int precedence);
 
         //! \brief Print a representation of the FiniteAutomaton.
         void print() const;
@@ -135,11 +140,11 @@ namespace Manta {
 
     private:
 
-        inline bool will_accept(char c);
+        inline bool try_accept(char c);
 
         //! \brief Returns whether a state is either accepting, or lambda transitionable to an accepting state.
         //! Returns the (first reachable) accepting state number if accepting, or -1 if not accepting.
-        inline int accepting_state_lambda(const unsigned);
+        inline std::pair<int, int> accepting_state_lambda(unsigned);
 
         inline void compute_goto(std::set<int>& state,
                                  int state_id,
@@ -166,6 +171,10 @@ namespace Manta {
         std::vector<FiniteAutomatonNode> dfa_nodes;
 
         //! \brief Status flag.
+        //! 0 - All good.
+        //! 1 - Ended in non-accepting state.
+        //! 2 - Bad stream.
+        //! 3 - EOF (ended in accepting state after consuming EOF).
         int status_flag = 0;
     };
 

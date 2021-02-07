@@ -13,7 +13,7 @@ namespace Manta {
         void set_file_to_parse(const string&);
 
         //! \brief Set up the lexer to parse a string. Takes the string.
-        void set_string_to_parse(const string&);
+        void set_string_to_lex(const string&);
 
         // --- Helper functions.
 
@@ -22,6 +22,9 @@ namespace Manta {
 
         //! \brief Get the next token from the stream.
         Token get_token();
+
+        //! \brief Parse all the input.
+        std::vector<Token> lex_all();
 
         //! \brief Return the number of states in the underlying FiniteAutomaton.
         int size() const;
@@ -74,6 +77,17 @@ namespace Manta {
         //! \brief The underlying deterministic finite automaton used to do the parsing.
         FiniteAutomaton lexer_dfa;
     };
+
+
+    inline std::string lexAllToString(const std::shared_ptr<LexerDFA>& lexer) {
+        std::stringstream stream;
+        auto all_tokens = lexer->lex_all();
+        for (const auto& token : all_tokens) {
+            stream << "(" << lexer->lexeme_name(token.type) << " | \"" << clean(token.literal) << "\") ";
+        }
+        stream << "\nEnded in state " << lexer->check_status() << ".\n";
+        return stream.str();
+    }
 
 }
 #endif // __LEXER_DFA_HPP__MANTA__

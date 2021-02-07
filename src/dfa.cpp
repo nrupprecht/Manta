@@ -31,26 +31,46 @@ namespace Manta {
 
     //! \brief Get the next token.
     Token FiniteAutomaton::get_token() {
-        if (!instream.is_good()) {
+        if (!instream.is_good() || status_flag != 0) {
             status_flag = 2;
             return Token(-1, "");
         }
 
-        auto& in = instream.get_istream();
+        // If we have reached EOF, check if we accept EOF. In so, set the status to reflect this.
+        // If not, we cannot get any more tokens.
+        if (instream->eof()) {
+            if (try_accept('\0')) {
+                unsigned final_state = state_pointer;
+                state_pointer = 0; // Reset state pointer.
+                status_flag = 3; // We have reached and consumed EOF.
+                return Token(dfa_nodes[final_state].accepting_state, "\0");
+            }
+            else {
+                status_flag = 1;
+                return Token();
+            }
+        }
+
         // Store the literal string
         std::string literal;
         char c;
         auto get_char = [&] () {
-            if (in.eof()) c=char(0);
-            else in.get(c);
+            if (instream->eof()) {
+                c = char(0);
+            }
+            else {
+                instream->get(c);
+            }
         }; // Lambda function returns char(0) for eof.
         auto put_char = [&] () {
-            if (in.eof());
-            else in.putback(c);
+            if (instream->eof());
+            else {
+                instream->putback(c);
+            }
         };
         // Get characters as long as we can.
         get_char();
-        while (!in.eof() && will_accept(c)) {
+        while (!instream->eof() && try_accept(c)) {
             literal.push_back(c);
             get_char();
         }
@@ -67,7 +87,7 @@ namespace Manta {
             status_flag = 0;
             return Token(dfa_nodes[final_state].accepting_state, literal);
         }
-        else { // An error has occured.
+        else { // An error has occurred.
             status_flag = 1;
             return Token(-1, literal);
         }
@@ -87,7 +107,9 @@ namespace Manta {
         dfa.add_node();
         // If the node is accepting, or can make a lambda (null) transition to an accepting state,
         // this state (the initial state) is accepting.
-        dfa.dfa_nodes[0].accepting_state = accepting_state_lambda(0); // Node zero can also be accepting.
+        auto [state, precedence] = accepting_state_lambda(0); // Node zero can also be accepting.
+        dfa.dfa_nodes[0].accepting_state = state;
+        dfa.dfa_nodes[0].precedence = precedence;
 
         // Process the stack until it is empty.
         while (!working_stack.empty()) {
@@ -115,8 +137,8 @@ namespace Manta {
         return static_cast<int>(dfa_nodes.size()) - 1;
     }
 
-    void FiniteAutomaton::add_transition(int index, TransitionType trn) {
-        dfa_nodes[index].transitions.push_back(trn);
+    void FiniteAutomaton::add_transition(int index, TransitionType type) {
+        dfa_nodes[index].transitions.push_back(type);
     }
 
     void FiniteAutomaton::add_transition(int source, int dest, char ci, char cf) {
@@ -133,6 +155,10 @@ namespace Manta {
 
     void FiniteAutomaton::set_accepting(int index, int value) {
         dfa_nodes[index].accepting_state = value;
+    }
+
+    void FiniteAutomaton::set_precedence(int index, int precedence) {
+        dfa_nodes[index].precedence = precedence;
     }
 
     void FiniteAutomaton::print() const {
@@ -194,7 +220,7 @@ namespace Manta {
         dfa_nodes.clear();
     }
 
-    inline bool FiniteAutomaton::will_accept(char c) {
+    inline bool FiniteAutomaton::try_accept(char c) {
         auto& transitions = dfa_nodes[state_pointer].transitions;
         auto it = std::find_if(transitions.begin(), transitions.end(), [=](auto t) { return t.accept(c); });
         if (it != transitions.end()) {
@@ -204,15 +230,20 @@ namespace Manta {
         return false;
     }
 
-    inline int FiniteAutomaton::accepting_state_lambda(const unsigned index) {
+    inline std::pair<int, int> FiniteAutomaton::accepting_state_lambda(const unsigned index) {
         /// Determines whether the state accepts or can make a lambda (null) transition
-        /// to an accepting state.
+        /// to an accepting ssstate.
+
+        int accepting_state = -1, precedence = 0;
 
         // Check if the node itself is accepting.
         if (0 <= dfa_nodes[index].accepting_state) {
-            return dfa_nodes[index].accepting_state;
+            accepting_state = dfa_nodes[index].accepting_state;
+            precedence = dfa_nodes[index].precedence;
         }
-        // Check for lambda transitions.
+
+        // Check for lambda transitions. These could be of higher precedence than the accepting state
+        // of the node (if any).
         std::deque<unsigned> lambda_stack;
         std::set<unsigned> lambda_set;
         // This node is the initial entry in the lambda_stack/lambda_set.
@@ -221,11 +252,13 @@ namespace Manta {
         // Go through lambda stack.
         while (!lambda_stack.empty()) {
             unsigned node_id = lambda_stack.front();
-            // Check all transitions in the node
-            for (auto &transition : dfa_nodes[node_id].transitions) {
+            // Check all transitions in this node, looking for
+            for (const auto& transition : dfa_nodes[node_id].transitions) {
                 if (transition.lambda() && !set_contains(lambda_set, transition.transition_state)) {
-                    if (0 <= dfa_nodes[transition.transition_state].accepting_state) {
-                        return dfa_nodes[transition.transition_state].accepting_state;
+                    auto& node = dfa_nodes[transition.transition_state];
+                    if (0 <= node.accepting_state && precedence < node.precedence) {
+                        accepting_state = node.accepting_state;
+                        precedence = node.precedence;
                     }
                     // Add to stack.
                     lambda_stack.push_back(transition.transition_state);
@@ -236,7 +269,7 @@ namespace Manta {
         }
 
         // Not an accepting state, and not lambda transitionable to an accepting state.
-        return -1;
+        return std::make_pair(accepting_state, precedence);
     }
 
     inline void FiniteAutomaton::compute_goto(
@@ -277,25 +310,21 @@ namespace Manta {
                 // Get an id number for the new set.
                 unsigned new_state_id = dfa.size();
                 // Check whether the new set is accepting. Do this by checking whether any node in the set is accepting.
-                int accepting = -1;
+                int accepting = -1, best_precedence = 0;
                 for (auto node_id : transition_set) {
-                    int accepting_state = accepting_state_lambda(node_id);
-                    if (accepting_state!=-1) {
+                    auto [accepting_state, precedence] = accepting_state_lambda(node_id);
+                    if (accepting_state != -1) {
                         // If there is already a different accepting state, that is an error.
-                        if (accepting != -1 && accepting != accepting_state) {
-                            std::cout << "ERROR. Overlapping accepting states: " << accepting << " and "
-                                      << accepting_state << " for node " << new_state_id << endl;
+                        if (best_precedence < precedence) {
+                            accepting = accepting_state;
+                            best_precedence = precedence;
                         }
-                        // Set the accepting state.
-                        accepting = accepting_state;
                     }
                 }
                 // Add a state to the dfa.
-                dfa.add_node(FiniteAutomatonNode(accepting));
+                dfa.add_node(FiniteAutomatonNode(accepting, best_precedence));
                 // Add the transition from the current state (state_id) to the new state (new_state_id).
-                dfa.add_transition(state_id,
-                                   TransitionType {new_state_id, range_initial, range_final}
-                );
+                dfa.add_transition(state_id, TransitionType {new_state_id, range_initial, range_final});
                 dfa_states.push_back(transition_set);
                 // Add the new state to the working stack.
                 working_stack.emplace_back(new_state_id, transition_set);

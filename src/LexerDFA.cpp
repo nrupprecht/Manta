@@ -10,7 +10,7 @@ namespace Manta {
         }
     }
 
-    void LexerDFA::set_string_to_parse(const string& sentence) {
+    void LexerDFA::set_string_to_lex(const string& sentence) {
         auto instream = istream_container::stream_string(sentence);
         lexer_dfa.set_stream(instream);
     }
@@ -24,7 +24,7 @@ namespace Manta {
         do {
             tok = lexer_dfa.get_token();
             // Check status
-            if (check_status() != 0) {
+            if (check_status() != 0 && check_status() != 3) {
                 return Token();
             }
             // Process token.
@@ -40,6 +40,16 @@ namespace Manta {
         } while (any_remaining());
         // If we got here, there was a problem.
         return Token();
+    }
+
+    std::vector<Token> LexerDFA::lex_all() {
+        std::vector<Token> output;
+        Token tok = get_token();
+        while (!tok.isNull()) {
+            output.push_back(tok);
+            tok = get_token();
+        }
+        return output;
     }
 
     int LexerDFA::size() const {

@@ -22,19 +22,27 @@ namespace Manta {
         //! \brief Pretty print the transition table.
         std::string printTable();
 
+        static std::string printAsMathematica(const std::shared_ptr<ParseNode>& head);
+
         //! \brief Get the parse trace string.
         std::string getParseTrace();
 
         friend class ParserGenerator;
 
     private:
+        typedef const std::shared_ptr<ParseNode> Node;
+
+        void instruction_node(Node& self, Node& node) const;
+        void instruction_add(Node& self, Node& node) const;
+        void instruction_adopt(Node& self, Node& node) const;
+        void instruction_replace(Node& self, Node& node) const;
 
         LALRParser(std::map<int, string> inverse_production_map_,
                    int start_production_,
                    int total_symbols_,
                    std::vector<std::vector<Entry>> parse_table_,
                    std::vector<State> all_states_,
-                   Lexer lexer_)
+                   const Lexer& lexer_)
            : inverse_production_map(std::move(inverse_production_map_)), start_production(start_production_),
               total_symbols(total_symbols_), parse_table(std::move(parse_table_)), all_states(std::move(all_states_)),
               lexer(lexer_) {};

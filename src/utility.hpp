@@ -125,5 +125,17 @@ namespace Manta {
     return repeat(' ', max(length - str.size(), 0)) + str;
   }
 
+  inline string clean(const std::string& str) {
+      std::string output;
+      for (char c : str) {
+          if      (c == '\n') output += "\\n";
+          else if (c == '\t') output += "\\t";
+          else if (c == '\r') output += "\\r";
+          else if (c == '\0') output += "\\0";
+          else                output += c;
+      }
+      return output;
+  }
+
 }
 #endif // __UTILITY_HPP__MANTA__

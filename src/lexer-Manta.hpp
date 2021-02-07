@@ -2,7 +2,7 @@
 #define __LEXER_HPP__MANTA__
 
 // http://smlweb.cpsc.ucalgary.ca/start.html
-// https://web.cs.dal.ca/~sjackson/lalr1.html
+// https://web.cs.dal.ca/~sjackson/lalr1.html.......5/,
 
 #include <stack>
 #include <deque>
@@ -31,6 +31,8 @@ namespace Manta {
             }
             return out;
         }
+
+        bool isNull() { return type < 0; }
 
         //! \brief The type of the terminal or production.
         int type = -1;

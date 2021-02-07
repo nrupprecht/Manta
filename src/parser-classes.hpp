@@ -114,7 +114,7 @@ namespace Manta {
 
         string write(int length) const;
 
-        friend ostream& operator << (ostream&, const Entry&);
+        friend ostream& operator<<(ostream&, const Entry&);
 
     private:
         //! \brief The action.

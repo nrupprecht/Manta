@@ -23,11 +23,41 @@ namespace Manta {
         string production_name;
         int pid;
 
+        // Find the .Parser indicator.
+        stream.get(c);
+        while (!stream.eof()) {
+            if (c == '#') {
+                stream.get(c);
+                while (!stream.eof() and c != '\n') {
+                    stream.get(c);
+                }
+            }
+            else if (c == '.') { // Command
+                std::string command;
+                stream.get(c);
+                while (!stream.eof() && isalpha(c)) {
+                    command.push_back(c);
+                    stream.get(c);
+                }
+                if (command == "Parser") {
+                    stream.putback(c); // Just in case c is '.'
+                    break; // Start lexing.
+                }
+            }
+            else {
+                stream.get(c);
+            }
+        }
+        if (stream.eof()) {
+            std::cout << "Could not find the .Parser indicator.\n";
+            return nullptr;
+        }
+
         stream.get(c);
         bool continue_parse = true;
         while (!stream.eof() && continue_parse) {
             // Pass whitespaces.
-            if (c == ' ');
+            if (c == ' ' || c == '\n' || c == '\r');
             // Start of production
             else if (isalpha(c)) {
                 production_name.clear();
@@ -66,13 +96,33 @@ namespace Manta {
             // Start of a comment.
             else if (c == '#') {
                 // Pass comments.
-                while (c != '\n' && !stream.eof()) stream.get(c);
+                while (c != '\n' && !stream.eof()) {
+                    stream.get(c);
+                }
             }
-                // Stop parsing description.
-            else if (c == '!') continue_parse = false;
+            // Command
+            else if (c == '.') {
+                stream.get(c);
+                std::string command;
+                while (!stream.eof() && isalpha(c)) {
+                    command.push_back(c);
+                    stream.get(c);
+                }
+                stream.putback(c);
+
+                if (command == "End") {
+                    continue_parse = false;
+                }
+            }
+            // Stop parsing description.
+            else if (c == '!') {
+                continue_parse = false;
+            }
 
             // Get next character.
-            stream.get(c);
+            if (continue_parse) {
+                stream.get(c);
+            }
         }
 
         // Shift productions, so all terminals and nonterminals have positive numbers.
@@ -92,6 +142,39 @@ namespace Manta {
                 all_states,
                 lexer
                 ));
+    }
+
+    std::string ParserGenerator::generateCodeFile() {
+        std::string headerFile = "#ifndef __PARSER_OUT_H__\n#define __PARSER_OUT_H__\n\n";
+        // Includes
+        headerFile += "#include \"../src/ParseNode.h\"\n#include \"../src/parser-classes.hpp\"\n";
+
+        headerFile += "\n";
+
+        // Declare class
+        headerFile += "class Parser {\npublic:\n";
+
+        headerFile += "\n";
+        // Private members
+        headerFile += "private:\n";
+        for (const auto& f : funcs) {
+            headerFile += "\t" + f + ";\n";
+        }
+
+        // Record of built-ins
+        headerFile += "\n\tstd::vector<std::string> builtIns = {";
+        for (const auto& f : builtIns) {
+            headerFile += "\n\t\t\"" + toChars(f) + "\",";
+        }
+        headerFile += "\n\t};\n";
+        // Built-ins as functions.
+        headerFile += "\n\t// Built in functions.\n\n";
+        for (const auto& f : builtIns) {
+            headerFile += f + "\n";
+        }
+
+        headerFile += "};\n\n#endif // __PARSER_OUT_H__\n";
+        return headerFile;
     }
 
     inline void ParserGenerator::getProductions(std::istream &in, int production_id) {
