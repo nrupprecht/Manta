@@ -76,6 +76,9 @@ namespace Manta {
 
         //! \brief The precedence of a state. This is used to resolve NDFA -> DFA conflicts.
         int precedence = 1;
+
+        //! \brief If true, this node accepts what is *not* specified by this node.
+        bool inverted = false;
     };
 
     //! \brief A class that acts as a finite automaton.

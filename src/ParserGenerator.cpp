@@ -4,7 +4,7 @@
 
 #include "ParserGenerator.h"
 // Other files
-#include "LALR-Manta.hpp"
+#include "LALRParser.hpp"
 
 namespace Manta {
 

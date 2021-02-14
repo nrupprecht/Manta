@@ -58,7 +58,7 @@ namespace Manta {
     return str;
   }
 
-  // \todo Change this to atoi or somthing related.
+  // \todo Change this to atoi or something related.
   template<typename T> inline int toInt(T&& x) {
     stringstream stream;
     stream << x;

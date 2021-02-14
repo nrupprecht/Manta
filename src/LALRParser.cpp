@@ -1,4 +1,4 @@
-#include "LALR-Manta.hpp"
+#include "LALRParser.hpp"
 
 namespace Manta {
 
@@ -7,7 +7,7 @@ namespace Manta {
             return nullptr;
         }
 
-        // Clear any old parse trace data.
+        /// For Debugging: Clear any old parse trace data.
         parse_trace.clear();
 
         // Stack of symbols that the parser has read.
@@ -19,11 +19,11 @@ namespace Manta {
         std::deque<std::shared_ptr<ParseNode>> incoming_parse_deque;
         std::deque<std::shared_ptr<ParseNode>> working_parse_deque;
 
-        std::list<int> working_stack_types; // For debugging.
+        /// For Debugging.
+        std::list<int> working_stack_types;
 
         // A vector for collecting nodes during a reduction.
         std::vector<std::shared_ptr<ParseNode>> collect;
-
         std::shared_ptr<ParseNode> start_node = nullptr;
 
         // Push starting state onto the stack.
@@ -31,9 +31,8 @@ namespace Manta {
         working_parse_deque.push_front(start_node);
         working_stack_types.push_back(start_production); // For debugging.
 
-        int count = 0;
         bool accept = false;
-        for ( ; !accept; ++count) {
+        for (int count = 0; !accept; ++count) {
             // Refill incoming_deque if necessary.
             if (incoming_deque.empty()) {
                 Token tok = lexer.getNext();
@@ -49,16 +48,18 @@ namespace Manta {
             int state = working_stack.top().state;
             int incoming_symbol = incoming_deque.front().type;
 
-            // Record the step and state of the parser.
+            /// For Debugging: Record the step and state of the parser.
             parse_trace += "Step: " + toString(count) + ", State: " + toString(state) + ".\n";
 
             if (incoming_symbol < 0 || total_symbols <= incoming_symbol) {
-                cout << "ERROR - bad symbol: " << incoming_symbol << ", Literal: [" << incoming_deque.front().literal << "]. Exiting.\n";
+                std::cout << "ERROR - bad symbol: " << incoming_symbol << ", Literal: [" << incoming_deque.front().literal << "]. Exiting.\n";
                 break;
             }
 
-            // Print the state of the stack.
-            for (auto ty : working_stack_types) parse_trace += toString(ty) + " ";
+            /// For Debugging: Print the state of the stack.
+            for (auto& ty : working_stack_types) {
+                parse_trace += std::to_string(ty) + " ";
+            }
             parse_trace += " | ";
             parse_trace += toString(incoming_deque.front().type) + "\n";
 
@@ -71,14 +72,14 @@ namespace Manta {
                 transfer.state = action.getState(); // Set state
                 incoming_deque.pop_front();    // Pop off the incoming stack...
                 working_stack.push(transfer);  // and shift onto the working stack.
-                working_stack_types.push_back(transfer.type); // For debugging.
 
                 // Shift ParseNode
                 working_parse_deque.push_front(incoming_parse_deque.front());
                 incoming_parse_deque.pop_front();
 
-                // Record a shift occurring.
-                parse_trace += "Shift. State is now " + toString(action.getState()) + ".\n";
+                // For debugging: Record a shift occurring.
+                working_stack_types.push_back(transfer.type);
+                parse_trace += "Shift. State is now " + std::to_string(action.getState()) + ".\n";
             }
             else if (action.isReduce()) {
                 int size = action.getRule().size();
@@ -103,41 +104,38 @@ namespace Manta {
                 if (instructions) {
                     for (const auto& instruction : instructions->children) {
                         // Get the designator.
-                        string name = instruction->designator;
+                        string functionName = instruction->designator;
+
                         // Rename the new node.
-                        if (name == "node") {
-                            production_node->designator = instruction->children[0]->designator;
+                        if (functionName == "node") {
+                            instruction_node(production_node, instruction->children[0]->designator);
                         }
                         // Add a child to the node.
-                        else if (name == "add") {
+                        else if (functionName == "add") {
                             int index = toInt(instruction->children[0]->designator);
-                            if (collect[index]) {
+                            if (0 <= index && index < collect.size()) {
                                 instruction_add(production_node, collect[index]);
-
-                                // production_node->add(collect[index]);
-                                collect[index] = nullptr;
                             }
                         }
                         // Add all the children of the specified token to the node.
-                        else if (name == "adopt") {
+                        else if (functionName == "adopt") {
                             int index = toInt(instruction->children[0]->designator);
-                            auto& children = production_node->children;
-                            auto& vec = collect[index]->children;
-                            children.insert(children.end(), vec.begin(), vec.end());
-                            vec.clear();
+                            if (0 <= index && index < collect.size()) {
+                                instruction_adopt(production_node, collect[index]);
+                            }
                         }
                         // Replace the new node with one of the tokens.
-                        else if (name == "replace") {
+                        else if (functionName == "replace") {
                             int index = toInt(instruction->children[0]->designator);
-                            if (collect[index]) {
-                                production_node = collect[index];
+                            if (0 <= index && index < collect.size()) {
+                                instruction_replace(production_node, collect[index]);
                                 collect[index] = nullptr;
                             }
                         }
                     }
                 }
                 else {
-                    for (auto &node : collect) {
+                    for (auto& node : collect) {
                         production_node->add(node);
                     }
                 }
@@ -148,8 +146,8 @@ namespace Manta {
                 incoming_parse_deque.push_front(production_node);
 
                 // Record the reduction occurring.
-                parse_trace += "Reduce by " + toString(size) + ". Reduce to a " + toString(production)
-                               + " (via " + toString(action.getRule()) + ").\n";
+                parse_trace += "Reduce by " + std::to_string(size) + ". Reduce to a " + toString(production)
+                               + " (via " + entryToString(action) + ").\n";
             }
             else if (action.isAccept()) {
                 // Set start node to be the parsed program.
@@ -165,8 +163,8 @@ namespace Manta {
                 // Record error in parse trace.
                 parse_trace += "ERROR - lexer is at Line " + toString(lexer.getLine()) + ", Column " + toString(lexer.getCharacter()) + ".\n";
                 // Also print error to the screen.
-                cout << "ERROR - lexer is at Line " << lexer.getLine() << ", Column " << lexer.getCharacter() << ".\n";
-                cout << "Exiting.\n\n";
+                std::cout << "ERROR - lexer is at Line " << lexer.getLine() << ", Column " << lexer.getCharacter() << ".\n";
+                std::cout << "Exiting.\n\n";
                 break;
             }
             // Put a newline into the parser trace.
@@ -290,22 +288,45 @@ namespace Manta {
         return parse_trace;
     }
 
-    //
+    // ================================================
+    //  Action functions
+    // ================================================
 
-    void LALRParser::instruction_node(Node& self, Node& node) const {
-
+    void LALRParser::instruction_node(LALRParser::Node& self, const std::string& name) {
+        self->designator = name;
     }
 
-    void LALRParser::instruction_add(Node& self, Node& node) const {
+    void LALRParser::instruction_add(LALRParser::Node& self, LALRParser::Node& node) {
         self->add(node);
+        node = nullptr;
     }
 
-    void LALRParser::instruction_adopt(Node& self, Node& node) const {
-
+    void LALRParser::instruction_adopt(LALRParser::Node& self, LALRParser::Node& node) {
+        self->children.insert(self->children.end(), node->children.begin(), node->children.end());
     }
 
-    void LALRParser::instruction_replace(Node& self, Node& node) const {
+    void LALRParser::instruction_replace(LALRParser::Node& self, LALRParser::Node& node) {
+        self = node;
+    }
 
+    std::string LALRParser::entryToString(const Entry& entry) {
+        std::string output;
+        if (entry.isReduce()) {
+            auto rule = entry.getRule();
+            output += inverse_production_map.at(rule.production) + " ->";
+            for (const auto& r : rule.rhs) {
+                // If r corresponds to a production symbol, print that instead.
+                if (std::find_if(inverse_production_map.begin(), inverse_production_map.end(),
+                                 [=] (auto pr) { return pr.first == r; })  != inverse_production_map.end()) {
+                    output += " " + inverse_production_map.at(r);
+                }
+                // Otherwise, this corresponds to a lexeme.
+                else {
+                    output += " " + std::to_string(r);
+                }
+            }
+        }
+        return output;
     }
 
 }

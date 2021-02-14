@@ -30,12 +30,20 @@ namespace Manta {
         friend class ParserGenerator;
 
     private:
-        typedef const std::shared_ptr<ParseNode> Node;
+        // ================================================
+        //  Action functions
+        // ================================================
 
-        void instruction_node(Node& self, Node& node) const;
-        void instruction_add(Node& self, Node& node) const;
-        void instruction_adopt(Node& self, Node& node) const;
-        void instruction_replace(Node& self, Node& node) const;
+        typedef std::shared_ptr<ParseNode> Node;
+
+        static void instruction_node(Node& self, const std::string& name);
+        static void instruction_add(Node& self, Node& node);
+        static void instruction_adopt(Node& self, Node& node);
+        static void instruction_replace(Node& self, Node& node);
+
+    private:
+
+        std::string entryToString(const Entry& entry);
 
         LALRParser(std::map<int, string> inverse_production_map_,
                    int start_production_,

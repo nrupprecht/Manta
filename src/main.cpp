@@ -4,7 +4,7 @@
 #include "LexerDFA.hpp"
 
 #include "ParserGenerator.h"
-#include "LALR-Manta.hpp"
+#include "LALRParser.hpp"
 
 using namespace Manta;
 
@@ -51,9 +51,9 @@ int main(int argc, char** argv) {
     test.add_lexeme("Double", "\\d+ . \\d*");
     test.add_lexeme("Float", "\\d+ . \\d*f");
     test.add_lexeme("Hexidecimal", "0x([A-F] | \\d)+");
+    test.add_lexeme("EOF", "\0");
     test.add_reserved("for");
     test.add_reserved("String");
-    test.add_lexeme("EOF", "\0");
 
     auto test_lexer = test.create_lexer();
     test_lexer->set_string_to_lex("String for, hello world! 3.145, 9, 3.2f, 0x01FF");

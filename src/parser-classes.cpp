@@ -1,6 +1,6 @@
 #include "parser-classes.hpp"
 // Other files
-#include "LALR-Manta.hpp"
+#include "LALRParser.hpp"
 
 namespace Manta {
 
@@ -79,16 +79,20 @@ namespace Manta {
 
     string toString(const Item& item) {
         stringstream out;
-        string str;
         out << item.production << " -> ";
         for (int i=0; i<item.size() ; ++i) {
-            if (i==item.bookmark) out << "* ";
+            if (i==item.bookmark) {
+                out << "* ";
+            }
             out << item.rhs[i] << " ";
         }
-        if (item.bookmark<0) out << "[*] ";
-        else if (item.bookmark==item.size()) out << "* ";
-        out >> str;
-        return str;
+        if (item.bookmark<0) {
+            out << "[*] ";
+        }
+        else if (item.bookmark==item.size()) {
+            out << "* ";
+        }
+        return out.str();
     }
 
     void State::insert(const Item& item) {

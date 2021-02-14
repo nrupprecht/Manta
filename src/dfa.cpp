@@ -82,8 +82,8 @@ namespace Manta {
         unsigned final_state = state_pointer;
         state_pointer = 0; // Reset state pointer.
 
-        // Check if we ended in an accepting state.
-        if (0 <= dfa_nodes[final_state].accepting_state) {
+        // Check if we able to extract any token and ended in an accepting state.
+        if (!literal.empty() && 0 <= dfa_nodes[final_state].accepting_state) {
             status_flag = 0;
             return Token(dfa_nodes[final_state].accepting_state, literal);
         }

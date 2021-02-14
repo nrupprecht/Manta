@@ -241,48 +241,6 @@ inline std::pair<int, int> LexerGenerator::get_sequence(char terminator, bool us
     int recent_id = start_id;
     std::pair<int, int> ends(start_id, end_id);
 
-    // Lambda function for making a sequence of nodes into a *.
-//    auto make_star = [&] (const int idi, const int idf) {
-//        lexer_dfa.add_transition(idi, idf);
-//        lexer_dfa.add_transition(idf, idi);
-//    };
-//    auto make_plus = [&] (const int idi, const int idf) {
-//        lexer_dfa.add_transition(idf, idi);
-//    };
-//    auto make_ques = [&] (const int idi, const int idf) {
-//        lexer_dfa.add_transition(idi, idf);
-//    };
-//    // Add (if needed) a modifier to a sequence of nodes.
-//    auto check_modifier = [&] (const int idi, const int idf) {
-//        char d = in.peek();
-//        bool get_next = true;
-//        if (d == '+') make_plus(idi, idf);
-//        else if (d == '*') make_star(idi, idf);
-//        else if (d == '?') make_ques(idi, idf);
-//        else get_next = false;
-//        // If necessary, get the next character.
-//        if (get_next) {
-//            in.get(d);
-//        }
-//    };
-//    // Lambda function that adds another node in the line.
-//    auto add_node = [&] (const char ci, const char cf) {
-//        int id = lexer_dfa.add_node();
-//        lexer_dfa.add_transition(recent_id, id, ci, cf);
-//        check_modifier(recent_id, id);
-//        // Adjust pointer.
-//        recent_id = id;
-//    };
-//    // Lambda function for adding a character node. Checks whether a */+/? comes after the char.
-//    auto add_char = [&] (const char c) {
-//        int id = lexer_dfa.add_node();
-//        // Add the normal character transition.
-//        lexer_dfa.add_transition(recent_id, id, c);
-//        check_modifier(recent_id, id);
-//        // Adjust pointer.
-//        recent_id = id;
-//    };
-
     char c;
     in->get(c);
     do {
@@ -317,58 +275,7 @@ inline std::pair<int, int> LexerGenerator::get_sequence(char terminator, bool us
         // Escape character
         else if (c == '\\') {
             in->get(c); // Get next letter.
-
             specialCharacters(c, recent_id);
-
-//            if (in.eof()) {
-//                add_char('\\', recent_id);
-//                continue;
-//            }
-//
-//            // Any letter. Need to add two transitions.
-//            if (c == '@') {
-//                int id = lexer_dfa.add_node();
-//                lexer_dfa.add_transition(recent_id, id, 'a', 'z');
-//                lexer_dfa.add_transition(recent_id, id, 'A', 'Z');
-//                check_modifier(recent_id, id);
-//                recent_id = id;
-//            }
-//            // Any lower case letter.
-//            else if (c == 'a') {
-//                add_node('a', 'z', recent_id);
-//            }
-//            // Any upper case letter.
-//            else if (c == 'A') {
-//                add_node('A', 'Z', recent_id);
-//            }
-//            // Any number
-//            else if (c == 'd') {
-//                add_node('0', '9', recent_id);
-//            }
-//            // Other escape characters.
-//            else {
-//                char d = 0;
-//                if     (c == '\\') d = '\\';
-//                else if (c == 'n') d = '\n';
-//                else if (c == 'r') d = '\r';
-//                else if (c == 't') d = '\t';
-//                else if (c == 's') d = ' ';
-//                else if (c == '(') d = '(';
-//                else if (c == '[') d = '[';
-//                else if (c == '{') d = '{';
-//                else if (c == ')') d = ')';
-//                else if (c == ']') d = ']';
-//                else if (c == '}') d = '}';
-//                else if (c == '|') d = '|';
-//                else if (c == '+') d = '+';
-//                else if (c == '-') d = '-';
-//                else if (c == '*') d = '*';
-//                else if (c == '?') d = '?';
-//                else if (c == '~') d = '~';
-//                else if (c == '0') d = 0;
-//                // Make the node.
-//                add_char(d, recent_id);
-//            }
         }
         // OR
         else if (c == '|') {
