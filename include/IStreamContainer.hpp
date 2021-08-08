@@ -5,9 +5,11 @@
 #ifndef MANTA_ISTREAM_CONTAINER_H
 #define MANTA_ISTREAM_CONTAINER_H
 
+#include <utility>
+
 #include "utility.hpp"
 
-class istream_container {
+class IStreamContainer {
 private:
     struct container {
         virtual std::istream& get_stream() const = 0;
@@ -15,7 +17,7 @@ private:
     };
 
     struct container_ptr : public container {
-        explicit container_ptr(const std::shared_ptr<std::istream>& ptr) : in_(ptr) {};
+        explicit container_ptr(std::shared_ptr<std::istream> ptr) : in_(std::move(ptr)) {};
 
         std::istream& get_stream() const override {
             return *in_;
@@ -44,41 +46,37 @@ private:
 
     std::shared_ptr<container> stream_container;
 
-    explicit istream_container(std::shared_ptr<container>& ptr)
+    explicit IStreamContainer(std::shared_ptr<container>& ptr)
             : stream_container(std::move(ptr)) {};
 
 public:
     //! \brief Default constructor.
-    istream_container() {};
+    IStreamContainer() = default;
 
-    std::istream& get_istream() {
-        return stream_container->get_stream();
-    }
-
-    static istream_container open_file(const std::string& filename) {
+    static IStreamContainer OpenFile(const std::string& filename) {
         std::shared_ptr<std::istream> strm = std::make_shared<std::ifstream>(filename);
         std::shared_ptr<container> con = std::make_shared<container_ptr>(strm);
-        return istream_container(con);
+        return IStreamContainer(con);
     }
 
-    static istream_container stream_string(const std::string& sentence) {
+    static IStreamContainer StreamString(const std::string& sentence) {
         std::shared_ptr<std::stringstream> sstrm = std::make_shared<std::stringstream>();
         (*sstrm) << sentence;
         std::shared_ptr<std::istream> strm = sstrm;
         std::shared_ptr<container> con = std::make_shared<container_ptr>(strm);
-        return istream_container(con);
+        return IStreamContainer(con);
     }
 
-    bool is_good() const {
+    bool IsGood() const {
         return stream_container != nullptr && stream_container->is_good();
     }
 
-    istream_container& operator=(std::istream& stream) {
+    IStreamContainer& operator=(std::istream& stream) {
         stream_container = std::make_shared<container_ref>(stream);
         return *this;
     }
 
-    istream_container& operator=(const istream_container& stream) {
+    IStreamContainer& operator=(const IStreamContainer& stream) {
         stream_container = stream.stream_container;
         return *this;
     }

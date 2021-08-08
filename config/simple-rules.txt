@@ -4,17 +4,10 @@
 # Definition of the lexer.
 .Lexer
 
-    @operator: [ \+ | - | * | / | ! | \+\+ | \-\- | \( | \) | -> | : | . | , | = | == ]
     @eof: \0
-    @identifier: \@ [\@|\d]*
     @int: \d+
-    @float: \d+.\d*f
-    @double: \d+.\d*
     @whitespaces: \s+
-    @quotes: "
-    @singlequotes: '
     @newlines: \n+
-    @comment: #(~\n)*
 
 .End
 
@@ -22,26 +15,20 @@
 .Parser
 
     # Entry point is named start.
-    start = exprs newlines : add($0)
+    start -> exprs newlines : add($0)
 
-    newlines = newlines @newline
-      | @newline
-      | @eof # So the last line doesn't need to end with a newline.
+    newlines -> @newlines
+        | @eof # So the last line doesn't need to end with a newline.
 
-    exprs = exprs newlines expr : adopt($0) add($2)
-      | expr                    : replace($0)
+    exprs -> exprs newlines expr : adopt($0) add($2)
+        | expr                  : replace($0)
 
-    expr = "(" expr ")"     : replace($1)
-      | sum                 : replace($0)
-
-    sum = expr "+" mult  : add($0) add($2)
-      | mult             : replace($0)
-
-    mult = mult "*" term : add($0) add($2)
-      | term             : replace($0)
-
-    term = @identifier   : replace($0)
-      | @number          : replace($0)
-
+    expr -> "(" expr ")"     : replace($1)
+        | expr "+" expr     -> prec(1) assoc(Left) : node("sum") add($0) add($2)
+        | expr "-" expr     -> prec(1) assoc(Left) : node("sub") add($0) add($2)
+        | expr "*" expr     -> prec(2) assoc(Left) : node("mult") add($0) add($2)
+        | expr "/" expr     -> prec(2) assoc(Left) : node("div") add($0) add($2)
+        | expr "^" expr     -> prec(3) assoc(Right) : node("exp") add($0) add($2)
+        | @int              : replace($0)
 
 .End

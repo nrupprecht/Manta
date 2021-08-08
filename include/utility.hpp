@@ -32,7 +32,7 @@ using std::stringstream;
 
 #include <fstream>
 
-namespace Manta {
+namespace manta {
 
   template<typename T> inline bool contains(const set<T>& s, T&& el) {
     return s.find(el)!=s.end();
@@ -48,14 +48,6 @@ namespace Manta {
     }
     // It wasn't.
     return false;
-  }
-
-  template<typename T> inline string toString(T&& x) {
-    std::stringstream stream;
-    stream << x;
-    string str;
-    stream >> str;
-    return str;
   }
 
   // \todo Change this to atoi or something related.
@@ -116,7 +108,7 @@ namespace Manta {
     }
     // Put into a string.
     std::string str = repeat(' ', length-l);
-    str += toString(i);
+    str += std::to_string(i);
     // Return the string.
     return str;
   }

@@ -1,0 +1,21 @@
+.Lexer
+
+    # Lexer definition goes here.
+    @num: \d+
+
+.End
+.Parser
+
+    # Parser definition goes here.
+
+    start -> E @eof                      : replace($0)
+
+    E -> @num                            : replace($0)
+       | E "+" E -> prec(1) assoc(Left)  : node("SUM")  add($0) add($2)
+       | E "-" E -> prec(1) assoc(Left)  : node("SUB")  add($0) add($2)
+       | E "*" E -> prec(2) assoc(Left)  : node("MULT") add($0) add($2)
+       | E "/" E -> prec(2) assoc(Left)  : node("DIV")  add($0) add($2)
+       | E "^" E -> prec(3) assoc(Right) : node("EXP")  add($0) add($2)
+       | "(" E ")"                       : replace($1)
+
+.End

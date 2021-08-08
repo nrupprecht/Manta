@@ -7,9 +7,9 @@
 
 #include <utility>
 
-#include "parser-classes.hpp"
+#include "ParserUtility.hpp"
 
-namespace Manta {
+namespace manta {
 
     struct ParseNode : public std::enable_shared_from_this<ParseNode> {
         explicit ParseNode(string d) : designator(std::move(d)) {};
