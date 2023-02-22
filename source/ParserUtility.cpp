@@ -197,7 +197,7 @@ std::string Entry::write(int length) const {
     }
   }
   // Make sure the string is of the correct length.
-  return buffered(str, 4);
+  return buffered(str, length);
 }
 
 std::ostream &operator<<(std::ostream &out, const Entry &entry) {

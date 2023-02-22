@@ -1,5 +1,4 @@
-#ifndef __FiniteAutomaton_HPP__MANTA__
-#define __FiniteAutomaton_HPP__MANTA__
+#pragma once
 
 #include "LexerUtility.hpp"
 
@@ -11,16 +10,18 @@
 
 namespace manta {
 
+using Precedence = int;
+
 //! \brief Helper function that checks whether a set contains a value.
-template<typename T>
-inline bool set_contains(const std::set<T> &container, const typename std::remove_cv<T>::type &value) {
+template <typename T>
+inline bool SetContains(const std::set<T> &container, const typename std::remove_cv<T>::type &value) {
   return std::find(container.begin(), container.end(), value) != container.end();
 }
 
 //! \brief Print out a set.
-inline void print(const std::set<int> &container) {
+inline void Print(const std::set<int> &container) {
   std::cout << "{ ";
-  for (int s : container) {
+  for (int s: container) {
     std::cout << s << " ";
   }
   std::cout << "}";
@@ -51,7 +52,10 @@ struct TransitionType {
   //!
   //! \param c Character to test.
   //! \return True if c is accepted by the transition.
-  NO_DISCARD bool Accept(const char c) const { return (range_initial <= c && c <= range_final) || range_final < range_initial; }
+  NO_DISCARD bool Accept(const char c) const {
+    return (range_initial <= c && c <= range_final) // Normal transition
+        || range_final < range_initial;             // Lambda transition.
+  }
 
   //! \brief Return whether this is a lambda (null) transition.
   //!
@@ -69,13 +73,13 @@ struct TransitionType {
 
 //! \brief A structure that represents a FiniteAutomaton node.
 struct FiniteAutomatonNode {
-  FiniteAutomatonNode(std::vector<TransitionType> t, int accepting, int prec = 1)
-      : transitions(std::move(t)), accepting_state(accepting), precedence(prec) {};
+  FiniteAutomatonNode(std::vector<TransitionType> t, int accepting, Precedence prec = 1)
+      : transitions(std::move(t)), accepting_states(1, std::pair(prec, accepting)) {};
 
   //! \brief Creates a node of a Finite automaton that accepts a specified state, and has a specified precedence.
   //!   Higher precedence overrides lower precedence.
-  explicit FiniteAutomatonNode(int accepting, int prec = 1)
-      : accepting_state(accepting), precedence(prec) {};
+  explicit FiniteAutomatonNode(std::vector<std::pair<Precedence, int>> accepting)
+      : accepting_states(std::move(accepting)) {};
 
   FiniteAutomatonNode() = default;
 
@@ -85,16 +89,14 @@ struct FiniteAutomatonNode {
   //! \brief Write a representation of this node to an ostream.
   void ToStream(std::ostream &out) const;
 
+  //! \brief Check whether the state is accepting of at least one lexeme.
+  NO_DISCARD bool IsAccepting() const { return !accepting_states.empty(); }
+
   //! \brief Possible transition to other nodes in the FiniteAutomaton.
   std::vector<TransitionType> transitions;
 
-  //! \brief Is this an accepting state. If not, this is -1.
-  //!
-  //! The FiniteAutomaton should have at most one accepting lexeme per node.
-  int accepting_state = -1;
-
-  //! \brief The precedence of a state. This is used to resolve NDFA -> DFA conflicts.
-  int precedence = 1;
+  //! \brief The accepting states of this node, and their precedence (first entry). If not accepting at all, this is empty.
+  std::vector<std::pair<Precedence, int>> accepting_states;
 
   //! \brief If true, this node Accepts what is *not* specified by this node.
   bool inverted = false;
@@ -118,11 +120,11 @@ enum class FAStatus {
 class FiniteAutomaton {
  public:
   //! \brief Set the istream.
-  void SetStream(std::istream& stream);
-  void SetStream(IStreamContainer& stream);
+  void SetStream(std::istream &stream);
+  void SetStream(IStreamContainer &stream);
 
-  //! \brief Get the next token.
-  Token GetToken();
+  //! \brief Lex the next part of the input.
+  std::optional<LexResult> LexNext();
 
   //! \brief Return a FiniteAutomaton from this (assumed to be) NFA.
   FiniteAutomaton NFAToDFA();
@@ -144,31 +146,28 @@ class FiniteAutomaton {
   //! \brief Add a lambda transition.
   void AddTransition(int source, int dest);
 
-  //! \brief Set a FiniteAutomaton node to have an accepting value.
-  void SetAccepting(int index, int value);
-
-  //! \brief Set the precedence of a state.
-  //!
-  //! \param index Index of the state to modify.
-  //! \param precedence Precedence for the state.
-  void SetPrecedence(int index, int precedence);
+  //! \brief Set a lexeme that a state accepts, and the acceptance precedence.
+  void AddAcceptance(int index, int lexeme_id, Precedence precedence);
 
   //! \brief Print a representation of the FiniteAutomaton.
   void ToStream(std::ostream &out) const;
 
-  //! \brief Return the accepting state of a string.
-  NO_DISCARD int Accepts(const std::string &word) const;
+  //! \brief Return the accepting precedence(s) and state(s) of a string.
+  NO_DISCARD std::vector<std::pair<Precedence, int>> Accepts(const std::string &word) const;
 
-  //! \brief Returns the accepting state of node 0.
-  NO_DISCARD int accepts_empty() const;
+  //! \brief Returns the accepting precedence(s) and state(s) of node 0.
+  NO_DISCARD std::vector<std::pair<Precedence, int>> AcceptsEmpty() const;
 
   //! \brief Return true if there are any characters left to analyze.
-  NO_DISCARD bool any_remaining() const;
+  NO_DISCARD bool AnyRemaining() const;
 
-  //! \brief Check the internal status of the parser.
+  //! \brief Reset the internal status of the FA.
+  void ResetStatus();
+
+  //! \brief Check the internal status of the FA.
   //!
   //! 0: normal, 1: did not accept, 2: instream is null.
-  NO_DISCARD FAStatus check_status() const;
+  NO_DISCARD FAStatus CheckStatus() const;
 
   //! \brief Peek at the next char in the stream.
   NO_DISCARD char peek() const;
@@ -184,18 +183,24 @@ class FiniteAutomaton {
   NO_DISCARD int GetCharacter() const { return character_; }
 
  private:
-
+  //! \brief If the character can be accepted, advance the state pointer and returning true.
+  //! Otherwise, return false, and do not change state.
+  //!
+  //! Does not advance the line or character counters.
+  //!
+  //! \param c The character to try to accept.
+  //! \return Whether the DFA will advance when fed the character.
   inline bool tryAccept(char c);
 
   //! \brief Returns whether a state is either accepting, or lambda transitionable to an accepting state.
   //! Returns the (first reachable) accepting state number if accepting, or -1 if not accepting.
-  inline std::pair<int, int> acceptingStateLambda(unsigned);
+  inline std::vector<std::pair<int, int>> acceptingStateLambda(unsigned);
 
-  inline void compute_goto(std::set<int> &state,
-                           int state_id,
-                           std::deque<pair<int, set<int>>> &working_stack,
-                           std::vector<std::set<int>> &dfa_states,
-                           FiniteAutomaton &dfa);
+  inline void computeGoto(std::set<int> &state,
+                          int state_id,
+                          std::deque<pair<int, set<int>>> &working_stack,
+                          std::vector<std::set<int>> &dfa_states,
+                          FiniteAutomaton &dfa);
 
   inline void compute_transitions(int node_id,
                                   std::map<int, std::vector<std::pair<char, char>>> &transition_ranges,
@@ -229,4 +234,3 @@ class FiniteAutomaton {
 };
 
 }
-#endif // __FiniteAutomaton_HPP__MANTA__

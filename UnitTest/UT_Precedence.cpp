@@ -15,6 +15,9 @@ namespace UnitTest {
 
 // Function to evaluate a numeric parse tree.
 double evaluate(const std::shared_ptr<ParseNode> &node) {
+  if (!node) {
+    return std::numeric_limits<double>::quiet_NaN();
+  }
   if (node->children.empty()) {
     return std::stod(node->designator);
   }
@@ -57,14 +60,34 @@ TEST(Precedence, Operators) {
   ParserGenerator generator;
   auto parser = generator.CreateParserFromString(definition);
 
-  std::string test_input = "1+2-3/4*9*(3+7)";
-  auto node = parser->ParseString(test_input);
-  EXPECT_TRUE(node); // We expected the parse to succeed.
-  EXPECT_EQ(evaluate(node), -64.5);
+  try {
+    {
+      std::string test_input = "1+2";
+      auto node = parser->ParseString(test_input);
+      EXPECT_TRUE(node); // We expected the parse to succeed.
+      EXPECT_EQ(evaluate(node), 3.0);
+    }
 
-  node = parser->ParseString("5+98*3^4-(2*5^2)+8");
-  EXPECT_TRUE(node); // We expected the parse to succeed.
-  EXPECT_EQ(evaluate(node), 7901);
+    {
+      std::string test_input = "1+2-3/4*9*(3+7)";
+      auto node = parser->ParseString(test_input);
+      EXPECT_TRUE(node); // We expected the parse to succeed.
+      EXPECT_EQ(evaluate(node), -64.5);
+    }
+
+    {
+      auto node = parser->ParseString("5+98*3^4-(2*5^2)+8");
+      EXPECT_TRUE(node); // We expected the parse to succeed.
+      EXPECT_EQ(evaluate(node), 7901);
+    }
+  }
+  catch (const std::exception& ex) {
+    std::cout << "Exception was " << ex.what()  << std::endl;
+    std::cout << "Parse trace: " << parser->GetParseTrace();
+    throw;
+  }
+
+
 
 }
 

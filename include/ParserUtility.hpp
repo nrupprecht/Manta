@@ -43,14 +43,13 @@ constexpr ResolutionInfo NullResolutionInfo{};
 //! \brief Encode a production rule, like A -> a X b, etc.
 struct ProductionRule {
   explicit ProductionRule(ProductionID production, int label)
-      : production(production),
-        production_label(label) {}
+      : production(production), production_label(label) {}
 
   //! \brief Create an empty production rule.
   ProductionRule() = default;
 
   void add(int r);
-  int &at(int i);
+  int& at(int i);
   int at(int i) const;
   int size() const;
 
@@ -88,10 +87,10 @@ struct Item : public ProductionRule {
   //! \brief Returns whether the bookmark is at the end position.
   void endBookmark() const;
 
-  friend bool operator<(const Item &a, const Item &b);
-  friend bool operator==(const Item &a, const Item &b);
-  friend ostream &operator<<(ostream &out, const Item &item);
-  friend string toString(const Item &);
+  friend bool operator<(const Item& a, const Item& b);
+  friend bool operator==(const Item& a, const Item& b);
+  friend ostream& operator<<(ostream& out, const Item& item);
+  friend string toString(const Item&);
 
   // --- Data items ---
 
@@ -107,25 +106,25 @@ struct Item : public ProductionRule {
 struct State {
   State() = default;
 
-  void insert(const Item &item);
+  void insert(const Item& item);
 
   // Set the bookmarks in all the items in this state to be fresh.
   void zero_bookmarks();
 
-  bool contains(const Item &item) const;
+  NO_DISCARD bool contains(const Item& item) const;
 
-  friend ostream &operator<<(ostream &out, const State &state);
+  friend ostream& operator<<(ostream& out, const State& state);
 
-  int size() const;
-  bool empty() const;
+  NO_DISCARD int size() const;
+  NO_DISCARD bool empty() const;
 
   std::set<Item>::iterator begin();
   std::set<Item>::iterator end();
-  std::set<Item>::iterator begin() const;
-  std::set<Item>::iterator end() const;
-  std::set<Item>::iterator find(const Item &item);
+  NO_DISCARD std::set<Item>::iterator begin() const;
+  NO_DISCARD std::set<Item>::iterator end() const;
+  std::set<Item>::iterator find(const Item& item);
 
-  friend bool operator==(const State &s1, const State &s2);
+  friend bool operator==(const State& s1, const State& s2);
 
   //! \brief True if there exists an Item in the set that is a null production, A -> null
   bool has_null_production = false;
@@ -139,16 +138,11 @@ enum class Action { Error, Shift, Reduce, Accept };
 
 inline std::string ToString(Action action) {
   switch (action) {
-    case Action::Error:
-      return "Error";
-    case Action::Shift:
-      return "Shift";
-    case Action::Reduce:
-      return "Reduce";
-    case Action::Accept:
-      return "Accept";
-    default:
-      throw std::exception();
+    case Action::Error:return "Error";
+    case Action::Shift:return "Shift";
+    case Action::Reduce:return "Reduce";
+    case Action::Accept:return "Accept";
+    default:throw std::exception();
   }
 }
 
@@ -175,7 +169,7 @@ struct Entry {
   bool isAccept() const;
 
   //! \brief Get the ResolutionInfo for the production rule associated with this entry.
-  const ResolutionInfo &GetResInfo() const { return rule.res_info; }
+  const ResolutionInfo& GetResInfo() const { return rule.res_info; }
 
   Action getAction() const { return action; }
   StateID getState() const { return state; }
@@ -183,7 +177,7 @@ struct Entry {
 
   string write(int length) const;
 
-  friend ostream &operator<<(ostream &, const Entry &);
+  friend ostream& operator<<(ostream&, const Entry&);
 
  private:
   //! \brief The action.

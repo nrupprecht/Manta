@@ -2,7 +2,7 @@
 
 using namespace manta;
 
-bool LexerDFA::SetFileToLex(const string &fileName) {
+bool LexerDFA::SetFileToLex(const std::string &fileName) {
   std::ifstream fin(fileName);
   if (!fin.fail()) {
     auto instream = IStreamContainer::OpenFile(fileName);
@@ -12,31 +12,38 @@ bool LexerDFA::SetFileToLex(const string &fileName) {
   return false;
 }
 
-void LexerDFA::SetStringToLex(const string &sentence) {
+void LexerDFA::SetStringToLex(const std::string &sentence) {
   auto instream = IStreamContainer::StreamString(sentence);
   lexer_dfa_.SetStream(instream);
 }
 
 bool LexerDFA::CheckAnyRemaining() const {
-  return lexer_dfa_.any_remaining();
+  return lexer_dfa_.AnyRemaining();
 }
 
-Token LexerDFA::GetToken() {
-  Token tok;
+std::optional<LexResult> LexerDFA::LexNext() {
+  std::optional<LexResult> result;
   do {
-    tok = lexer_dfa_.GetToken();
+    result = lexer_dfa_.LexNext();
     // Check status
-    if (CheckStatus() != FAStatus::Valid && CheckStatus() != FAStatus::AcceptedEOF) {
-      return Token();
+    if (CheckStatus() != FAStatus::Valid && CheckStatus() != FAStatus::AcceptedEOF || !result /* Failed to get anything */) {
+      return {};
     }
-    // Process token.
-    if (isSkip(tok.type)) {
+    // If all accepted states of the token (note that there are generally just one accepted state) are skip, then skip the token.
+    bool is_skip = false;
+    for (auto& [lexeme_id, _]: result->accepted_lexemes) {
+      if (isSkip(lexeme_id)) {
+        is_skip = true;
+        break;
+      }
+    }
+    if (is_skip) {
       continue;
     }
-    return tok;
+    return result;
   } while (CheckAnyRemaining());
   // If we got here, there was a problem.
-  return Token();
+  return {};
 }
 
 std::size_t LexerDFA::GetNumLexemes() const {
@@ -44,11 +51,16 @@ std::size_t LexerDFA::GetNumLexemes() const {
 }
 
 std::vector<Token> LexerDFA::LexAll() {
+  // Only considers the highest precedence lexeme if there are multiple valid lexemes.
   std::vector<Token> output;
-  Token tok = GetToken();
-  while (!tok.IsNull()) {
-    output.push_back(tok);
-    tok = GetToken();
+  auto result = LexNext();
+  while (result) {
+    // If it is a skip lexeme, skip it.
+    if (!isSkip(result->accepted_lexemes[0].first)) {
+      output.emplace_back(result->accepted_lexemes[0].first, result->literal);
+    }
+    // Get the next lexeme.
+    result = LexNext();
   }
   return output;
 }
@@ -57,35 +69,20 @@ int LexerDFA::size() const {
   return lexer_dfa_.size();
 }
 
-int LexerDFA::Accepts(const string &word) const {
-  return lexer_dfa_.Accepts(word);
-}
-
-int LexerDFA::AcceptsEmpty() const {
-  return lexer_dfa_.accepts_empty();
+void LexerDFA::ResetStatus() {
+  lexer_dfa_.ResetStatus();
 }
 
 FAStatus LexerDFA::CheckStatus() const {
-  return lexer_dfa_.check_status();
+  return lexer_dfa_.CheckStatus();
 }
 
-string LexerDFA::LexemeName(const int index) const {
+std::string LexerDFA::LexemeName(int index) const {
   if (index < 0 || all_lexemes_.size() <= index) {
     //throw InvalidIndex();
     return "";
   }
   return all_lexemes_[index];
-}
-
-int LexerDFA::ReservedIndex(const string &word) const {
-  auto it = std::find_if(reserved_tokens_.begin(),
-                         reserved_tokens_.end(),
-                         [&word](const auto &pr) { return pr.first == word; });
-  if (it == reserved_tokens_.end()) {
-    return -1;
-  } else {
-    return it->second;
-  }
 }
 
 int LexerDFA::GetLine() const {

@@ -1,0 +1,27 @@
+.Lexer
+    @special_symbol:  ".\@+"
+    @lexeme_name: "@(\@ | _)+"
+    @semicolon: ":"
+    @identifier: "( \@ | _ )+"
+    @regex: " (\@ | \d | \| | \\ | \s | @ | + | * | _ | \( | \) | . | : )* "
+    @or: "\|"
+    @pos_arg: "$ \d*"
+
+    @spaces: "\s+"
+    @newlines: "\n+"
+    @eof: "\0"
+.End
+
+.Parser
+
+    .Start start
+
+    start -> lexer_block @newlines parser_block @eof                        : add $0, add $2
+
+    lexer_block -> ".Lexer" @newlines lexer_definitions @newlines ".End"    : adopt $2
+
+    lexer_definitions -> lexer_definitions @newlines lexeme_definition      : adopt $0, add $2
+    lexer_definitions -> lexeme_definition                                  : add $0
+
+    lexeme_definition -> @lexeme_name @semicolon @regex                     : add $0, add $2
+.End

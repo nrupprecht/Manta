@@ -19,14 +19,16 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_executable(
         MantaClion
-        main.cpp
+        applications/main.cpp
         # Other
         source/DeterministicFiniteAutomata.cpp
         source/LexerDFA.cpp
         source/ParserUtility.cpp
         source/LALRParser.cpp
         source/LexerGenerator.cpp
-        source/ParserGenerator.cpp include/Display.cpp include/Display.hpp)
+        source/ParserGenerator.cpp
+        source/Display.cpp
+)
 
 # ======
 enable_testing()
@@ -42,7 +44,10 @@ add_executable(
         source/LALRParser.cpp
         source/LexerGenerator.cpp
         source/ParserGenerator.cpp
-        include/Display.cpp include/Display.hpp UnitTest/UT_Precedence.cpp)
+        source/Display.cpp
+        UnitTest/UT_Precedence.cpp
+)
+
 target_link_libraries(
         UnitTest
         gtest_main

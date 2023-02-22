@@ -14,6 +14,38 @@ namespace manta {
 
 enum class ParserType { LR0, SLR, LALR };
 
+//! \brief Object that acts as a deque of work, but you can only add new items if
+//! they have never been added before.
+template<typename T>
+struct WorkDeque {
+ public:
+  bool Add(const T& item) {
+    if (auto it = marked_.find(item); it == marked_.end()) {
+      work_.push_back(item);
+      marked_.insert(item);
+      return true;
+    }
+    return false;
+  }
+
+  T PopNext() {
+    auto temp = std::move(work_.front());
+    work_.pop_front();
+    return temp;
+  }
+
+  NO_DISCARD bool Empty() const {
+    return work_.empty();
+  }
+
+ private:
+  //! \brief Current work items.
+  std::deque<T> work_;
+  //! \brief All items that have ever been seen.
+  std::set<T> marked_;
+};
+
+
 class LALRParser;
 
 //! \brief Class that can read a description of a parser and create from that a table-driven LALRParser.
@@ -132,6 +164,9 @@ class ParserGenerator {
   //! token number.
   inline void shiftProductionNumbers();
 
+  //! \brief Compute the nonterminal_derives_empty_ vector, which indicates which states can derive empty.
+  void createStateDerivesEmpty();
+
   //! \brief Check if a symbol is a terminal.
   NO_DISCARD bool isTerminal(int id) const;
 
@@ -140,6 +175,9 @@ class ParserGenerator {
 
   //! \brief Maps non-terminals (which are numbered starting with NumTerminals
   NO_DISCARD int nonTerminalIndex(int id) const;
+
+  //! \brief Get the index of a production.
+  NO_DISCARD int getProductionIndex(const Item& item) const;
 
   //! \brief Compute the LR0 table from the grammar.
   bool computeLR0();
@@ -169,7 +207,7 @@ class ParserGenerator {
   void tryRuleInState(int state, const Item &rule);
 
   //! \brief Tries to find a state in all_states. Returns -1 for failure.
-  inline int findState(const State &items);
+  int findState(const State &items) const;
 
   //! \brief The internal implementation of the first set calculation. Uses a vector
   //! to keep track of which symbols were already visited by the first calculation.
@@ -182,6 +220,9 @@ class ParserGenerator {
   //! \brief Returns whether the entire tail of a vector of production symbols can derive
   //! the empty symbol.
   NO_DISCARD bool allDeriveEmpty(const std::vector<int>& rhs, std::size_t start_index) const;
+
+  //! \brief Check whether a state can derive empty.
+  NO_DISCARD bool stateDerivesEmpty(const State& state) const;
 
   // ======================================================
   //  Private member variables.
@@ -196,11 +237,14 @@ class ParserGenerator {
   //! \brief Maps production numbers to production names.
   std::map<int, string> inverse_production_map;
 
-  //! \brief The productions for each nonterminal. A State (here) is essentially a set of production rules.
+  //! \brief The productions for each non-terminal. A State (here) is essentially a set of production rules.
   std::map<int, State> productions_for;
 
   //! \brief All the productions.
   std::vector<Item> all_productions;
+
+  //! \brief Whether a non-terminal derives empty.
+  std::vector<bool> nonterminal_derives_empty_;
 
   //! \brief The number of terminals in the correspondence vector.
   int num_productions = 0;

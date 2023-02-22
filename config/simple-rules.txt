@@ -21,7 +21,7 @@
         | @eof # So the last line doesn't need to end with a newline.
 
     exprs -> exprs newlines expr : adopt($0) add($2)
-        | expr                  : replace($0)
+        | expr                   : replace($0)
 
     expr -> "(" expr ")"     : replace($1)
         | expr "+" expr     -> prec(1) assoc(Left) : node("sum") add($0) add($2)

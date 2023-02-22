@@ -11,6 +11,17 @@ using namespace manta;
 
 namespace UnitTest {
 
+TEST(Lexer, LexEOF) {
+  LexerGenerator test(false);
+  test.AddLexeme("EOF", "");
+
+  auto lexer = test.CreateLexer();
+  lexer->SetStringToLex("");
+  auto lexemes = lexer->LexAll();
+
+  EXPECT_EQ(lexemes.size(), 1);
+}
+
 TEST(Lexer, Basic) {
   LexerGenerator test(false);
   test.AddLexeme("Pattern1", "[A-Z] [a-z]+");
@@ -58,7 +69,6 @@ TEST(Lexer, OR_2) {
 }
 
 TEST(Lexer, Precedence_I) {
-
   LexerGenerator test(false);
   test.AddLexeme("LowerString", "[a-z]+", 2);
   test.AddLexeme("UpperString", "[A-Z]+", 2);
@@ -103,8 +113,33 @@ TEST(Lexer, Cases) {
   EXPECT_EQ(lexer->CheckStatus(), FAStatus::EndedNonAccepting);
 }
 
-TEST(Lexer, LargeTest) {
+TEST(Lexer, Reserved) {
+  LexerGenerator test(false);
+  test.AddReserved("hello");
+  test.AddReserved("world");
+  test.AddLexeme("String", "\\@+");
+  test.AddLexeme("Whitespaces", "\\s+");
+  test.AddLexeme("EOF", "\0");
 
+  auto lexer = test.CreateLexer();
+  lexer->SetStringToLex("hello world");
+  auto lexemes = lexer->LexAll();
+
+  EXPECT_EQ(lexemes.size(), 4);
+  std::vector<std::string> expected_names = {
+      "RES:hello",
+      "Whitespaces",
+      "RES:world",
+      "EOF"
+  };
+
+  for (std::size_t i = 0; i < std::min(lexemes.size(), expected_names.size()); ++i) {
+    EXPECT_EQ(lexer->LexemeName(lexemes[i].type), expected_names[i])
+              << "Disagreement for i = " << i << ": '" << lexemes[i].literal << "'";
+  }
+}
+
+TEST(Lexer, LargeTest) {
   LexerGenerator test(false);
   test.AddLexeme("String", "\\@+");
   test.AddLexeme("Whitespaces", "\\s+");
@@ -114,6 +149,8 @@ TEST(Lexer, LargeTest) {
   test.AddLexeme("Float", "\\d+ . \\d*f");
   test.AddLexeme("Hexidecimal", "0x([A-F] | \\d)+");
   test.AddLexeme("EOF", "\0");
+
+  // Add reserved words.
   test.AddReserved("for");
   test.AddReserved("String");
 
@@ -149,11 +186,211 @@ TEST(Lexer, LargeTest) {
       "Hexidecimal",
       "EOF"
   };
-  for (std::size_t i = 0; i < 21; ++i) {
-    EXPECT_EQ(lexer->LexemeName(lexemes[i].type), expected_names[i]);
+  for (std::size_t i = 0; i < std::min(expected_names.size(), lexemes.size()); ++i) {
+    EXPECT_EQ(lexer->LexemeName(lexemes[i].type), expected_names[i]) << "Disagreement for i = " << i;
   }
   // We expect to end in state 3 (ended after encountering EOF).
   EXPECT_EQ(lexer->CheckStatus(), FAStatus::AcceptedEOF);
 }
 
+TEST(Lexer, Words) {
+  LexerGenerator test(false);
+  test.AddLexeme("Hello", "Hello");
+  test.AddLexeme("Goodbye", "Goodbye");
+  test.AddLexeme("Xthing", "(Any|Every)thing");
+  test.AddLexeme("Whitespaces", "\\s+");
+  test.AddLexeme("EOF", "");
+
+  auto lexer = test.CreateLexer();
+  lexer->SetStringToLex("Hello Anything Everything Goodbye");
+  auto lexemes = lexer->LexAll();
+
+  EXPECT_EQ(lexemes.size(), 8);
+
+  std::vector<std::string> expected_names = {
+      "Hello",
+      "Whitespaces",
+      "Xthing",
+      "Whitespaces",
+      "Xthing",
+      "Whitespaces",
+      "Goodbye",
+      "EOF"
+  };
+
+  for (std::size_t i = 0; i < expected_names.size(); ++i) {
+    EXPECT_EQ(lexer->LexemeName(lexemes.at(i).type), expected_names[i]) << "Disagreement for i = " << i;
+  }
+  // We expect to end in state 3 (ended after encountering EOF).
+  EXPECT_EQ(lexer->CheckStatus(), FAStatus::AcceptedEOF);
 }
+
+TEST(Lexer, SkipLexemes) {
+  LexerGenerator test(false);
+  test.AddLexeme("String", "\\@+");
+  test.AddLexeme("Whitespaces", "\\s+");
+  test.AddLexeme("Punctuation", ". | , | ! | ?");
+  test.AddLexeme("EOF", "");
+
+  // Skip whitespaces.
+  test.AddSkip("Whitespaces");
+
+  auto lexer = test.CreateLexer();
+  lexer->SetStringToLex("String for, hello world!");
+  auto lexemes = lexer->LexAll();
+
+  // We expect 21 lexemes.
+  EXPECT_EQ(lexemes.size(), 7);
+  std::vector<std::string> expected_names = {
+      "String",
+      "String",
+      "Punctuation",
+      "String",
+      "String",
+      "Punctuation",
+      "EOF",
+  };
+  for (std::size_t i = 0; i < 7; ++i) {
+    EXPECT_EQ(lexer->LexemeName(lexemes[i].type), expected_names[i]) << "Disagreement for i = " << i;
+  }
+  // We expect to end in state 3 (ended after encountering EOF).
+  EXPECT_EQ(lexer->CheckStatus(), FAStatus::AcceptedEOF);
+}
+
+TEST(Lexer, WithUnderscores) {
+  LexerGenerator test(false);
+  test.AddLexeme("identifier", "(\\@ | _)+");
+  // Need these too.
+  test.AddLexeme("spaces", "\\s+");
+  test.AddLexeme("EOF", "");
+
+  // Skip whitespaces.
+  test.AddSkip("spaces");
+
+  auto lexer = test.CreateLexer();
+  lexer->SetStringToLex("hello_world how _are_ you");
+
+  auto lexemes = lexer->LexAll();
+
+  EXPECT_EQ(lexemes.size(), 5);
+  std::vector<std::string> expected_names = {
+      "identifier", "identifier", "identifier", "identifier", "EOF"
+  };
+
+  for (std::size_t i = 0; i < std::min(lexemes.size(), expected_names.size()); ++i) {
+    EXPECT_EQ(lexer->LexemeName(lexemes[i].type), expected_names[i])
+              << "Disagreement for i = " << i << ": '" << lexemes[i].literal << "'";
+  }
+}
+
+TEST(Lexer, LexemeWithQuotes) {
+  LexerGenerator test(false);
+  test.AddLexeme("regex", R"(" ( \@ | \d | \| | \\ | \s | @ | + | * | _ )* ")");
+  // test.AddLexeme("regex", "\" ( \\@ | \\\\ | @ | + )* \"");
+  // test.AddLexeme("regex", "\" ( \\@ | @ | + | \\\\ )* \"");
+  test.AddLexeme("spaces", "\\s+", 5);
+  test.AddLexeme("eof", "");
+
+  // Skip whitespaces.
+  test.AddSkip("spaces");
+
+  auto lexer = test.CreateLexer();
+  lexer->SetStringToLex(R"("@\@+")");
+  // lexer->SetStringToLex("\"A\\@+A\"");
+  auto lexemes = lexer->LexAll();
+
+  EXPECT_EQ(lexemes.size(), 2);
+  std::vector<std::string> expected_names = {
+      "regex",
+      "eof",
+  };
+
+  for (std::size_t i = 0; i < lexemes.size(); ++i) {
+    EXPECT_EQ(lexer->LexemeName(lexemes[i].type), expected_names[i])
+              << "Disagreement for i = " << i << ": '" << lexemes[i].literal << "'";
+  }
+
+  // We expect to end in state 3 (ended after encountering EOF).
+  EXPECT_EQ(lexer->CheckStatus(), FAStatus::AcceptedEOF);
+}
+
+TEST(Lexer, LexTheLexer) {
+  LexerGenerator test(false);
+  test.AddLexeme("special_symbol", ".\\@+", 3);
+  test.AddLexeme("semicolon", ":", 2);
+  test.AddLexeme("lexeme_name", "@(\\@ | _)+", 1);
+  test.AddLexeme("identifier", "(\\@ | _)+", 1);
+  test.AddLexeme("regex", R"("(\@ | \d | \| | \\ | \s | @ | + | * | _ | \( | \) | . | : )*")");
+  test.AddLexeme("spaces", "\\s+", 5);
+  test.AddLexeme("newlines", "\\n+");
+  test.AddLexeme("eof", "");
+
+  // Skip whitespaces.
+  test.AddSkip("spaces");
+
+  auto lexer = test.CreateLexer();
+  lexer->SetStringToLex(
+      ".Lexer                               \n"
+      "   @special_symbol:  \".\\@+\"       \n"
+      "   @lexeme_name: \"@\\@+\"           \n"
+      "   @semicolon: \":\"                 \n"
+      "   @identifier: \"( \\@ | _ )+\"     \n"
+      "   @regex: \"(\\@ | \\d | \\| | \\\\ | \\s | @ | + | * | _ | \\( | \\) | . | : )*\"  \n"
+      "   @spaces: \"\\s+\"                 \n"
+      "   @newlines: \"\\n+\"               \n"
+      "   @eof: \"\\0\"                     \n"
+      ".End                                 \n"
+  );
+  auto lexemes = lexer->LexAll();
+
+  EXPECT_EQ(lexemes.size(), 37);
+  std::vector<std::string> expected_names = {
+      "special_symbol",
+      "newlines",
+      "lexeme_name",
+      "semicolon",
+      "regex",
+      "newlines",
+      "lexeme_name",
+      "semicolon",
+      "regex",
+      "newlines",
+      "lexeme_name",
+      "semicolon",
+      "regex",
+      "newlines",
+      "lexeme_name",
+      "semicolon",
+      "regex",
+      "newlines",
+      "lexeme_name",
+      "semicolon",
+      "regex",
+      "newlines",
+      "lexeme_name",
+      "semicolon",
+      "regex",
+      "newlines",
+      "lexeme_name",
+      "semicolon",
+      "regex",
+      "newlines",
+      "lexeme_name",
+      "semicolon",
+      "regex",
+      "newlines",
+      "special_symbol",
+      "newlines",
+      "eof",
+  };
+  for (std::size_t i = 0; i < std::min(lexemes.size(), expected_names.size()); ++i) {
+    EXPECT_EQ(lexer->LexemeName(lexemes[i].type), expected_names[i])
+              << "Disagreement for i = " << i << ": '" << lexemes[i].literal << "'";
+  }
+
+  // We expect to end in state 3 (ended after encountering EOF).
+  EXPECT_EQ(lexer->CheckStatus(), FAStatus::AcceptedEOF)
+            << "Ended on line: " << lexer->GetLine() << ", character: " << lexer->GetCharacter();
+}
+
+} // namespace UnitTest

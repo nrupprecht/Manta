@@ -7,6 +7,7 @@
 
 namespace manta {
 
+
 class LexerDFA {
  public:
   //! \brief Set up the lexer to parse a file. Takes the filename.
@@ -21,7 +22,7 @@ class LexerDFA {
   NO_DISCARD bool CheckAnyRemaining() const;
 
   //! \brief Get the next token from the stream.
-  Token GetToken();
+  std::optional<LexResult> LexNext();
 
   //! \brief Get the total number of lexemes the Lexer recognizes.
   NO_DISCARD std::size_t GetNumLexemes() const;
@@ -32,20 +33,14 @@ class LexerDFA {
   //! \brief Return the number of states in the underlying FiniteAutomaton.
   NO_DISCARD int size() const;
 
-  //! \brief Check if a string would be accepted by the lexer.
-  NO_DISCARD int Accepts(const string &word) const;
-
-  //! \brief Returns the accepting state of node 0 in the FiniteAutomaton.
-  NO_DISCARD int AcceptsEmpty() const;
+  //! \brief Reset the status of the underlying FiniteAutomaton.
+  void ResetStatus();
 
   //! \brief Check the status of the underlying FiniteAutomaton.
   NO_DISCARD FAStatus CheckStatus() const;
 
   //! \brief Return the name of a lexeme.
   NO_DISCARD std::string LexemeName(int index) const;
-
-  //! \brief Get the index of a string if it is a reserved word, and -1 if it isn't.
-  NO_DISCARD int ReservedIndex(const std::string &word) const;
 
   //! \brief Get the line that the lexer is currently on.
   NO_DISCARD int GetLine() const;
@@ -56,10 +51,9 @@ class LexerDFA {
   //! \brief Set the repeat eof flag.
   void SetRepeatEOF(bool flag);
 
+ private:
   // Lexer generator is a class so it can construct Lexers via the private constructor.
   friend class LexerGenerator;
-
- private:
 
   //! \brief Private constructor.
   LexerDFA(FiniteAutomaton &dfa,
@@ -95,7 +89,7 @@ class LexerDFA {
 inline std::string lexAllToString(const std::shared_ptr<LexerDFA> &lexer) {
   std::stringstream stream;
   auto all_tokens = lexer->LexAll();
-  for (const auto &token : all_tokens) {
+  for (const auto &token: all_tokens) {
     stream << "(" << lexer->LexemeName(token.type) << " | \"" << clean(token.literal) << "\") ";
   }
   return stream.str();

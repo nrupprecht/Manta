@@ -31,6 +31,28 @@
     const std::string message_;                                                       \
     };
 
+#define MANTA_REQUIRE(condition, message) { \
+  if (!(condition)) {                       \
+    std::ostringstream _strm_; \
+    _strm_ << message; \
+    throw std::runtime_error(_strm_.str()); \
+  }                                         \
+}
+
+#define MANTA_ASSERT(condition, message) { \
+  if (!(condition)) {                       \
+    std::ostringstream _strm_; \
+    _strm_ << message; \
+    throw std::runtime_error(_strm_.str()); \
+  }                                         \
+}
+
+#define MANTA_FAIL(message) { \
+  std::ostringstream _strm_; \
+  _strm_ << message; \
+  throw std::runtime_error(_strm_.str()); \
+}
+
 
 #endif //MANTACLION_EXCEPTIONS_H
 

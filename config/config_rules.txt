@@ -1,0 +1,37 @@
+.Lexer
+
+    @identifier: ( \@ | _ ) ( \@ | _ | \d )*
+    @int: \d+
+    @double: \d+ . \d*
+    @spaces: \s+
+    @newlines: \n+
+    @eof: \0
+
+    .Skip spaces
+    .Skip newlines
+
+.End
+.Parser
+
+    .Start start
+
+    start -> instructions @eof                          : replace($0)
+
+    instructions -> instructions "," instruction        : adopt($0), add($2)
+        | instruction
+
+    instruction -> assignment                           : replace($0)
+        | expr                                          : replace($0)
+
+    assignment -> @identifier "=" @identifier           -> prec(1) assoc(Left) : node("eq") add($0) add($2)
+
+    expr -> "(" expr ")"                                : replace($1)
+            | expr "+" expr     -> prec(1) assoc(Left)  : node("sum") add($0) add($2)
+            | expr "-" expr     -> prec(1) assoc(Left)  : node("sub") add($0) add($2)
+            | expr "*" expr     -> prec(2) assoc(Left)  : node("mult") add($0) add($2)
+            | expr "/" expr     -> prec(2) assoc(Left)  : node("div") add($0) add($2)
+            | expr "^" expr     -> prec(3) assoc(Right) : node("exp") add($0) add($2)
+            | @identifier                               : replace($0)
+            | @int                                      : replace($0)
+
+.End

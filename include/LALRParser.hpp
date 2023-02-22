@@ -1,21 +1,19 @@
-#ifndef __LALR_PARSER_GENERATOR_HPP__
-#define __LALR_PARSER_GENERATOR_HPP__
+#pragma once
 
+// This website can be used to check things like first sets, follow sets, etc., and to generate various parsing tables, LR, LALR, etc.
 // http://smlweb.cpsc.ucalgary.ca/start.html
 // https://web.cs.dal.ca/~sjackson/lalr1.html
 
 #include <utility>
-
 #include "ParseNode.h"
 #include "ParserUtility.hpp"
 #include "LexerDFA.hpp"
 
 namespace manta {
 
-// Terminals can either be represented as literals (if they are reserved words or keywords)
-// or by by %eof, %newline, %number, %string, or %operator.
 
 class LALRParser {
+  friend class CodeGenerator;
  public:
   //! \brief Use the parser to parse input from a file.
   std::shared_ptr<ParseNode> ParserCodeFile(const string &file_name);
@@ -47,11 +45,14 @@ class LALRParser {
   static void instructionAdd(Node &self, Node &node);
   static void instructionAdopt(Node &self, Node &node);
   static void instructionReplace(Node &self, Node &node);
+  static void instructionPush(Node &self, const std::string& name, Node &node);
 
   std::string entryToString(const Entry &entry);
 
   //! \brief Convert an ID to a string. The ID may either be a lexeme, or terminal.
   NO_DISCARD std::string toString(int id) const;
+
+  void printFatalParseError(int state);
 
   //! \brief Construct a parser from its constituents.
   LALRParser(std::map<int, string> inverse_production_map_,
@@ -102,4 +103,3 @@ class LALRParser {
 };
 
 }
-#endif // __LALR_PARSER_GENERATOR_HPP__
