@@ -124,6 +124,28 @@ TEST(Lexer, StringComplement_Example_String) {
   EXPECT_EQ(lexer->CheckStatus(), FAStatus::EndedNonAccepting);
 }
 
+TEST(Lexer, StringComplement_Example_Comment) {
+  LexerGenerator test(false);
+  test.AddLexeme("word", "\\@+");
+  test.AddLexeme("comment", "# [~\\n]* \\n");
+  // Skip spaces
+  test.AddLexeme("spaces", "\\s+");
+  test.AddSkip("spaces");
+
+  auto lexer = test.CreateLexer();
+  lexer->SetStringToLex("hi # and goodbye \n");
+  auto lexemes = lexer->LexAll();
+
+  EXPECT_EQ(lexemes.size(), 3);
+  if (lexemes.size() == 3) {
+    EXPECT_EQ(lexemes[0].literal, R"("hi there")");
+    EXPECT_EQ(lexemes[1].literal, R"("he said \"hi there\", you know")");
+    EXPECT_EQ(lexemes[2].literal, R"("goodbye")");
+  }
+
+  EXPECT_EQ(lexer->CheckStatus(), FAStatus::EndedNonAccepting);
+}
+
 TEST(Lexer, Basic) {
   LexerGenerator test(false);
   test.AddLexeme("Pattern1", "[A-Z] [a-z]+");
@@ -422,7 +444,7 @@ TEST(Lexer, LexTheLexer) {
   test.AddLexeme("semicolon", ":", 2);
   test.AddLexeme("lexeme_name", "@(\\@ | _)+", 1);
   test.AddLexeme("identifier", "(\\@ | _)+", 1);
-  test.AddLexeme("regex", R"("(\@ | \d | \| | \\ | \s | @ | + | * | _ | \( | \) | . | : )*")");
+  test.AddLexeme("regex", "r` ( \\\\ ` | [~`])* `");
   test.AddLexeme("spaces", "\\s+", 5);
   test.AddLexeme("newlines", "\\n+");
   test.AddLexeme("eof", "");
@@ -433,14 +455,14 @@ TEST(Lexer, LexTheLexer) {
   auto lexer = test.CreateLexer();
   lexer->SetStringToLex(
       ".Lexer                               \n"
-      "   @special_symbol:  \".\\@+\"       \n"
-      "   @lexeme_name: \"@\\@+\"           \n"
-      "   @semicolon: \":\"                 \n"
-      "   @identifier: \"( \\@ | _ )+\"     \n"
-      "   @regex: \"(\\@ | \\d | \\| | \\\\ | \\s | @ | + | * | _ | \\( | \\) | . | : )*\"  \n"
-      "   @spaces: \"\\s+\"                 \n"
-      "   @newlines: \"\\n+\"               \n"
-      "   @eof: \"\\0\"                     \n"
+      "   @special_symbol: r`\".\\@+\"`       \n"
+      "   @lexeme_name: r`\"@\\@+\"`           \n"
+      "   @semicolon: r`\":\"`                 \n"
+      "   @identifier: r`\"( \\@ | _ )+\"`     \n"
+      "   @regex: r`\"(\\@ | \\d | \\| | \\\\ | \\s | @ | + | * | _ | \\( | \\) | . | : )*\"`  \n"
+      "   @spaces: r`\"\\s+\"`                 \n"
+      "   @newlines: r`\"\\n+\"`               \n"
+      "   @eof: r`\"\\0\"`                     \n"
       ".End                                 \n"
   );
   auto lexemes = lexer->LexAll();
@@ -492,7 +514,7 @@ TEST(Lexer, LexTheLexer) {
 
   // We expect to end in state 3 (ended after encountering EOF).
   EXPECT_EQ(lexer->CheckStatus(), FAStatus::AcceptedEOF)
-            << "Ended on line: " << lexer->GetLine() << ", character: " << lexer->GetCharacter();
+            << "Ended on line: " << lexer->GetLine() << ", character: " << lexer->GetColumn();
 }
 
 } // namespace UnitTest

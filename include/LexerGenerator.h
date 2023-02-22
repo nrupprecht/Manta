@@ -2,8 +2,7 @@
 // Created by Nathaniel Rupprecht on 2/1/21.
 //
 
-#ifndef MANTACLION_LEXERGENERATOR_H
-#define MANTACLION_LEXERGENERATOR_H
+#pragma once
 
 #include "DeterministicFiniteAutomata.hpp"
 #include "IStreamContainer.hpp"
@@ -72,16 +71,25 @@ class LexerGenerator {
   //! until a terminator character is reached (or eof).
   std::pair<int, int> getSequence(char terminator, bool useTerminator = true);
 
+  //! \brief Create an NFA for a character class. This can be either
+  //!     1) A standard character class, like [a-Z]
+  //!     2) A complement character class, like [^a-z]
+  //!     3) A string complement, like [~HI]
   std::pair<int, int> getCharacterClass();
 
+  //! \brief Create an NFA that accepts a character if it is not part of a specific string.
   std::pair<int, int> stringComplement();
 
+  //! \brief Make a character class or complement character class.
   std::pair<int, int> characterClass(bool make_complement = false);
 
+  //! \brief Add the start (any number of instances) modifier to an NFA.
   void makeStar(int idi, int idf, int &recent_id);
 
+  //! \brief Add plus (at least one instance) modifier to an NFA.
   void makePlus(int idi, int idf, int &recent_id);
 
+  //! \brief Add the optional (zero or one instances) modifier to an NFA.
   void makeQues(int idi, int idf, int &recent_id);
 
   //! \brief Add (if needed) a modifier to a sequence of nodes.
@@ -93,6 +101,7 @@ class LexerGenerator {
   //! \brief Function for adding a character node. Checks whether a */+/? comes after the char.
   void addChar(char c, int &recent_id);
 
+  //! \brief Handle an escaped character or character group, like \n for 'newline,' or \@ for 'any alphabetic character.'
   void specialCharacters(char c, int &recent_id);
 
   //! \brief Check if a token should be skipped.
@@ -126,5 +135,4 @@ class LexerGenerator {
   FiniteAutomaton lexer_dfa_;
 };
 
-} // manta
-#endif // MANTACLION_LEXERGENERATOR_H
+} // namespace manta

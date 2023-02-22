@@ -43,7 +43,7 @@ double evaluate(const std::shared_ptr<ParseNode> &node) {
 
 TEST(Precedence, Operators) {
   std::string definition = ".Lexer\n"
-                           "    @num: \\d+\n"
+                           "    @num: r`\\d+`\n"
                            ".End\n"
                            ".Parser\n"
                            "    start -> E @eof                        : replace($0)\n"

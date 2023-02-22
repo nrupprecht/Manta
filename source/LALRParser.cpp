@@ -6,22 +6,22 @@ using namespace manta;
 
 
 std::shared_ptr<ParseNode> LALRParser::ParseString(const string &input) {
-  lexer->SetStringToLex(input);
+  lexer_->SetStringToLex(input);
   return parse();
 }
 
 std::shared_ptr<ParseNode> LALRParser::ParserCodeFile(const string &file_name) {
-  if (!lexer->SetFileToLex(file_name)) {
+  if (!lexer_->SetFileToLex(file_name)) {
     return nullptr;
   }
   return parse();
 }
 
 std::shared_ptr<ParseNode> LALRParser::parse() {
-  lexer->SetRepeatEOF(true);
+  lexer_->SetRepeatEOF(true);
 
   /// For Debugging: Clear any old parse trace data.
-  parse_trace.clear();
+  parse_trace_.clear();
 
   // Stack of symbols that the parser has read.
   std::stack<Token> working_stack;
@@ -40,9 +40,9 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
   std::shared_ptr<ParseNode> start_node = nullptr;
 
   // Push starting state onto the stack.
-  working_stack.emplace(start_production, 0);
+  working_stack.emplace(start_production_, 0);
   working_parse_deque.push_front(start_node);
-  working_stack_types.push_back(start_production); // For debugging.
+  working_stack_types.push_back(start_production_); // For debugging.
 
   bool accept = false;
   for (int count = 1; !accept; ++count) {
@@ -53,17 +53,17 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
     if (incoming_deque.empty()) {
       // Check, in order of precedence (this is the order in the result), if any results result in
       // valid actions for the parser. Use this as the assumed token from the lexer.
-      auto result = lexer->LexNext();
+      auto result = lexer_->LexNext();
       if (!result) {
         // Error lexing.
-        parse_trace += "ERROR: Could not lex another symbol.\n";
+        parse_trace_ += "ERROR: Could not lex another symbol.\n";
         printFatalParseError(state);
         break;
       }
 
       bool any_valid = false;
       for (auto& [lexeme_id, _] : result->accepted_lexemes) {
-        if (!parse_table.at(state).at(lexeme_id).isError()) {
+        if (!parse_table_.at(state).at(lexeme_id).isError()) {
           incoming_deque.emplace_back(lexeme_id, result->literal);
           incoming_parse_deque.push_back(std::make_shared<ParseNode>(result->literal));
 
@@ -75,11 +75,11 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
       // Check if no valid options could be found.
       if (!any_valid) {
         // This lexeme does not follow the previous lexemes.
-        parse_trace += "ERROR: No valid transitions could be found for input. Accepted lexeme(s) (for literal \"" + result->literal + "\") were: ";
+        parse_trace_ += "ERROR: No valid transitions could be found for input. Accepted lexeme(s) (for literal \"" + result->literal + "\") were: ";
         for (auto& [lexeme_id, _] : result->accepted_lexemes) {
-          parse_trace += "[" + toString(lexeme_id) + "] ";
+          parse_trace_ += "[" + toString(lexeme_id) + "] ";
         }
-        parse_trace += "\n";
+        parse_trace_ += "\n";
         printFatalParseError(state);
         break;
       }
@@ -91,7 +91,7 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
       if (literal == "\n") {
         literal = "\\n";
       }
-      parse_trace += "Getting token: [" + toString(tok.type) + "], Literal: [" + literal + "]\n";
+      parse_trace_ += "Getting token: [" + toString(tok.type) + "], Literal: [" + literal + "]\n";
       /// <===
     }
 
@@ -99,9 +99,11 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
     int incoming_symbol = incoming_deque.front().type;
 
     /// For Debugging: Record the step and state of the parser.
-    parse_trace += "Step: " + std::to_string(count) + ", State: " + std::to_string(state) + ".\n";
+    parse_trace_ += "Step: " + std::to_string(count) + ", State: " + std::to_string(state)
+        + ", " + "lexer is at line " + std::to_string(lexer_->GetLine())
+        + ", column " + std::to_string(lexer_->GetColumn()) + "\n";
 
-    if (incoming_symbol < 0 || total_symbols <= incoming_symbol) {
+    if (incoming_symbol < 0 || total_symbols_ <= incoming_symbol) {
       std::cout << "ERROR - bad symbol: " << incoming_symbol << ", Literal: ["
                 << incoming_deque.front().literal << "]. Exiting.\n";
       break;
@@ -109,14 +111,14 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
 
     /// For Debugging: Print the state of the stack.
     for (auto &ty: working_stack_types) {
-      parse_trace += "[" + toString(ty) + "] ";
+      parse_trace_ += "[" + toString(ty) + "] ";
     }
-    parse_trace += " <-->  ["; // Separate stack incoming deque.
-    parse_trace += toString(incoming_deque.front().type) + "]\n";
+    parse_trace_ += " <-->  ["; // Separate stack incoming deque.
+    parse_trace_ += toString(incoming_deque.front().type) + "]\n";
     /// <=====
 
     // Get action from the parse table.
-    Entry action = parse_table[state][incoming_symbol];
+    Entry action = parse_table_[state][incoming_symbol];
     Token transfer = incoming_deque.front();
 
     // If shift
@@ -131,7 +133,7 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
 
       // For debugging: Record a shift occurring.
       working_stack_types.push_back(transfer.type);
-      parse_trace += "Shift. State is now " + std::to_string(action.getState()) + ".\n";
+      parse_trace_ += "Shift. State is now " + std::to_string(action.getState()) + ".\n";
     }
     else if (action.isReduce()) {
       int size = action.getRule().size();
@@ -140,7 +142,7 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
       // Put (newly reduced) production onto the input stack.
       incoming_deque.push_front(Token(production, ""));
       // Create a parse node.
-      auto production_node = std::make_shared<ParseNode>(inverse_production_map.find(production)->second);
+      auto production_node = std::make_shared<ParseNode>(inverse_production_map_.find(production)->second);
 
       // Take nodes that are to be reduced off the stack, and temporarily store them in the collect vector.
       collect.resize(size);
@@ -210,25 +212,25 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
       incoming_parse_deque.push_front(production_node);
 
       // Record the reduction occurring.
-      parse_trace += "Reduce by " + std::to_string(size) + ". Reduce to a " + toString(production)
+      parse_trace_ += "Reduce by " + std::to_string(size) + ". Reduce to a " + toString(production)
           + " via:\n\t" + entryToString(action) + "\n";
     }
     else if (action.isAccept()) {
       // Set start node to be the parsed program.
       start_node = incoming_parse_deque.front();
       incoming_parse_deque.pop_front();
-      // Set accept to true.
+      // Set 'accept' to true.
       accept = true;
 
       // Write the acceptance to the parse trace.
-      parse_trace += "Accept!\n";
+      parse_trace_ += "Accept!\n";
     }
     else if (action.isError()) {
       printFatalParseError(state);
       break;
     }
     // Put a newline into the parser trace.
-    parse_trace += "\n";
+    parse_trace_ += "\n";
   }
 
   // If the parser accepted, return the AST node
@@ -245,26 +247,26 @@ std::string LALRParser::PrintTable() const {
   std::string str;
 
   // Print out definitions.
-  str += repeat('_', (total_symbols + 1) * 5) + '_';
+  str += repeat('_', (total_symbols_ + 1) * 5) + '_';
   str += '\n';
   str += "Token and production definitions:\n";
-  str += repeat('-', (total_symbols + 1) * 5) + '-';
+  str += repeat('-', (total_symbols_ + 1) * 5) + '-';
   str += '\n';
   str += "   -- (Lexemes) -- \n";
   int i = 0;
-  for (; i < lexer->GetNumLexemes(); ++i) {
-    str += buffered(i, 4) + ": " + lexer->LexemeName(i) + "\n";
+  for (; i < lexer_->GetNumLexemes(); ++i) {
+    str += buffered(i, 4) + ": " + lexer_->LexemeName(i) + "\n";
   }
   str += "   -- (Productions) -- \n";
-  for (; i < total_symbols; ++i) {
-    str += buffered(i, 4) + ": " + inverse_production_map.find(i)->second + "\n";
+  for (; i < total_symbols_; ++i) {
+    str += buffered(i, 4) + ": " + inverse_production_map_.find(i)->second + "\n";
   }
 
   // Print table header.
-  str += repeat('_', 5 * (total_symbols + 2));
+  str += repeat('_', 5 * (total_symbols_ + 2));
   str += '\n';
 //        str += "St.  |";
-//        for (int j = 0; j < total_symbols; ++j) {
+//        for (int j = 0; j < total_symbols_; ++j) {
 //            str += buffered(j, 5);
 //        }
 
@@ -273,8 +275,8 @@ std::string LALRParser::PrintTable() const {
   std::vector<std::string> buffered_names;
 
   std::size_t max_size = 0;
-  for (std::size_t j = 0; j < lexer->GetNumLexemes(); ++j) {
-    auto name = lexer->LexemeName(j);
+  for (std::size_t j = 0; j < lexer_->GetNumLexemes(); ++j) {
+    auto name = lexer_->LexemeName(j);
     if (name.substr(0, 4) == "RES:") {
     // if (name[0] == 'R' && name[1] == 'E' && name[2] == 'S' && name[3] == ':') {
       max_size = std::max(max_size, name.size() - 4);
@@ -283,12 +285,12 @@ std::string LALRParser::PrintTable() const {
       max_size = std::max(max_size, name.size());
     }
   }
-  for (auto&[id, name]: inverse_production_map) {
+  for (auto&[id, name]: inverse_production_map_) {
     max_size = std::max(max_size, name.size());
   }
 
-  for (std::size_t j = 0; j < lexer->GetNumLexemes(); ++j) {
-    auto name = lexer->LexemeName(j);
+  for (std::size_t j = 0; j < lexer_->GetNumLexemes(); ++j) {
+    auto name = lexer_->LexemeName(j);
 
     if (name.substr(0, 4) == "RES:") {
     //}
@@ -298,36 +300,36 @@ std::string LALRParser::PrintTable() const {
     }
     buffered_names.push_back(repeat(' ', max_size - name.size()) + name);
   }
-  for (auto&[id, name]: inverse_production_map) {
+  for (auto&[id, name]: inverse_production_map_) {
     buffered_names.push_back(repeat(' ', max_size - name.size()) + name);
   }
 
   for (std::size_t j = 0; j < max_size; ++j) {
     str += "     |";
-    for (std::size_t k = 0; k < total_symbols; ++k) {
+    for (std::size_t k = 0; k < total_symbols_; ++k) {
       str += "    " + std::string{buffered_names[k][j]};
-      if (k == lexer->GetNumLexemes() - 1) {
+      if (k == lexer_->GetNumLexemes() - 1) {
         str += "  |";
       }
     }
     str += "\n";
   }
 
-  str += repeat('-', 5 * (total_symbols + 2));
+  str += repeat('-', 5 * (total_symbols_ + 2));
   str += '\n';
   // Print transition table.
-  for (int s = 0; s < all_states.size(); ++s) {
+  for (int s = 0; s < all_states_.size(); ++s) {
     str += buffered(s, 4) + " | ";
-    for (int j = 0; j < total_symbols; ++j) {
-      str += parse_table[s][j].write(4) + " ";
+    for (int j = 0; j < total_symbols_; ++j) {
+      str += parse_table_[s][j].write(4) + " ";
 
-      if (j == lexer->GetNumLexemes() - 1) {
+      if (j == lexer_->GetNumLexemes() - 1) {
         str += " | ";
       }
     }
     str += "\n";
   }
-  str += repeat('_', 5 * (total_symbols + 2));
+  str += repeat('_', 5 * (total_symbols_ + 2));
   str += '\n';
 
   // Return the table string.
@@ -395,7 +397,11 @@ std::string LALRParser::PrintAsMathematica(const std::shared_ptr<ParseNode> &hea
 }
 
 const std::string &LALRParser::GetParseTrace() const {
-  return parse_trace;
+  return parse_trace_;
+}
+
+std::shared_ptr<LexerDFA> LALRParser::GetLexer() const {
+  return lexer_;
 }
 
 // ================================================
@@ -430,14 +436,14 @@ std::string LALRParser::entryToString(const Entry &entry) {
   std::string output;
   if (entry.isReduce()) {
     auto rule = entry.getRule();
-    output += inverse_production_map.at(rule.production) + " ->";
+    output += inverse_production_map_.at(rule.production) + " ->";
     for (const auto &r: rule.rhs) {
       output += " " + toString(r);
 
 //                // If r corresponds to a production symbol, print that instead.
-//                if (std::find_if(inverse_production_map.begin(), inverse_production_map.end(),
-//                                 [=] (auto pr) { return pr.first == r; })  != inverse_production_map.end()) {
-//                    output += " " + inverse_production_map.at(r);
+//                if (std::find_if(inverse_production_map_.begin(), inverse_production_map_.end(),
+//                                 [=] (auto pr) { return pr.first == r; })  != inverse_production_map_.end()) {
+//                    output += " " + inverse_production_map_.at(r);
 //                }
 //                // Otherwise, this corresponds to a lexeme.
 //                else {
@@ -452,29 +458,29 @@ std::string LALRParser::toString(int id) const {
   if (id < 0) {
     return "ERROR";
   }
-  else if (id < lexer->GetNumLexemes()) {
-    auto name = lexer->LexemeName(id);
+  else if (id < lexer_->GetNumLexemes()) {
+    auto name = lexer_->LexemeName(id);
     if (name[0] == 'R' && name[1] == 'E' && name[2] == 'S' && name[3] == ':') {
       return std::string(name.begin() + 4, name.end());
     }
-    return name;
+    return "@" + name;
   }
-  return inverse_production_map.at(id);
+  return inverse_production_map_.at(id);
 }
 
 void LALRParser::printFatalParseError(int state) {
   // Record error in parse trace.
-  parse_trace += "ERROR - lexer is at Line " + std::to_string(lexer->GetLine()) + ", Column " + std::to_string(lexer->GetCharacter()) + ".\n";
+  parse_trace_ += "ERROR - lexer is at Line " + std::to_string(lexer_->GetLine()) + ", Column " + std::to_string(lexer_->GetColumn()) + ".\n";
   // Print out what valid options would have been recognized.
   int print_count = 0;
-  for (auto& entry : parse_table[state]) {
+  for (auto& entry : parse_table_[state]) {
     if (!entry.isError()) {
-      parse_trace += "  * Valid: [" + toString(print_count) + "], Result: <" + entry.write(0) + ">\n";
+      parse_trace_ += "  * Valid: [" + toString(print_count) + "], Result: <" + entry.write(0) + ">\n";
     }
     ++print_count;
   }
 
   // Also print error to the screen.
-  std::cout << "ERROR - lexer is at Line " << lexer->GetLine() << ", Column " << lexer->GetCharacter() << ".\n";
+  std::cout << "ERROR - lexer is at line " << lexer_->GetLine() << ", column " << lexer_->GetColumn() << ".\n";
   std::cout << "Exiting.\n\n";
 }

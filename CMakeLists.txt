@@ -37,6 +37,7 @@ add_executable(
         UnitTest
         UnitTest/UT_Lexer.cpp
         UnitTest/UT_FirstFollow.cpp
+        UnitTest/UT_SelfParse.cpp
         # Other
         source/DeterministicFiniteAutomata.cpp
         source/LexerDFA.cpp

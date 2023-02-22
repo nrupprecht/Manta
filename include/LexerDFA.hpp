@@ -46,7 +46,7 @@ class LexerDFA {
   NO_DISCARD int GetLine() const;
 
   //! \brief Get the character column number in the line that the lexer is currently on.
-  NO_DISCARD int GetCharacter() const;
+  NO_DISCARD int GetColumn() const;
 
   //! \brief Set the repeat eof flag.
   void SetRepeatEOF(bool flag);

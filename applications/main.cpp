@@ -13,7 +13,15 @@ void testParser(const string &rulesFilepath, const string &codeFilepath) {
   // Parser
   ParserGenerator generator;
   std::cout << "Parsing rules from \"" << rulesFilepath << "\"\n";
-  auto parser = generator.CreateParserFromFile(rulesFilepath);
+  std::shared_ptr<LALRParser> parser;
+  try {
+    parser = generator.CreateParserFromFile(rulesFilepath);
+  }
+  catch (const std::exception& ex) {
+    std::cout << "Exception parsing rules: " << ex.what();
+    return;
+  }
+
   if (parser) {
     // Print out the transition table.
     std::cout << "\n";

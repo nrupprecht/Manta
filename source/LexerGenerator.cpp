@@ -99,35 +99,39 @@ std::shared_ptr<LexerDFA> LexerGenerator::CreateLexer(std::istream &instream, bo
 
       pass_white_space();
 
-      /*
-      A | B - Or
-      (...) or [...] - Grouping.
+      // Get the 'r'
+      in_->get(c);
+      MANTA_ASSERT(c == 'r', "did not find 'r' in regex definition");
+      MANTA_ASSERT(!in_->eof(), "reached EOF while getting lexeme definition");
 
-      a-z   - Character range.
+      // Get the '`'
+      in_->get(c);
+      MANTA_ASSERT(c == '`', "did not find opening \" in regex definition");
+      MANTA_ASSERT(!in_->eof(), "reached EOF while getting lexeme definition");
 
-      --- Escape characters ---
-      \s    - Space
-      \n    - Newline
-      \t    - Tab
-      \0    - eof
-      \\
-      \[ \]
-      \( \)
-      \{ \}
-      \|
-      \+
-      \-
-      \*
-      \?
-      -------------------------
-      */
+      // ========================================
+      // Get the string that defines the regex.
+      // ========================================
 
       // Get the lexeme definition.
-      auto[start_id, end_id] = getSequence('\n');
+      auto [start_id, end_id] = getSequence('`');
       // Set recent_id node to be accepting.
       lexer_dfa_.AddAcceptance(end_id, static_cast<int>(all_lexemes_.size()) - 1, 1 /* Precedence */);
       // Lambda transition from head node to start_id node.
       lexer_dfa_.AddTransition(head_id_, start_id);
+
+      // Consume spaces until a newline or EOF.
+      in_->get(c);
+      while (!in_->eof()) {
+        if (c == ' ' || c == '\t');
+        else if (c == '\n') {
+          break;
+        }
+        else {
+          MANTA_FAIL("unexpected characters");
+        }
+        in_->get(c);
+      }
     }
       // Full line comments.
     else if (c == '#') {
@@ -331,14 +335,8 @@ std::pair<int, int> LexerGenerator::getSequence(char terminator, bool useTermina
       lexer_dfa_.AddTransition(recent_id, end_id);
       return ends;
     }
-      // Pass spaces and tabs
+    // Pass spaces and tabs
     else if (c == ' ' || c == '\t');
-      // Comment (full line)
-    else if (c == '#') {
-      while (!in_->eof() && c != '\n') {
-        in_->get(c);
-      }
-    }
       // Start of grouping.
     else if (c == '(') {
       auto[start, end] = getSequence(')');
@@ -393,21 +391,7 @@ std::pair<int, int> LexerGenerator::getSequence(char terminator, bool useTermina
     }
       // General character. Could be the start of a char range.
     else {
-      char d = static_cast<char>(in_->peek());
-      if (d == '-') { // Char range
-        in_->get(d); // Consume the character
-        in_->get(d); // Get the next character.
-        if (d != terminator || !useTerminator) {
-          addNode(c, d, recent_id);
-        }
-        else { // Not actually a char range. Just a character and a '-' character.
-          addChar(c, recent_id);
-          addChar('-', recent_id);
-        }
-      }
-      else {
-        addChar(c, recent_id);
-      }
+      addChar(c, recent_id);
     }
     // Get next character
     in_->get(c);
@@ -451,6 +435,7 @@ std::pair<int, int> LexerGenerator::stringComplement() {
     else if (c == ']') { // End of character class.
       break;
     }
+    else if (c == ' '); // Skip space.
     else {
       str.push_back(c);
     }
@@ -581,15 +566,15 @@ void LexerGenerator::specialCharacters(char c, int &recent_id) {
   else if (c == 'a') {
     addNode('a', 'z', recent_id);
   }
-    // Any upper case letter.
+  // Any upper case letter.
   else if (c == 'A') {
     addNode('A', 'Z', recent_id);
   }
-    // Any number
+  // Any number
   else if (c == 'd') {
     addNode('0', '9', recent_id);
   }
-    // Other escape characters.
+  // Other escape characters.
   else {
     char d = escapedCharacter(c);
     // Make the node.
@@ -648,24 +633,24 @@ inline bool LexerGenerator::isSkip(int lexeme_id) {
 }
 
 char LexerGenerator::escapedCharacter(char c) {
-  char d = 0;
-  if (c == '\\') d = '\\';
-  else if (c == 'n') d = '\n';
-  else if (c == 'r') d = '\r';
-  else if (c == 't') d = '\t';
-  else if (c == 's') d = ' ';
-  else if (c == '(') d = '(';
-  else if (c == '[') d = '[';
-  else if (c == '{') d = '{';
-  else if (c == ')') d = ')';
-  else if (c == ']') d = ']';
-  else if (c == '}') d = '}';
-  else if (c == '|') d = '|';
-  else if (c == '+') d = '+';
-  else if (c == '-') d = '-';
-  else if (c == '*') d = '*';
-  else if (c == '?') d = '?';
-  else if (c == '~') d = '~';
-  else if (c == '0') d = 0;
-  return d;
+  if (c == '\\') return '\\';
+  else if (c == 'n') return '\n';
+  else if (c == 'r') return '\r';
+  else if (c == 't') return '\t';
+  else if (c == 's') return ' ';
+  else if (c == '(') return '(';
+  else if (c == '[') return '[';
+  else if (c == '{') return '{';
+  else if (c == ')') return ')';
+  else if (c == ']') return ']';
+  else if (c == '}') return '}';
+  else if (c == '|') return '|';
+  else if (c == '+') return '+';
+  else if (c == '-') return '-';
+  else if (c == '*') return '*';
+  else if (c == '?') return '?';
+  else if (c == '~') return '~';
+  else if (c == '0') return static_cast<char>(0);
+  // Otherwise, the return the input character, it is not a special escaped char.
+  return c;
 }

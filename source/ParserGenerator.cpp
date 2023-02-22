@@ -705,7 +705,7 @@ inline void ParserGenerator::shiftProductionNumbers() {
     new_productions_for.insert(pair<int, State>(lids - p.first, state));
   }
   productions_for = new_productions_for;
-  // Set total_symbols.
+  // Set total_symbols_.
   total_symbols = lids + static_cast<int>(production_map.size());
 }
 

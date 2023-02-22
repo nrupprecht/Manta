@@ -29,6 +29,12 @@ class LALRParser {
   //! \brief Get the parse trace string.
   NO_DISCARD const std::string &GetParseTrace() const;
 
+  //! \brief Get the lexer from the LALR parser.
+  //!
+  //! Mostly useful for testing.
+  //!
+  std::shared_ptr<LexerDFA> GetLexer() const;
+
   friend class ParserGenerator;
 
  private:
@@ -55,34 +61,34 @@ class LALRParser {
   void printFatalParseError(int state);
 
   //! \brief Construct a parser from its constituents.
-  LALRParser(std::map<int, string> inverse_production_map_,
-             int start_production_,
-             int total_symbols_,
-             std::vector<std::vector<Entry>> parse_table_,
-             std::vector<State> all_states_,
-             std::shared_ptr<LexerDFA> lexer_)
-      : inverse_production_map(std::move(inverse_production_map_)),
-        start_production(start_production_),
-        total_symbols(total_symbols_),
-        parse_table(std::move(parse_table_)),
-        all_states(std::move(all_states_)),
-        lexer(std::move(lexer_)) {};
+  LALRParser(std::map<int, string> inverse_production_map,
+             int start_production,
+             int total_symbols,
+             std::vector<std::vector<Entry>> parse_table,
+             std::vector<State> all_states,
+             std::shared_ptr<LexerDFA> lexer)
+      : inverse_production_map_(std::move(inverse_production_map)),
+        start_production_(start_production),
+        total_symbols_(total_symbols),
+        parse_table_(std::move(parse_table)),
+        all_states_(std::move(all_states)),
+        lexer_(std::move(lexer)) {};
 
   // ================================================
   //  Private member variables.
   // ================================================
 
   //! \brief A lexer.
-  std::shared_ptr<LexerDFA> lexer;
+  std::shared_ptr<LexerDFA> lexer_;
 
   //! \brief Maps production numbers to production names.
-  std::map<int, std::string> inverse_production_map;
+  std::map<int, std::string> inverse_production_map_;
 
   //! \brief Which production start points to.
-  int start_production = 0;
+  int start_production_ = 0;
 
-  //! \brief The total number of lexer ids plus production symbols. The number of columns in the parse_table.
-  int total_symbols = 0;
+  //! \brief The total number of lexer ids plus production symbols. The number of columns in the parse_table_.
+  int total_symbols_ = 0;
 
   //! \brief The parse table. It is a vector so we can add new states.
   //!
@@ -91,15 +97,15 @@ class LALRParser {
   //! 1 - Shift.
   //! 2 - Reduce.
   //! 3 - Accept.
-  std::vector<std::vector<Entry>> parse_table;
+  std::vector<std::vector<Entry>> parse_table_;
 
   //! \brief All the different states.
   //!
   //! Used for pretty - printing the transition table.
-  std::vector<State> all_states;
+  std::vector<State> all_states_;
 
   //! \brief A string that records the history of the parse.
-  std::string parse_trace;
+  std::string parse_trace_;
 };
 
-}
+} // namespace manta

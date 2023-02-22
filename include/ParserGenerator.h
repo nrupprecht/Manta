@@ -205,7 +205,7 @@ class ParserGenerator {
   //! \brief Fill out a row in the parser table.
   void tryRuleInState(int state, const Item &rule);
 
-  //! \brief Tries to find a state in all_states. Returns -1 for failure.
+  //! \brief Tries to find a state in all_states_. Returns -1 for failure.
   int findState(const State &items) const;
 
   //! \brief The internal implementation of the first set calculation. Uses a vector
@@ -254,7 +254,7 @@ class ParserGenerator {
   //! \brief The name of the start production. By default, this is "start."
   std::string start_production_name = "start";
 
-  //! \brief The total number of lexer ids plus production symbols. The number of columns in the parse_table.
+  //! \brief The total number of lexer ids plus production symbols. The number of columns in the parse_table_.
   int total_symbols = 0;
 
   //! \brief The number to assign to the next production.

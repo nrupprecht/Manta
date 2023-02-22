@@ -89,7 +89,7 @@ int LexerDFA::GetLine() const {
   return lexer_dfa_.GetLine();
 }
 
-int LexerDFA::GetCharacter() const {
+int LexerDFA::GetColumn() const {
   return lexer_dfa_.GetCharacter();
 }
 

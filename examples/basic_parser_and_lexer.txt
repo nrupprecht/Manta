@@ -1,22 +1,29 @@
 .Lexer
-    @special_symbol:  ".\@+"
-    @lexeme_name: "@(\@ | _)+"
-    @semicolon: ":"
-    @identifier: "( \@ | _ )+"
-    @regex: " (\@ | \d | \| | \\ | \s | @ | + | * | _ | \( | \) | . | : | $)* "
-    @or: "\|"
-    @pos_arg: "$ \d*"
-    @arrow: "->"
+    @special_symbol:  r`.\@+`
+    @lexeme_name: r`@(\@ | _)+`
+    @semicolon: r`:`
+    @identifier: r`( \@ | _ )+`
+    @regex: r` r\`( \` | [~ \`])* \` `
+    @literal: r`\"[~\\ \"]* \"`
+    @or: r`\|`
+    @lparen: r`\[`
+    @rparen: r`\]`
+    @pos_arg: r`$ \d+`
+    @comment: r`# [~\n]*`
 
-    @spaces: "\s+"
-    @newlines: "\n+"
-    @eof: "\0"
+    @spaces: r`\s+`
+    @newlines: r`\n+`
+    @eof: r`\0`
 .End
 .Parser
 
     .Start start
 
     start -> lexer_block @newlines parser_block @eof                          : add($0), add($2)
+
+    # ========================================================
+    #  Lexer
+    # ========================================================
 
     lexer_block -> ".Lexer" @newlines lexer_definitions @newlines ".End"    : adopt($2)
 

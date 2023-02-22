@@ -1,21 +1,19 @@
 .Lexer
-    @special_symbol:  .\@+
-    @lexeme_name: @(\@ | _)+
-    @semicolon: :
-    @identifier: ( \@ | _ )+
-    @regex: " (\@ | \d | \| | \\ | \s | @ | + | * | _ | \( | \) | . | : | $ | < | > | - | , )* "
-    @literal: " (\@ | \d | \| | \\ | \s | @ | + | * | _ | \( | \) | . | : | $ | < | > | - | , )* "
-    @or: \|
-    @lparen: \[
-    @rparen: \]
-    @pos_arg: $ \d*
+    @special_symbol:  r`.\@+`
+    @lexeme_name: r`@(\@ | _)+`
+    @semicolon: r`:`
+    @identifier: r`( \@ | _ )+`
+    @regex: r` r \` ( \\ \` | [~ \`] )* \` `
+    @literal: r` " ( \\" | [~"] )* " `
+    @or: r`\|`
+    @lparen: r`\[`
+    @rparen: r`\]`
+    @pos_arg: r`$ \d+`
+    @comment: r`# [~\n]* \n`
 
-    # Define a comment - really, should skip anything other than a newline.
-    @comment: # (\@ | \s | \d)*
-
-    @spaces: \s+
-    @newlines: \n+
-    @eof: \0
+    @spaces: r`\s+`
+    @newlines: r`\n+`
+    @eof: r`\0`
 
     .Skip spaces
     .Skip comment
@@ -28,32 +26,43 @@
     start -> lexer_block @newlines parser_block @eof                          : add($0), add($2)
 
     # ========================================================
+    #  Utility
+    # ========================================================
+
+    newlines -> newlines @newlines | @newlines
+
+    # ========================================================
     #  Lexer
     # ========================================================
 
-    lexer_block -> ".Lexer" @newlines lexer_definitions @newlines ".End"    : adopt($2)
+    lexer_block -> ".Lexer" newlines lexer_definitions newlines ".End"    : adopt($2)
 
-    lexer_definitions -> lexer_definitions @newlines lexeme_definition      : adopt($0), add($2)
-        | lexeme_definition                                                 : add($0)
+    lexer_definitions -> lexer_definitions newlines lexeme_line      : adopt($0), add($2)
+        | lexeme_line                                                 : replace($0)
+
+    lexeme_line -> lexeme_definition                                        : node("Lexeme"), adopt($0)
+        | skip_definition                                                   : node("Skip"), add($0)
 
     lexeme_definition -> @lexeme_name @semicolon @regex                     : add($0), add($2)
+
+    skip_definition -> ".Skip" @lexeme_name
 
     # ========================================================
     #  Parser
     # ========================================================
 
-    parser_block -> ".Parser" @newlines start_indicator @newlines parser_definitions @newlines ".End"     : add($2), add($4)
+    parser_block -> ".Parser" newlines start_indicator newlines parser_definitions newlines ".End"     : add($2), add($4)
 
     start_indicator -> ".Start" @identifier                                                         : node("start"), add($1)
 
-    parser_definitions -> parser_definitions @newlines parser_definition                            : adopt($0), add($2)
+    parser_definitions -> parser_definitions newlines parser_definition                            : adopt($0), add($2)
         | parser_definition                                                                         # : replace($0)
 
     parser_definition -> @identifier "->" production_lines                                          : push("production_name", $0), add($2)
 
     production_lines -> production_and_data                                                         : replace($0)
         | production_lines @or production_and_data                                                  : node("options"), adopt($0), add($2)
-        # | production_lines @newlines @or production_and_data
+        # | production_lines newlines @or production_and_data
 
     production_and_data -> production_atoms
         | production_atoms @semicolon actions                                                       : add($0), add($2)
