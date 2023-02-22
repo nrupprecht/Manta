@@ -53,7 +53,6 @@ class LALRParser;
 //!     The start of the parser description with be the indicator ".Parser"
 class ParserGenerator {
  public:
-  using iter = std::vector<int>::const_iterator;
 
   //! \brief Create a parser generator of the specified type.
   explicit ParserGenerator(ParserType type = ParserType::SLR);

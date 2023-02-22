@@ -54,7 +54,7 @@ struct TransitionType {
   //! \return True if c is accepted by the transition.
   NO_DISCARD bool Accept(const char c) const {
     return (range_initial <= c && c <= range_final) // Normal transition
-        || range_final < range_initial;             // Lambda transition.
+          || range_final < range_initial;             // Lambda transition.
   }
 
   //! \brief Return whether this is a lambda (null) transition.
@@ -139,10 +139,13 @@ class FiniteAutomaton {
 
   //! \brief Add a transition object.
   void AddTransition(int index, TransitionType type);
+
   //! \brief Add a char range transition.
-  void AddTransition(int source, int dest, char ci, char cf);
+  void AddTransition(int source, int dest, char ci, char cf, bool complement = false);
+
   //! \brief Add a single char transition.
-  void AddTransition(int source, int dest, char c);
+  void AddTransition(int source, int dest, char c, bool complement = false);
+
   //! \brief Add a lambda transition.
   void AddTransition(int source, int dest);
 

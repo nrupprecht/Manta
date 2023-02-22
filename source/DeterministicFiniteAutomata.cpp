@@ -189,12 +189,33 @@ void FiniteAutomaton::AddTransition(int index, TransitionType type) {
   dfa_nodes_[index].transitions.push_back(type);
 }
 
-void FiniteAutomaton::AddTransition(int source, int dest, char ci, char cf) {
-  AddTransition(source, TransitionType(dest, std::min(ci, cf), std::max(ci, cf)));
+void FiniteAutomaton::AddTransition(int source, int dest, char ci, char cf, bool complement) {
+  auto cs = std::min(ci, cf), ce = std::max(ci, cf);
+  if (complement) {
+    if (cs != '\0') {
+      AddTransition(source, TransitionType(dest, '\0', static_cast<char>(cs - 1)));
+    }
+    if (ce != std::numeric_limits<char>::max()) {
+      AddTransition(source, TransitionType(dest, static_cast<char>(ce + 1), std::numeric_limits<char>::max()));
+    }
+  }
+  else {
+    AddTransition(source, TransitionType(dest, cs, ce));
+  }
 }
 
-void FiniteAutomaton::AddTransition(int source, int dest, char c) {
-  AddTransition(source, TransitionType(dest, c, c));
+void FiniteAutomaton::AddTransition(int source, int dest, char c, bool complement) {
+  if (complement) {
+    if (c != '\0') {
+      AddTransition(source, TransitionType(dest, '\0', static_cast<char>(c - 1)));
+    }
+    if (c != std::numeric_limits<char>::max()) {
+      AddTransition(source, TransitionType(dest, static_cast<char>(c + 1), std::numeric_limits<char>::max()));
+    }
+  }
+  else {
+    AddTransition(source, TransitionType(dest, c, c));
+  }
 }
 
 void FiniteAutomaton::AddTransition(int source, int dest) {
@@ -361,7 +382,7 @@ inline void FiniteAutomaton::computeGoto(
 
   for (auto &object: all_transition_sets) {
     // Unpack tuple.
-    auto&[transition_set, range_initial, range_final] = object;
+    auto& [transition_set, range_initial, range_final] = object;
     // If we have derived a new set, we have to add it to the working stack
     if (!contains(transition_set)) {
       // Get an id number for the new set.

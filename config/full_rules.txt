@@ -3,7 +3,8 @@
     @lexeme_name: @(\@ | _)+
     @semicolon: :
     @identifier: ( \@ | _ )+
-    @regex: " (\@ | \d | \| | \\ | \s | @ | + | * | _ | \( | \) | . | : | $)* "
+    @regex: " (\@ | \d | \| | \\ | \s | @ | + | * | _ | \( | \) | . | : | $ | < | > | - | , )* "
+    @literal: " (\@ | \d | \| | \\ | \s | @ | + | * | _ | \( | \) | . | : | $ | < | > | - | , )* "
     @or: \|
     @lparen: \[
     @rparen: \]
@@ -51,7 +52,7 @@
     parser_definition -> @identifier "->" production_lines                                          : push("production_name", $0), add($2)
 
     production_lines -> production_and_data                                                         : replace($0)
-        # | production_lines @or production_and_data                                                  : node("options"), adopt($0), add($2)
+        | production_lines @or production_and_data                                                  : node("options"), adopt($0), add($2)
         # | production_lines @newlines @or production_and_data
 
     production_and_data -> production_atoms
@@ -64,12 +65,13 @@
         | "{" production_atoms "}"                  : node("repetition"), adopt($1)
         | "[" production_atoms "]"                  : node("optional"), adopt($1)
         | @identifier                               #: replace($0)
-        | @regex                                    #: replace($0)
+        | @literal                                    #: replace($0)
         | @lexeme_name                              #: replace($0)
 
     actions -> actions "," action                   : add($0), add($2)
         | action                                    : replace($0)
 
-    action -> @identifier @pos_arg
+    action -> @identifier "(" @pos_arg ")"          : add($0), add($2)
+        | @identifier "(" @literal ")"              : add($0), add($2)
 
 .End

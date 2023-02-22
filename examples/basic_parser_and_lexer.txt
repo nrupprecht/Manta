@@ -3,25 +3,54 @@
     @lexeme_name: "@(\@ | _)+"
     @semicolon: ":"
     @identifier: "( \@ | _ )+"
-    @regex: " (\@ | \d | \| | \\ | \s | @ | + | * | _ | \( | \) | . | : )* "
+    @regex: " (\@ | \d | \| | \\ | \s | @ | + | * | _ | \( | \) | . | : | $)* "
     @or: "\|"
     @pos_arg: "$ \d*"
+    @arrow: "->"
 
     @spaces: "\s+"
     @newlines: "\n+"
     @eof: "\0"
 .End
-
 .Parser
 
     .Start start
 
-    start -> lexer_block @newlines parser_block @eof                        : add $0, add $2
+    start -> lexer_block @newlines parser_block @eof                          : add($0), add($2)
 
-    lexer_block -> ".Lexer" @newlines lexer_definitions @newlines ".End"    : adopt $2
+    lexer_block -> ".Lexer" @newlines lexer_definitions @newlines ".End"    : adopt($2)
 
-    lexer_definitions -> lexer_definitions @newlines lexeme_definition      : adopt $0, add $2
-    lexer_definitions -> lexeme_definition                                  : add $0
+    lexer_definitions -> lexer_definitions @newlines lexeme_definition      : adopt($0), add($2)
+    lexer_definitions -> lexeme_definition                                   : add($0)
 
-    lexeme_definition -> @lexeme_name @semicolon @regex                     : add $0, add $2
+    lexeme_definition -> @lexeme_name @semicolon @regex                     : add($0), add($2)
+
+    parser_block -> ".Parser" @newlines start_indicator @newlines parser_definitions @newlines ".End"     : add($2), add($4)
+
+    start_indicator -> ".Start" @identifier : add($1)
+
+    parser_definitions -> parser_definitions @newlines parser_definition                            : adopt($0), add($2)
+    parser_definitions -> parser_definition
+
+    parser_definition -> @identifier @arrow production_lines                                          : add($2)
+
+    production_lines -> production_and_data                                                         : replace($0)
+    production_lines -> production_lines @or production_and_data                                                  : adopt($0), add($2)
+
+    production_and_data -> production_atoms
+    production_and_data -> production_atoms @semicolon actions                                                       : add($0), add($2)
+
+    production_atoms -> production_atoms production_atom                                            : adopt($0), add($1)
+    production_atoms -> production_atom                                                                           : adopt($0)
+
+    production_atom -> "(" production_atoms ")"     : node("grouping"), adopt($1)
+    production_atom -> @identifier
+    production_atom -> @literal
+    production_atom -> @lexeme_name
+
+    actions -> actions "," action                   : add($0), add($2)
+    actions -> action                                    : replace($0)
+
+    action -> @identifier "(" @pos_arg ")"          : add($0), add($2)
+
 .End

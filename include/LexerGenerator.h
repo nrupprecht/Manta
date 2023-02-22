@@ -33,7 +33,7 @@ class LexerGenerator {
   NO_DISCARD int Accepts(const string &word) const;
 
   //! \brief Return the name of a lexeme based on the id.
-  NO_DISCARD const std::string& LexemeName(int index) const;
+  NO_DISCARD const std::string &LexemeName(int index) const;
 
   //! \brief Returns the id of a lexeme based on the name.
   NO_DISCARD int LexemeID(const std::string &name) const;
@@ -65,32 +65,41 @@ class LexerGenerator {
 
   NO_DISCARD std::string getLexeme() const;
 
-  //! \brief Turn a literal into a regex pattern that will accept exatly this literal.
-  static std::string escapeLiteral(const std::string& literal) ;
+  //! \brief Turn a literal into a regex pattern that will accept exactly this literal.
+  static std::string escapeLiteral(const std::string &literal);
 
   //! \brief Recursively get a sequence of characters, constructing a NFA,
   //! until a terminator character is reached (or eof).
-  inline std::pair<int, int> get_sequence(char terminator, bool useTerminator = true);
+  std::pair<int, int> getSequence(char terminator, bool useTerminator = true);
 
-  void make_star(int idi, int idf, int &recent_id);
+  std::pair<int, int> getCharacterClass();
 
-  void make_plus(int idi, int idf, int &recent_id);
+  std::pair<int, int> stringComplement();
 
-  void make_ques(int idi, int idf, int &recent_id);
+  std::pair<int, int> characterClass(bool make_complement = false);
+
+  void makeStar(int idi, int idf, int &recent_id);
+
+  void makePlus(int idi, int idf, int &recent_id);
+
+  void makeQues(int idi, int idf, int &recent_id);
 
   //! \brief Add (if needed) a modifier to a sequence of nodes.
-  void check_modifier(int idi, int idf, int &recent_id);
+  void checkModifier(int idi, int idf, int &recent_id);
 
   //! \brief Lambda function that adds another node in the line.
-  void add_node(char ci, char cf, int &recent_id);
+  void addNode(char ci, char cf, int &recent_id);
 
   //! \brief Function for adding a character node. Checks whether a */+/? comes after the char.
-  void add_char(char c, int &recent_id);
+  void addChar(char c, int &recent_id);
 
   void specialCharacters(char c, int &recent_id);
 
   //! \brief Check if a token should be skipped.
-  inline bool is_skip(int);
+  inline bool isSkip(int);
+
+  //! \brief What the escaped character represented by '\' follow by c corresponds to.
+  char escapedCharacter(char c);
 
   // ================================================
   //  Private members.

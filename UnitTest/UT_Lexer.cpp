@@ -22,6 +22,108 @@ TEST(Lexer, LexEOF) {
   EXPECT_EQ(lexemes.size(), 1);
 }
 
+TEST(Lexer, String) {
+  LexerGenerator test(false);
+  test.AddLexeme("string", "Hello");
+
+  auto lexer = test.CreateLexer();
+  lexer->SetStringToLex("Hello");
+  auto lexemes = lexer->LexAll();
+
+  EXPECT_EQ(lexemes.size(), 1);
+}
+
+TEST(Lexer, CharClassSimple) {
+  LexerGenerator test(false);
+  test.AddLexeme("lower", "[a-z]+");
+  test.AddLexeme("upper", "[A-Z]+");
+  // Skip spaces
+  test.AddLexeme("Spaces", "\\s+");
+  test.AddSkip("Spaces");
+
+  auto lexer = test.CreateLexer();
+  lexer->SetStringToLex("Hello worLDs");
+  auto lexemes = lexer->LexAll();
+
+  EXPECT_EQ(lexemes.size(), 5);
+
+  std::vector<std::string> expected_names{"upper", "lower", "lower", "upper", "lower"};
+
+  for (std::size_t i = 0; i < std::min(lexemes.size(), expected_names.size()); ++i) {
+    EXPECT_EQ(lexer->LexemeName(lexemes[i].type), expected_names[i])
+              << "Disagreement for i = " << i << ": '" << lexemes[i].literal << "'";
+  }
+}
+
+TEST(Lexer, CharClassComplex) {
+  LexerGenerator test(false);
+  test.AddLexeme("A", "[a-kL-Z]+");
+  test.AddLexeme("B", "[l-zA-K]+");
+  // Skip spaces
+  test.AddLexeme("Spaces", "\\s+");
+  test.AddSkip("Spaces");
+
+  auto lexer = test.CreateLexer();
+  lexer->SetStringToLex("talents tAlEnts TaLeNTS");
+  auto lexemes = lexer->LexAll();
+
+  EXPECT_EQ(lexemes.size(), 7);
+
+  std::vector<std::string> expected_names{"B", "A", "B", "A", "B", "B", "A"};
+
+  for (std::size_t i = 0; i < std::min(lexemes.size(), expected_names.size()); ++i) {
+    EXPECT_EQ(lexer->LexemeName(lexemes[i].type), expected_names[i])
+              << "Disagreement for i = " << i << ": '" << lexemes[i].literal << "'";
+  }
+}
+
+TEST(Lexer, CharClassRange) {
+
+}
+
+TEST(Lexer, StringComplement) {
+  LexerGenerator test(false);
+  test.AddLexeme("comment", "/* [~*/]* */");
+  test.AddLexeme("word", "\\@+");
+  // Skip spaces
+  test.AddLexeme("Spaces", "\\s+");
+  test.AddSkip("Spaces");
+
+  auto lexer = test.CreateLexer();
+  lexer->SetStringToLex("word /* more words inside */and continue");
+  auto lexemes = lexer->LexAll();
+
+  EXPECT_EQ(lexemes.size(), 4);
+
+  std::vector<std::string> expected_names{"word", "comment", "word", "word"};
+
+  for (std::size_t i = 0; i < std::min(lexemes.size(), expected_names.size()); ++i) {
+    EXPECT_EQ(lexer->LexemeName(lexemes[i].type), expected_names[i])
+              << "Disagreement for i = " << i << ": '" << lexemes[i].literal << "'";
+  }
+}
+
+TEST(Lexer, StringComplement_Example_String) {
+  LexerGenerator test(false);
+  test.AddLexeme("string", R"( " ( \\" | [~"] )* " )");
+  // Skip spaces
+  test.AddLexeme("spaces", "\\s+");
+  test.AddSkip("spaces");
+
+  auto lexer = test.CreateLexer();
+  lexer->SetStringToLex(R"("hi there" "he said \"hi there\", you know" "goodbye")");
+  auto lexemes = lexer->LexAll();
+
+  EXPECT_EQ(lexemes.size(), 3);
+  if (lexemes.size() == 3) {
+    EXPECT_EQ(lexemes[0].literal, R"("hi there")");
+    EXPECT_EQ(lexemes[1].literal, R"("he said \"hi there\", you know")");
+    EXPECT_EQ(lexemes[2].literal, R"("goodbye")");
+  }
+
+  EXPECT_EQ(lexer->CheckStatus(), FAStatus::EndedNonAccepting);
+}
+
 TEST(Lexer, Basic) {
   LexerGenerator test(false);
   test.AddLexeme("Pattern1", "[A-Z] [a-z]+");
