@@ -22,6 +22,16 @@ void testParser(const string &rulesFilepath, const string &codeFilepath) {
     return;
   }
 
+  auto parser_gen_trace = generator.GetParserGenerationTrace();
+  if (!parser_gen_trace.empty()) {
+    std::cout
+        << "\n--- Parser Generation Trace     --- \n" << parser_gen_trace
+        << "\n--- End Parser Generation Trace ---\n";
+  }
+  else {
+    std::cout << "\nNo parser generation trace.\n";
+  }
+
   if (parser) {
     // Print out the transition table.
     std::cout << "\n";

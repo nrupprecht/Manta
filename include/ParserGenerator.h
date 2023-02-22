@@ -228,59 +228,59 @@ class ParserGenerator {
   // ======================================================
 
   //! \brief A lexer generator.
-  LexerGenerator lexer_generator;
+  LexerGenerator lexer_generator_;
 
   //! \brief Maps production names to production numbers.
-  std::map<string, int> production_map;
+  std::map<string, int> production_map_;
 
   //! \brief Maps production numbers to production names.
-  std::map<int, string> inverse_production_map;
+  std::map<int, string> inverse_production_map_;
 
   //! \brief The productions for each non-terminal. A State (here) is essentially a set of production rules.
-  std::map<int, State> productions_for;
+  std::map<int, State> productions_for_;
 
   //! \brief All the productions.
-  std::vector<Item> all_productions;
+  std::vector<Item> all_productions_;
 
   //! \brief Whether a non-terminal derives empty.
   std::vector<bool> nonterminal_derives_empty_;
 
   //! \brief The number of terminals in the correspondence vector.
-  int num_productions = 0;
+  int num_productions_ = 0;
 
   //! \brief Which production is the starting production.
-  int start_production = 0;
+  int start_production_ = 0;
 
   //! \brief The name of the start production. By default, this is "start."
-  std::string start_production_name = "start";
+  std::string start_production_name_ = "start";
 
   //! \brief The total number of lexer ids plus production symbols. The number of columns in the parse_table_.
-  int total_symbols = 0;
+  int total_symbols_ = 0;
 
   //! \brief The number to assign to the next production.
   //!
   //! Note: To keep things easy to compare, right now we are starting productions at 1.
-  int next_production_label = 1;
+  int next_production_label_ = 1;
 
   //! \brief The parse table. It is a vector so we can add new states.
   //!
   //! The pair is [ action, state ].
-  std::vector<std::vector<Entry>> parse_table;
+  std::vector<std::vector<Entry>> parse_table_;
 
   //! \brief All the different states.
-  std::vector<State> all_states;
+  std::vector<State> all_states_;
 
   //! \brief Work list for creating table.
-  std::deque<int> work_list;
+  std::deque<int> work_list_;
 
   //! \brief A flag that should be set to false if something fails.
-  bool status = true;
+  bool status_ = true;
 
   //! \brief What type of parser should be generated.
   ParserType parser_type_;
 
   //! \brief A string that records the history of the parser generation.
-  std::stringstream parser_generation_trace;
+  std::stringstream parser_generation_trace_;
 };
 
 } // manta

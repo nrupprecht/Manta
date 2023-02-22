@@ -6,14 +6,11 @@
     @regex: r` r \` ( \\ \` | [~ \`] )* \` `
     @literal: r` " ( \\" | [~"] )* " `
     @or: r`\|`
-    @lparen: r`\[`
-    @rparen: r`\]`
     @pos_arg: r`$ \d+`
     @comment: r`# [~\n]* \n`
 
     @spaces: r`\s+`
     @newlines: r`\n+`
-    @eof: r`\0`
 
     .Skip spaces
     .Skip comment
@@ -38,7 +35,7 @@
     lexer_block -> ".Lexer" newlines lexer_definitions newlines ".End"    : adopt($2)
 
     lexer_definitions -> lexer_definitions newlines lexeme_line      : adopt($0), add($2)
-        | lexeme_line                                                 : replace($0)
+        | lexeme_line
 
     lexeme_line -> lexeme_definition                                        : node("Lexeme"), adopt($0)
         | skip_definition                                                   : node("Skip"), add($0)
@@ -53,7 +50,7 @@
 
     parser_block -> ".Parser" newlines start_indicator newlines parser_definitions newlines ".End"     : add($2), add($4)
 
-    start_indicator -> ".Start" @identifier                                                         : node("start"), add($1)
+    start_indicator -> ".Start" @identifier                                                         : add($1)
 
     parser_definitions -> parser_definitions newlines parser_definition                            : adopt($0), add($2)
         | parser_definition                                                                         # : replace($0)
@@ -62,25 +59,27 @@
 
     production_lines -> production_and_data                                                         : replace($0)
         | production_lines @or production_and_data                                                  : node("options"), adopt($0), add($2)
-        # | production_lines newlines @or production_and_data
 
     production_and_data -> production_atoms
         | production_atoms @semicolon actions                                                       : add($0), add($2)
 
-    production_atoms -> production_atoms production_atom                                            : adopt($0), add($1)
-        | production_atom                                                                           : adopt($0)
+    production_atoms -> production_atoms production_atom                                            : adopt($0), adopt($1)
+        | production_atom : replace($0)
 
     production_atom -> "(" production_atoms ")"     : node("grouping"), adopt($1)
-        | "{" production_atoms "}"                  : node("repetition"), adopt($1)
-        | "[" production_atoms "]"                  : node("optional"), adopt($1)
-        | @identifier                               #: replace($0)
-        | @literal                                    #: replace($0)
-        | @lexeme_name                              #: replace($0)
+        | @identifier
+        | @literal
+        | @lexeme_name
 
-    actions -> actions "," action                   : add($0), add($2)
-        | action                                    : replace($0)
+    actions -> actions "," action                   : adopt($0), add($2)
+        | action
 
-    action -> @identifier "(" @pos_arg ")"          : add($0), add($2)
-        | @identifier "(" @literal ")"              : add($0), add($2)
+    action -> @identifier "(" args ")"          : add($0), add($2)
+
+    args -> args "," arg : adopt($0), add($2)
+        | arg
+
+    arg -> @pos_arg : replace($0)
+        | @literal  : replace($0)
 
 .End
