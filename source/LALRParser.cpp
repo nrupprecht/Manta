@@ -247,10 +247,10 @@ std::string LALRParser::PrintTable() const {
   std::string str;
 
   // Print out definitions.
-  str += repeat('_', (total_symbols_ + 1) * 5) + '_';
+  str += repeat('_', (total_symbols_ + 1) * 5) + "__";
   str += '\n';
   str += "Token and production definitions:\n";
-  str += repeat('-', (total_symbols_ + 1) * 5) + '-';
+  str += repeat('-', (total_symbols_ + 1) * 5) + "--";
   str += '\n';
   str += "   -- (Lexemes) -- \n";
   int i = 0;
@@ -263,12 +263,8 @@ std::string LALRParser::PrintTable() const {
   }
 
   // Print table header.
-  str += repeat('_', 5 * (total_symbols_ + 2));
+  str += repeat('_', 5 * (total_symbols_ + 2)) + "__";
   str += '\n';
-//        str += "St.  |";
-//        for (int j = 0; j < total_symbols_; ++j) {
-//            str += buffered(j, 5);
-//        }
 
   // Store the (space) buffered names. We need to find how long the longest name is,
   // so we know how many spaces we need to buffer with.
@@ -276,7 +272,7 @@ std::string LALRParser::PrintTable() const {
 
   std::size_t max_size = 0;
   for (std::size_t j = 0; j < lexer_->GetNumLexemes(); ++j) {
-    auto name = lexer_->LexemeName(j);
+    auto name = lexer_->LexemeName(static_cast<int>(j));
     if (name.substr(0, 4) == "RES:") {
     // if (name[0] == 'R' && name[1] == 'E' && name[2] == 'S' && name[3] == ':') {
       max_size = std::max(max_size, name.size() - 4);
@@ -312,10 +308,10 @@ std::string LALRParser::PrintTable() const {
         str += "  |";
       }
     }
-    str += "\n";
+    str += "  |\n";
   }
 
-  str += repeat('-', 5 * (total_symbols_ + 2));
+  str += repeat('-', 5 * (total_symbols_ + 2)) + "--";
   str += '\n';
   // Print transition table.
   for (int s = 0; s < all_states_.size(); ++s) {
@@ -327,9 +323,9 @@ std::string LALRParser::PrintTable() const {
         str += " | ";
       }
     }
-    str += "\n";
+    str += " |\n";
   }
-  str += repeat('_', 5 * (total_symbols_ + 2));
+  str += repeat('-', 5 * (total_symbols_ + 2)) + "--";
   str += '\n';
 
   // Return the table string.

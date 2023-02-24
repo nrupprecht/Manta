@@ -46,6 +46,7 @@ void testParser(const string &rulesFilepath, const string &codeFilepath) {
       std::cout << "Exception during parsing: " << ex.what() << std::endl;
     }
     if (program) {
+      std::cout << "Parse took " << parser->NumParseSteps() << " steps.\n";
       std::cout << Display::RenderParseTree(program);
     } else {
       std::cout << "FAILURE parsing file. Printing parse trace:\n\n";
