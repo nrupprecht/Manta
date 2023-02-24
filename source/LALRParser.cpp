@@ -45,7 +45,7 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
   working_stack_types.push_back(start_production_); // For debugging.
 
   bool accept = false;
-  for (int count = 1; !accept; ++count) {
+  for (num_parse_steps_ = 1; !accept; ++num_parse_steps_) {
     // Get the current state.
     int state = working_stack.top().state;
 
@@ -99,7 +99,7 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
     int incoming_symbol = incoming_deque.front().type;
 
     /// For Debugging: Record the step and state of the parser.
-    parse_trace_ += "Step: " + std::to_string(count) + ", State: " + std::to_string(state)
+    parse_trace_ += "Step: " + std::to_string(num_parse_steps_) + ", State: " + std::to_string(state)
         + ", " + "lexer is at line " + std::to_string(lexer_->GetLine())
         + ", column " + std::to_string(lexer_->GetColumn()) + "\n";
 
@@ -394,6 +394,10 @@ std::string LALRParser::PrintAsMathematica(const std::shared_ptr<ParseNode> &hea
   mathematicaCommand += "},ImageSize->Large]";
 
   return mathematicaCommand;
+}
+
+std::size_t LALRParser::NumParseSteps() const {
+  return num_parse_steps_;
 }
 
 const std::string &LALRParser::GetParseTrace() const {

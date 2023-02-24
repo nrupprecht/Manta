@@ -26,6 +26,9 @@ class LALRParser {
 
   static std::string PrintAsMathematica(const std::shared_ptr<ParseNode> &head);
 
+  //! \brief Get the number of steps that the last parse took.
+  std::size_t NumParseSteps() const;
+
   //! \brief Get the parse trace string.
   NO_DISCARD const std::string &GetParseTrace() const;
 
@@ -106,6 +109,9 @@ class LALRParser {
 
   //! \brief A string that records the history of the parse.
   std::string parse_trace_;
+
+  //! \brief The number of steps that occurred during parsing.
+  std::size_t num_parse_steps_ = 0;
 };
 
 } // namespace manta
