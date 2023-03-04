@@ -1,7 +1,7 @@
 .Lexer
 
     # Lexer definition goes here.
-    @num: \d+
+    @num: r`\d+`
 
 .End
 .Parser

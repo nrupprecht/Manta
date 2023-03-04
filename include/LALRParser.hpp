@@ -40,6 +40,8 @@ class LALRParser {
 
   friend class ParserGenerator;
 
+  friend void CompareParsers(const LALRParser& left, const LALRParser& right);
+
  private:
   using Node = std::shared_ptr<ParseNode>;
 
@@ -113,5 +115,9 @@ class LALRParser {
   //! \brief The number of steps that occurred during parsing.
   std::size_t num_parse_steps_ = 0;
 };
+
+
+//! \brief Compare two parsers, printing the differences between them.
+void CompareParsers(const LALRParser& left, const LALRParser& right);
 
 } // namespace manta

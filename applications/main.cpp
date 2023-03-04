@@ -9,6 +9,16 @@
 
 using namespace manta;
 
+void compareParsers(const string &rulesFilepath) {
+  ParserGenerator slr(ParserType::SLR);
+  ParserGenerator lalr(ParserType::LALR);
+
+  auto slr_parser = slr.CreateParserFromFile(rulesFilepath);
+  auto lalr_parser = lalr.CreateParserFromFile(rulesFilepath);
+
+  CompareParsers(*slr_parser, *lalr_parser);
+}
+
 void testParser(const string &rulesFilepath, const string &codeFilepath) {
   // Parser
   ParserGenerator generator;

@@ -19,11 +19,37 @@ int ProductionRule::at(int i) const {
 }
 
 int ProductionRule::size() const {
-  return rhs.size();
+  return static_cast<int>(rhs.size());
 }
 
-void Item::endBookmark() const {
-  bookmark = rhs.size();
+bool Item::IsBookmarkAtBeginning() const {
+  return bookmark == 0;
+}
+
+bool Item::IsBookmarkAtEnd() const {
+  return bookmark == rhs.size();
+}
+
+Item Item::MakeReducibleForm() const {
+  auto copy = *this;
+  copy.bookmark = static_cast<int>(rhs.size());
+  return copy;
+}
+
+std::optional<Item> Item::AdvanceDot() const {
+  if (IsBookmarkAtEnd()) {
+    return {};
+  }
+  auto copy = *this;
+  ++copy.bookmark;
+  return copy;
+}
+
+std::optional<int> Item::GetElementFollowingBookmark() const {
+  if (bookmark == rhs.size()) {
+    return {};
+  }
+  return rhs[bookmark];
 }
 
 void State::insert(const Item &item) {
@@ -109,19 +135,19 @@ Entry::Entry(Item r)
 Entry::Entry(bool)
     : action(Action::Accept) {};
 
-bool Entry::isError() const {
+bool Entry::IsError() const {
   return action == Action::Error;
 }
 
-bool Entry::isShift() const {
+bool Entry::IsShift() const {
   return action == Action::Shift;
 }
 
-bool Entry::isReduce() const {
+bool Entry::IsReduce() const {
   return action == Action::Reduce;
 }
 
-bool Entry::isAccept() const {
+bool Entry::IsAccept() const {
   return action == Action::Accept;
 }
 
@@ -172,7 +198,7 @@ string toString(const Item &item) {
   return out.str();
 }
 
-std::string Entry::write(int length) const {
+std::string Entry::Write(int length) const {
   string str;
   switch (action) {
     case Action::Error: {
@@ -200,18 +226,22 @@ std::string Entry::write(int length) const {
   return buffered(str, length);
 }
 
+bool Entry::operator==(const Entry& rhs) const {
+  return std::tie(action, state) == std::tie(rhs.action, rhs.state);
+}
+
 std::ostream &operator<<(std::ostream &out, const Entry &entry) {
-  switch (entry.getAction()) {
+  switch (entry.GetAction()) {
     case Action::Error: {
       out << "x";
       break;
     }
     case Action::Shift: {
-      out << "S: " << entry.getState();
+      out << "S: " << entry.GetState();
       break;
     }
     case Action::Reduce: {
-      out << "R: " << entry.getRule();
+      out << "R: " << entry.GetRule();
       break;
     }
     case Action::Accept: {

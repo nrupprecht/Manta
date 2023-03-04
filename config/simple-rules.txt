@@ -1,13 +1,10 @@
-.Functions
-.End
-
 # Definition of the lexer.
 .Lexer
 
-    @eof: \0
-    @int: \d+
-    @whitespaces: \s+
-    @newlines: \n+
+    @eof: r`\0`
+    @int: r`\d+`
+    @whitespaces: r`\s+`
+    @newlines: r`\n+`
 
 .End
 

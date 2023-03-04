@@ -84,8 +84,22 @@ struct Item : public ProductionRule {
   //! \brief Create an empty item.
   Item() = default;
 
+  //! \brief Returns whether the bookmark is at the beginning (zero position).
+  bool IsBookmarkAtBeginning() const;
+
   //! \brief Returns whether the bookmark is at the end position.
-  void endBookmark() const;
+  bool IsBookmarkAtEnd() const;
+
+  //! \brief Create a new Item where the bookmark is at the end, the "reducible form" of this item.
+  Item MakeReducibleForm() const;
+
+  //! \brief Create a new Item where the bookmark has advanced by one. If the bookmark is at
+  //! the end already, returns nullopt.
+  std::optional<Item> AdvanceDot() const;
+
+  //! \brief If the bookmark is at the end, returns {}, otherwise, returns the terminal or nonterminal
+  //! immediately following the bookmark.
+  std::optional<int> GetElementFollowingBookmark() const;
 
   friend bool operator<(const Item& a, const Item& b);
   friend bool operator==(const Item& a, const Item& b);
@@ -163,27 +177,29 @@ struct Entry {
   //! \brief Create entry as an accept.
   explicit Entry(bool);
 
-  bool isError() const;
-  bool isShift() const;
-  bool isReduce() const;
-  bool isAccept() const;
+  bool IsError() const;
+  bool IsShift() const;
+  bool IsReduce() const;
+  bool IsAccept() const;
 
   //! \brief Get the ResolutionInfo for the production rule associated with this entry.
   const ResolutionInfo& GetResInfo() const { return rule.res_info; }
 
-  Action getAction() const { return action; }
-  StateID getState() const { return state; }
-  Item getRule() const { return rule; }
+  Action GetAction() const { return action; }
+  StateID GetState() const { return state; }
+  Item GetRule() const { return rule; }
 
-  string write(int length) const;
+  string Write(int length) const;
 
   friend ostream& operator<<(ostream&, const Entry&);
+
+  bool operator==(const Entry& rhs) const;
 
  private:
   //! \brief The action.
   Action action = Action::Error;
 
-  //! \brief The state to transition true.
+  //! \brief The state to transition to.
   StateID state = 0;
 
   //! \brief The reduce rule (if applicable).

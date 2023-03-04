@@ -1,0 +1,21 @@
+.Lexer
+    @a: r`a`
+    @b: r`b`
+    @c: r`c`
+    @x: r`x`
+.End
+
+.Parser
+.Start start
+
+    start -> S @eof
+    S -> A B
+        | @a @c
+        | @x A @c
+
+    A -> @a
+
+    B -> @b
+        | $null
+
+.End

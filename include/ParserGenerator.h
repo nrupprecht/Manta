@@ -12,6 +12,7 @@
 
 namespace manta {
 
+//! \brief Determines what type of parser to create.
 enum class ParserType { LR0, SLR, LALR };
 
 //! \brief Object that acts as a deque of work, but you can only add new items if
@@ -45,7 +46,49 @@ struct WorkDeque {
   std::set<T> marked_;
 };
 
+//! \brief LALR uses "state items" that are pairs of states and items.
+using StateItem = std::pair<StateID, Item>;
 
+//! \brief Typedef for an LALR item follow set.
+using ItemFollowSet = std::map<StateItem, std::set<int>>;
+
+//! \brief A structure to represent an LALR propagation graph, which is used to construct LALR parsers.
+class LALRPropagationGraph {
+ public:
+  void AddEdge(const StateItem& v, const StateItem& w) {
+    edges_[v].insert(w);
+  }
+
+  NO_DISCARD const std::map<StateItem, std::set<StateItem>>& Edges() const {
+    return edges_;
+  }
+
+
+  struct Iterator {
+    friend class LALRPropagationGraph;
+   public:
+
+   private:
+    using IT1 = std::map<StateItem, std::set<StateItem>>::iterator;
+    using IT2 = std::set<StateItem>::iterator;
+
+    Iterator(IT1 first_begin, IT1 first_end, IT2 second_begin, IT2 second_end)
+        : first_vertex_iter_(first_begin)
+        , first_end_(first_end)
+        , second_vertex_iter_(second_begin)
+        , second_end_(second_end)
+    {}
+
+    IT1 first_vertex_iter_, first_end_;
+    IT2 second_vertex_iter_, second_end_;
+  };
+
+ private:
+
+  std::map<StateItem, std::set<StateItem>> edges_;
+};
+
+// Forward declare LALR parser.
 class LALRParser;
 
 //! \brief Class that can read a description of a parser and create from that a table-driven LALRParser.
@@ -55,7 +98,7 @@ class ParserGenerator {
  public:
 
   //! \brief Create a parser generator of the specified type.
-  explicit ParserGenerator(ParserType type = ParserType::SLR);
+  explicit ParserGenerator(ParserType type = ParserType::LALR);
 
   //! \brief Parse a description of a grammar from a file to create a parser.
   std::shared_ptr<LALRParser> CreateParserFromFile(const std::string &filename);
@@ -188,7 +231,7 @@ class ParserGenerator {
   void computeGoto(int s);
 
   //! \brief Compute the closure of state s.
-  State closure(int s);
+  State closure(int s) const;
 
   //! \brief Try to advance the bookmark (dot) of a state, returning the resulting state.
   static State advanceDot(const State &state, int symb);
@@ -200,10 +243,17 @@ class ParserGenerator {
   //! already an entry, resolution is attempted.
   void assertEntry(int state, int symbol, const Entry &action);
 
-  void computeLookahead();
+  ItemFollowSet computeLookahead();
+
+  std::pair<LALRPropagationGraph, ItemFollowSet> buildItemForPropGraph();
+
+  //! Note: The argument is intentionally mutable.
+  static void evalItemForPropGraph(std::pair<LALRPropagationGraph, ItemFollowSet>& propagation_data);
 
   //! \brief Fill out a row in the parser table.
   void tryRuleInState(int state, const Item &rule);
+
+  void tryRuleInStateLALR(int state_index, const Item& rule, const ItemFollowSet& item_follow);
 
   //! \brief Tries to find a state in all_states_. Returns -1 for failure.
   int findState(const State &items) const;
@@ -230,31 +280,32 @@ class ParserGenerator {
   //! \brief A lexer generator.
   LexerGenerator lexer_generator_;
 
-  //! \brief Maps production names to production numbers.
-  std::map<string, int> production_map_;
+  //! \brief Maps non-terminal names to non-terminal numbers.
+  std::map<string, int> nonterminal_map_;
 
-  //! \brief Maps production numbers to production names.
-  std::map<int, string> inverse_production_map_;
+  //! \brief Maps non-terminal numbers to non-terminal names.
+  std::map<int, string> inverse_nonterminal_map_;
 
   //! \brief The productions for each non-terminal. A State (here) is essentially a set of production rules.
   std::map<int, State> productions_for_;
 
-  //! \brief All the productions.
+  //! \brief All the productions, for all non-terminals.
   std::vector<Item> all_productions_;
 
-  //! \brief Whether a non-terminal derives empty.
+  //! \brief Whether a non-terminal can derive empty.
   std::vector<bool> nonterminal_derives_empty_;
 
   //! \brief The number of terminals in the correspondence vector.
   int num_productions_ = 0;
 
-  //! \brief Which production is the starting production.
-  int start_production_ = 0;
+  //! \brief Which non-terminal is the starting non-terminal.
+  int start_nonterminal_ = 0;
 
-  //! \brief The name of the start production. By default, this is "start."
-  std::string start_production_name_ = "start";
+  //! \brief The name of the start non-terminal. By default, this is "start."
+  std::string start_nonterminal_name_ = "start";
 
-  //! \brief The total number of lexer ids plus production symbols. The number of columns in the parse_table_.
+  //! \brief The total number of lexer ids (terminals) plus non-terminal symbols. This is the number
+  //! of columns in the parse_table_.
   int total_symbols_ = 0;
 
   //! \brief The number to assign to the next production.
@@ -265,6 +316,11 @@ class ParserGenerator {
   //! \brief The parse table. It is a vector so we can add new states.
   //!
   //! The pair is [ action, state ].
+  //!
+  //! Note: It is of course possible to have a more concise representation of this table, however, I
+  //! am primarily concerned right now with just playing around and getting things to work, not making
+  //! this into a full production quality product.
+  //!
   std::vector<std::vector<Entry>> parse_table_;
 
   //! \brief All the different states.
@@ -277,7 +333,7 @@ class ParserGenerator {
   bool status_ = true;
 
   //! \brief What type of parser should be generated.
-  ParserType parser_type_;
+  ParserType parser_type_ = ParserType::LALR;
 
   //! \brief A string that records the history of the parser generation.
   std::stringstream parser_generation_trace_;

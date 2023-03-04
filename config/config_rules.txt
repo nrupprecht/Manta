@@ -1,11 +1,11 @@
 .Lexer
 
-    @identifier: ( \@ | _ ) ( \@ | _ | \d )*
-    @int: \d+
-    @double: \d+ . \d*
-    @spaces: \s+
-    @newlines: \n+
-    @eof: \0
+    @identifier: r`( \@ | _ ) ( \@ | _ | \d )*`
+    @int: r`\d+`
+    @double: r`\d+ . \d*`
+    @spaces: r`\s+`
+    @newlines: r`\n+`
+    @eof: r`\0`
 
     .Skip spaces
     .Skip newlines

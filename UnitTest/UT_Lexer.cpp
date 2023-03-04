@@ -136,11 +136,10 @@ TEST(Lexer, StringComplement_Example_Comment) {
   lexer->SetStringToLex("hi # and goodbye \n");
   auto lexemes = lexer->LexAll();
 
-  EXPECT_EQ(lexemes.size(), 3);
-  if (lexemes.size() == 3) {
-    EXPECT_EQ(lexemes[0].literal, R"("hi there")");
-    EXPECT_EQ(lexemes[1].literal, R"("he said \"hi there\", you know")");
-    EXPECT_EQ(lexemes[2].literal, R"("goodbye")");
+  EXPECT_EQ(lexemes.size(), 2);
+  if (lexemes.size() == 2) {
+    EXPECT_EQ(lexemes[0].literal, "hi");
+    EXPECT_EQ(lexemes[1].literal, "# and goodbye \n");
   }
 
   EXPECT_EQ(lexer->CheckStatus(), FAStatus::EndedNonAccepting);

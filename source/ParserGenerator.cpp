@@ -176,7 +176,7 @@ std::shared_ptr<LALRParser> ParserGenerator::CreateParserFromStream(std::istream
           stream.get(c);
         }
 
-        start_production_name_ = command;
+        start_nonterminal_name_ = command;
       }
     }
 
@@ -188,11 +188,11 @@ std::shared_ptr<LALRParser> ParserGenerator::CreateParserFromStream(std::istream
   shiftProductionNumbers();
 
   // Find start production (must do this after we shift production numbers).
-  auto it = production_map_.find(start_production_name_);
-  if (it == production_map_.end()) {
+  auto it = nonterminal_map_.find(start_nonterminal_name_);
+  if (it == nonterminal_map_.end()) {
     throw std::exception();
   }
-  start_production_ = it->second;
+  start_nonterminal_ = it->second;
 
   // Compute which productions can derive empty.
   createStateDerivesEmpty();
@@ -209,8 +209,8 @@ std::shared_ptr<LALRParser> ParserGenerator::CreateParserFromStream(std::istream
   // Note - this uses a private constructor.
   return std::shared_ptr<LALRParser>(
       new LALRParser(
-          inverse_production_map_,
-          start_production_,
+          inverse_nonterminal_map_,
+          start_nonterminal_,
           total_symbols_,
           parse_table_,
           all_states_,
@@ -226,7 +226,7 @@ int ParserGenerator::NumTerminals() const {
 }
 
 int ParserGenerator::GetNonterminalID(const std::string &non_terminal) const {
-  return production_map_.at(non_terminal);
+  return nonterminal_map_.at(non_terminal);
 }
 
 std::set<int> ParserGenerator::FirstSet(int symbol) {
@@ -235,7 +235,7 @@ std::set<int> ParserGenerator::FirstSet(int symbol) {
 }
 
 std::set<std::string> ParserGenerator::FirstSet(const std::string &symbol) {
-  auto first_set = FirstSet(production_map_[symbol]);
+  auto first_set = FirstSet(nonterminal_map_[symbol]);
   std::set<std::string> output;
   std::for_each(
       first_set.begin(), first_set.end(),
@@ -260,7 +260,7 @@ std::set<int> ParserGenerator::FollowSet(int symbol) {
 }
 
 std::set<std::string> ParserGenerator::FollowSet(const std::string &symbol) {
-  auto follow_set = FollowSet(production_map_[symbol]);
+  auto follow_set = FollowSet(nonterminal_map_[symbol]);
   std::set<std::string> output;
   std::for_each(
       follow_set.begin(), follow_set.end(),
@@ -270,11 +270,24 @@ std::set<std::string> ParserGenerator::FollowSet(const std::string &symbol) {
 
 void ParserGenerator::WriteStates(std::ostream &out) const {
   int it = 0;
-  for (const auto &state: all_states_) {
+  for (const auto& state: all_states_) {
+    auto augmented_state = closure(it);
+
+    std::set<Item> augmented_set; // Part of the state that is not in the kernel.
+    std::set_difference(augmented_state.item_set.begin(), augmented_state.item_set.end(),
+                        state.item_set.begin(), state.item_set.end(),
+                        std::inserter(augmented_set, augmented_set.begin()));
+
     out << "---- State " << it << " -----------\n";
-    for (auto &item: state) {
-      out << "  " << writeItem(item);
-      out << "\n";
+    // Write kernel
+    for (auto& item : state) {
+      out << "  " << writeItem(item) << "\n";
+    }
+    if (!augmented_set.empty()) {
+      out << "---------------------------\n";
+      for (auto &item: augmented_set) {
+        out << "  " << writeItem(item) << "\n";
+      }
     }
     out << "---------------------------\n\n";
     ++it;
@@ -297,7 +310,7 @@ std::string ParserGenerator::nameOf(int id) const {
     return lex_name;
   }
   else {
-    return inverse_production_map_.at(id);
+    return inverse_nonterminal_map_.at(id);
   }
 }
 
@@ -377,15 +390,16 @@ inline void ParserGenerator::getProductions(std::istream &in, int production_id)
       // TODO: Register "start" at the construction of the parser generator so it always
       //  has the first id. This is cle
       if (acc == "start") {
-        start_production_ = id;
+        start_nonterminal_ = id;
       }
       // Add production to rule.
       production.add(id);
       // Clear accumulator.
       acc.clear();
     }
-      // Start of a default lexer type (terminal), or the @null symbol.
-      // TODO: Redo this part.
+
+    // Start of a default lexer type (terminal), or the @null symbol.
+    // TODO: Redo this part.
     else if (c == '@') {
       in.get(c);
       while (!isspace(c) && !in.eof()) {
@@ -393,14 +407,34 @@ inline void ParserGenerator::getProductions(std::istream &in, int production_id)
         in.get(c);
       }
 
-      // TODO: Handle @null
-
       // Ask the lexer generator for the lexeme ID of the terminal
       int id = lexer_generator_.LexemeID(acc);
       if (id < 0) {
         throw UnrecognizedLexerItem("word " + acc + " not a valid lexeme type");
       }
       production.add(id);
+
+      // Clear accumulator.
+      acc.clear();
+    }
+    // Other special symbol, like $null
+    else if (c == '$') {
+      in.get(c);
+      while (!isspace(c) && !in.eof()) {
+        acc.push_back(c);
+        in.get(c);
+      }
+
+      if (acc == "null") {
+        // We handle the null by not adding anything to the production.
+        // That covers the case where there is a (useless) null in the
+        // middle of a production, A - > B $null C, the case where
+        // there are multiple nulls, A -> $null $null, and the case where
+        // a production can derive null, A -> $null.
+      }
+      else {
+        MANTA_FAIL("unrecognized special symbol $" << acc);
+      }
 
       // Clear accumulator.
       acc.clear();
@@ -444,6 +478,7 @@ inline void ParserGenerator::getProductions(std::istream &in, int production_id)
     productions_for_.emplace(production_id, State());
     prod = productions_for_.find(production_id);
   }
+
   // Add production to the productions for production_id
   prod->second.insert(production);
   // Add production to all productions.
@@ -647,10 +682,10 @@ bool ParserGenerator::getInteger(std::istream &in, std::string &word) {
 }
 
 inline int ParserGenerator::registerProduction(const string &production) {
-  auto it = production_map_.find(production);
-  if (it == production_map_.end()) {
-    production_map_.emplace(production, num_productions_);
-    inverse_production_map_.emplace(num_productions_, production);
+  auto it = nonterminal_map_.find(production);
+  if (it == nonterminal_map_.end()) {
+    nonterminal_map_.emplace(production, num_productions_);
+    inverse_nonterminal_map_.emplace(num_productions_, production);
     return num_productions_--;
   }
   return it->second;
@@ -661,7 +696,7 @@ inline void ParserGenerator::shiftProductionNumbers() {
   int lids = static_cast<int>(lexer_generator_.GetNumLexemes());
 
   // Shift the ids in production map.
-  for (auto &p: production_map_) {
+  for (auto &p: nonterminal_map_) {
     p.second = lids - p.second;
   }
 
@@ -679,13 +714,13 @@ inline void ParserGenerator::shiftProductionNumbers() {
 
   // Shift the ids in inverse map
   std::map<int, string> new_inverse_map;
-  for (auto &p: inverse_production_map_) {
+  for (auto &p: inverse_nonterminal_map_) {
     new_inverse_map.emplace(lids - p.first, p.second);
   }
-  inverse_production_map_ = new_inverse_map;
+  inverse_nonterminal_map_ = new_inverse_map;
 
   // Shift the start state.
-  start_production_ = lids - start_production_;
+  start_nonterminal_ = lids - start_nonterminal_;
 
   // Shift the ids in productions_for_.
   std::map<int, State> new_productions_for;
@@ -706,7 +741,7 @@ inline void ParserGenerator::shiftProductionNumbers() {
   }
   productions_for_ = new_productions_for;
   // Set total_symbols_.
-  total_symbols_ = lids + static_cast<int>(production_map_.size());
+  total_symbols_ = lids + static_cast<int>(nonterminal_map_.size());
 }
 
 void ParserGenerator::createStateDerivesEmpty() {
@@ -720,18 +755,19 @@ void ParserGenerator::createStateDerivesEmpty() {
   //  This is updated throughout the algorithm.
   std::map<Item, int> counts;
 
+  // Start everything as false.
+  nonterminal_derives_empty_.assign(nonterminal_map_.size(), false);
+
   auto check_for_empty = [&](const Item &item, int count) {
     if (count == 0) {
       rule_derives_empty[item] = true;
-      if (!nonterminal_derives_empty_[item.production]) {
-        nonterminal_derives_empty_[item.production] = true;
+      auto index = nonTerminalIndex(item.production);
+      if (!nonterminal_derives_empty_[index]) {
+        nonterminal_derives_empty_[index] = true;
         work_deque.Add(item.production);
       }
     }
   };
-
-  // Start everything as false.
-  nonterminal_derives_empty_.assign(production_map_.size(), false);
 
   // Record all the production rules that contain instances of a symbol
   std::map<ProductionID, std::set<int>> productions_containing_symbol;
@@ -786,21 +822,20 @@ int ParserGenerator::getProductionIndex(const Item &item) const {
 bool ParserGenerator::computeLR0() {
   status_ = true;
 
-  // Find productions for the state.
-  auto st = productions_for_.find(start_production_);
+  // Find productions for the starting non-terminal.
+  auto st = productions_for_.find(start_nonterminal_);
   if (st == productions_for_.end()) {
     parser_generation_trace_ << "Error - could not find productions for the start state.\n";
     status_ = false;
     return status_;
   }
 
-  // I can't figure out why the compiler insists on using const objects here, so here's a hacky work around.
-  State startItems = st->second;
-  startItems.zero_bookmarks();
+  State start_items = st->second;
+  start_items.zero_bookmarks();
 
   // Add the start state.
   work_list_.clear();
-  addState(startItems);
+  addState(start_items);
   // Go through the work list until it is empty.
   while (!work_list_.empty() && status_) {
     int s = work_list_.front();
@@ -860,9 +895,9 @@ void ParserGenerator::computeGoto(int s) {
   }
 }
 
-State ParserGenerator::closure(int s) {
+State ParserGenerator::closure(int s) const {
   // Initialize ans.
-  State ans = all_states_[s];
+  auto ans = all_states_[s];
   int prev_size = 0;
 
   // While ans is still growing.
@@ -874,7 +909,7 @@ State ParserGenerator::closure(int s) {
       int bookmark = A.bookmark;
       int next = -1 < bookmark && bookmark < A.rhs.size() ? A.rhs.at(bookmark) : -1;
 
-      // If the bookmark was behind a non-terminal, we need to add that nonterminal to the closure.
+      // If the bookmark was behind a non-terminal, we need to add that non-terminal to the closure.
       if (lexer_generator_.GetNumLexemes() < next) {
         // Find the production for next.
         auto it = productions_for_.find(next);
@@ -883,7 +918,7 @@ State ParserGenerator::closure(int s) {
         }
 
         // Productions for next.
-        State &state = it->second;
+        auto state = it->second;
         // Set productions' bookmarks so they are like next -> * RHS(next)
         state.zero_bookmarks();
 
@@ -915,23 +950,31 @@ State ParserGenerator::advanceDot(const State &state, int symb) {
 }
 
 void ParserGenerator::completeTable() {
-  // Used by LALR(k) parser.
-  computeLookahead();
-
-  for (int state_index = 0; state_index < all_states_.size(); ++state_index) {
-    for (const auto &rule: all_productions_) {
-      tryRuleInState(state_index, rule);
+  if (parser_type_ == ParserType::LALR) {
+    // Used by LALR(k) parser.
+    auto item_follow = computeLookahead();
+    for (int state_index = 0; state_index < all_states_.size(); ++state_index) {
+      for (const auto &rule: all_productions_) {
+        tryRuleInStateLALR(state_index, rule, item_follow);
+      }
+    }
+  }
+  else {
+    for (int state_index = 0; state_index < all_states_.size(); ++state_index) {
+      for (const auto &rule: all_productions_) {
+        tryRuleInState(state_index, rule);
+      }
     }
   }
 
   // Assert the accept state for the starting production.
-  assertEntry(0, start_production_, Entry(true));
+  assertEntry(0, start_nonterminal_, Entry(true));
 }
 
 void ParserGenerator::assertEntry(int state, int symbol, const Entry &action) {
   auto &current_entry = parse_table_[state][symbol];
   // If the current entry is unfilled (Error), fill it with the entry.
-  if (current_entry.isError()) { // == Error
+  if (current_entry.IsError()) { // == Error
     current_entry = action; // <- action
   }
   else {
@@ -946,12 +989,12 @@ void ParserGenerator::assertEntry(int state, int symbol, const Entry &action) {
     std::string bf(20, ' ');
     parser_generation_trace_
         << "Conflict for state " << state << ", symbol " << nameOf(symbol) << "\n"
-        << "  > Current entry:  " << ToString(current_entry.getAction()) << " " << current_entry.getState()
-        << (current_entry.isReduce() ? "\n" + bf + "Reduction" + writeItem(current_entry.getRule()) : "") << "\n"
+        << "  > Current entry:  " << ToString(current_entry.GetAction()) << " " << current_entry.GetState()
+        << (current_entry.IsReduce() ? "\n" + bf + "Reduction" + writeItem(current_entry.GetRule()) : "") << "\n"
         << bf << "Prec: " << current_res_info.precedence << ", Assoc: " << ToString(current_res_info.assoc)
         << "\n"
-        << "  > Proposed entry: " << ToString(action.getAction()) << " " << action.getState()
-        << (action.isReduce() ? "\n" + bf + "Reduction: " + writeItem(action.getRule()) : "") << "\n"
+        << "  > Proposed entry: " << ToString(action.GetAction()) << " " << action.GetState()
+        << (action.IsReduce() ? "\n" + bf + "Reduction: " + writeItem(action.GetRule()) : "") << "\n"
         << bf << "Prec: " << res_info.precedence << ", Assoc: " << ToString(res_info.assoc) << "\n";
 
     // This is resolution is a generalization of comparing the precedence of first and second operators, e.g.
@@ -967,33 +1010,33 @@ void ParserGenerator::assertEntry(int state, int symbol, const Entry &action) {
 
     // If the first operator has lower precedence, shift.
     if (first_prec < second_prec) {
-      bool current_shift = current_entry.isShift();
+      bool current_shift = current_entry.IsShift();
       current_entry = (current_shift ? current_entry : action);
       parser_generation_trace_ << "  @Res: Current entry is lower precedence. Using Shift ("
-                              << (current_shift ? "current entry" : "replacing entry") << ").\n";
+                               << (current_shift ? "current entry" : "replacing entry") << ").\n";
     }
       // If the first operator has higher precedence, reduce.
     else if (second_prec < first_prec) {
-      bool current_reduce = current_entry.isReduce();
+      bool current_reduce = current_entry.IsReduce();
       current_entry = (current_reduce ? current_entry : action);
       parser_generation_trace_ << "  @Res: Current entry is higher precedence. Using Reduce ("
-                              << (current_reduce ? "current entry" : "replacing entry") << ").\n";
+                               << (current_reduce ? "current entry" : "replacing entry") << ").\n";
     }
       // If they are the same, check the associativity.
     else {
       // Shift
       if (first_assoc == Associativity::Right && second_assoc == Associativity::Right) {
-        bool current_shift = current_entry.isShift();
+        bool current_shift = current_entry.IsShift();
         current_entry = (current_shift ? current_entry : action);
         parser_generation_trace_ << "  @Res: Both entries are Right associative. Using Shift ("
-                                << (current_shift ? "current entry" : "replacing entry") << ").\n";
+                                 << (current_shift ? "current entry" : "replacing entry") << ").\n";
       }
         // Reduce
       else if (first_assoc == Associativity::Left && second_assoc == Associativity::Left) {
-        bool current_reduce = current_entry.isReduce();
+        bool current_reduce = current_entry.IsReduce();
         current_entry = (current_reduce ? current_entry : action);
         parser_generation_trace_ << "  @Res: Both entries are Left associative. Using Reduce ("
-                                << (current_reduce ? "current entry" : "replacing entry") << ").\n";
+                                 << (current_reduce ? "current entry" : "replacing entry") << ").\n";
       }
         // Otherwise, error.
       else {
@@ -1008,34 +1051,160 @@ void ParserGenerator::assertEntry(int state, int symbol, const Entry &action) {
   }
 }
 
-void ParserGenerator::computeLookahead() {
-  /* Used in LALR(1) parser */
+ItemFollowSet ParserGenerator::computeLookahead() {
+  // Used in LALR(1) parser.
+  // This setup comes from "Crafting a Compiler" p. 213
+
+  auto setup = buildItemForPropGraph();
+  evalItemForPropGraph(setup);
+  return setup.second; // Return the ItemFollowSet
+}
+
+std::pair<LALRPropagationGraph, ItemFollowSet> ParserGenerator::buildItemForPropGraph() {
+  std::vector<StateItem> vertices;
+  LALRPropagationGraph propagation_graph;
+
+  ItemFollowSet item_follow;
+
+  auto state_id = 0, num_items = 0;
+  for (const auto &state: all_states_) {
+    auto augmented_state = closure(state_id);
+    for (const auto &item: augmented_state) {
+      vertices.emplace_back(state_id, item);
+      item_follow[vertices.back()] = {};  // Initialize to empty, the "= {}" is not really needed.
+      ++num_items;
+    }
+    ++state_id;
+  }
+
+  for (const auto &production: productions_for_[start_nonterminal_]) {
+    // item_follow[ (start_state, start -> * RHS(production) ] = { @EOF }
+    item_follow[StateItem{0, production}].insert(0 /* EOF */);
+  }
+
+  // Place edges of the propagation graph between *items*
+  state_id = 0u;
+  auto added_edges = 0;
+  for (const auto &state: all_states_) {
+    auto augmented_state = closure(state_id);
+
+    for (const auto &item: augmented_state) { // Item: A -> alpha * B gamma  : for any (possibly empty) strings alpha, gamma
+      if (auto el = item.GetElementFollowingBookmark(); el) {
+        StateItem start_vertex(state_id, item);
+        StateItem end_vertex(parse_table_[state_id][*el].GetState(), *item.AdvanceDot());
+
+        std::cout << "start = (" << state_id << ", " << writeItem(item) << ")\n";
+        std::cout << "end =   (" << end_vertex.first << ", " << writeItem(end_vertex.second) << ")\n\n";
+
+        // Add a new edge to the graph.
+        propagation_graph.AddEdge(start_vertex, end_vertex);
+        ++added_edges;
+
+        std::optional<int> gamma = item.bookmark + 1 < item.size() ? std::optional(item.rhs[item.bookmark + 1]) : std::nullopt;
+        for (auto &vertex: vertices) {
+          // For each vertex of the form {state_id, B -> * delta} : for any (possibly empty) string delta
+          if (vertex.first == state_id && vertex.second.production == *el && vertex.second.IsBookmarkAtBeginning()) {
+            if (gamma) {
+              auto first_set = FirstSet(*gamma);
+              item_follow[vertex].insert(first_set.begin(), first_set.end());
+
+              std::cout << "Added to follow set of (" << vertex.first << ", " << writeItem(vertex.second) << "): ";
+              for (auto fs : first_set) std::cout << nameOf(fs) << " ";
+              std::cout << "\n\n";
+            }
+            // It is my understanding that if gamma = lambda, gamma =>* lambda is automatically and trivially true.
+            auto can_derive_empty = gamma ? nonterminal_derives_empty_[nonTerminalIndex(*gamma)] : true;
+            if (can_derive_empty) {
+              propagation_graph.AddEdge(start_vertex, vertex);
+              ++added_edges;
+
+              std::cout << "SPECIAL start = (" << state_id << ", " << writeItem(item) << ")\n";
+              std::cout << "SPECIAL start = (" << vertex.first << ", " << writeItem(vertex.second) << ")\n\n";
+            }
+          }
+        }
+      }
+    }
+    ++state_id;
+  }
+
+  return {propagation_graph, item_follow};
+}
+
+void ParserGenerator::evalItemForPropGraph(std::pair<LALRPropagationGraph, ItemFollowSet> &propagation_data) {
+  auto&[graph, item_follow] = propagation_data;
+
+  bool changed = false;
+  do {
+    changed = false;
+    // Iterate through all the edges in the LALR propagation graph.
+    for (auto&[v, endpoints]: graph.Edges()) {
+      for (auto &w: endpoints) {
+        auto old = item_follow[w];
+        auto &follow_v = item_follow[v];
+        item_follow[w].insert(follow_v.begin(), follow_v.end());
+        if (item_follow.at(w) != old) {
+          changed = true;
+        }
+      }
+    }
+  } while (changed);
 }
 
 void ParserGenerator::tryRuleInState(int state, const Item &rule) {
-  // Make rule into LHS(rule) -> RHS(rule)
-  rule.endBookmark();
+  // Make rule into LHS(rule) -> RHS(rule) *
+  auto rule_reduce = rule.MakeReducibleForm();
+
   const auto &state_set = all_states_[state];
 
   switch (parser_type_) {
     case ParserType::LR0: {
       // === LR(0) ===
-      if (state_set.contains(rule)) { // If LHS(rule) -> RHS(rule) * is in State(state)
+      if (state_set.contains(rule_reduce)) { // If LHS(rule) -> RHS(rule) * is in State(state)
         for (int sym = 0; sym < total_symbols_; ++sym) {
           assertEntry(state, sym, Entry(rule));
         }
       }
       break;
     }
-    default:
-    case ParserType::LALR: // Not implemented yet.
-      // TODO: Implement.
     case ParserType::SLR: {
       // === SLR ===
-      if (state_set.contains(rule)) { // If LHS(rule) -> RHS(rule) * is in State(state)
+      if (state_set.contains(rule_reduce)) { // If LHS(rule) -> RHS(rule) * is in State(state)
         auto follow_set = FollowSet(rule.production);
         for (int sym: follow_set) {
           assertEntry(state, sym, Entry(rule));
+        }
+      }
+      break;
+    }
+    case ParserType::LALR: {// Not implemented yet.
+      MANTA_FAIL("for LALR, use the tryRuleInStateLALR function");
+    }
+    default: {
+      MANTA_FAIL("unrecognized ParserType");
+    }
+  }
+}
+
+void ParserGenerator::tryRuleInStateLALR(int state_index, const Item &rule, const ItemFollowSet &item_follow) {
+  // Make rule into LHS(rule) -> RHS(rule) *
+  auto rule_reduce = rule.MakeReducibleForm();
+
+  auto trial_state_item = StateItem(state_index, rule_reduce);
+
+  // We must consider the full state, not just the kernel.
+  auto augmented_state = closure(state_index);
+
+
+  if (state_index == 4) {
+    std::cout << "";
+  }
+
+  if (augmented_state.contains(rule_reduce)) { // If LHS(rule) -> RHS(rule) * is in State(state)
+    for (int sym = 0; sym < total_symbols_; ++sym) {
+      if (auto it = item_follow.find(trial_state_item); it != item_follow.end()) {
+        if (it->second.find(sym) != it->second.end()) {
+          assertEntry(state_index, sym, Entry(rule));
         }
       }
     }
@@ -1054,21 +1223,27 @@ int ParserGenerator::findState(const State &items) const {
 }
 
 std::set<int> ParserGenerator::internalFirst(int symbol, std::vector<bool> &visited) {
+  // TODO: Revisit, make sure it is correct even in the presence of lambda productions.
   if (isTerminal(symbol)) {
     return {symbol};
   }
-  if (!visited[nonTerminalIndex(symbol)]) {
+  auto nonterminal_index = nonTerminalIndex(symbol);
+  if (!visited[nonterminal_index]) {
     std::set<int> output;
-    visited[nonTerminalIndex(symbol)] = true;
+    visited[nonterminal_index] = true;
     const auto &state = productions_for_[symbol];
     for (const auto &production: state) {
+      if (production.size() == 0) { // Lambda production.
+        continue;
+      }
+
       auto new_set = internalFirst(production.rhs.at(0), visited);
       output.insert(new_set.begin(), new_set.end());
     }
     // TODO: Check if this needs to be included.
-    /* if derivesEmpty(firstSymbol)
-     * output += internalFirst(begin + 1, end, visited)
-     */
+//     if (derivesEmpty(firstSymbol)) {
+//       output += internalFirst(begin + 1, end, visited)
+//     }
     return output;
   }
   return {};
@@ -1077,7 +1252,7 @@ std::set<int> ParserGenerator::internalFirst(int symbol, std::vector<bool> &visi
 std::set<int> ParserGenerator::internalFollow(int symbol, std::vector<bool> &visited) {
   // See p. 135 of "Crafting a Compiler"
 
-  if (symbol == start_production_) {
+  if (symbol == start_nonterminal_) {
     return {0}; // @eof
   }
 
