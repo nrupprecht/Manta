@@ -63,25 +63,9 @@ class LALRPropagationGraph {
     return edges_;
   }
 
-
-  struct Iterator {
-    friend class LALRPropagationGraph;
-   public:
-
-   private:
-    using IT1 = std::map<StateItem, std::set<StateItem>>::iterator;
-    using IT2 = std::set<StateItem>::iterator;
-
-    Iterator(IT1 first_begin, IT1 first_end, IT2 second_begin, IT2 second_end)
-        : first_vertex_iter_(first_begin)
-        , first_end_(first_end)
-        , second_vertex_iter_(second_begin)
-        , second_end_(second_end)
-    {}
-
-    IT1 first_vertex_iter_, first_end_;
-    IT2 second_vertex_iter_, second_end_;
-  };
+  void Clear() {
+    edges_.clear();
+  }
 
  private:
 
@@ -98,7 +82,7 @@ class ParserGenerator {
  public:
 
   //! \brief Create a parser generator of the specified type.
-  explicit ParserGenerator(ParserType type = ParserType::LALR);
+  explicit ParserGenerator(ParserType type = ParserType::SLR);
 
   //! \brief Parse a description of a grammar from a file to create a parser.
   std::shared_ptr<LALRParser> CreateParserFromFile(const std::string &filename);
@@ -243,12 +227,12 @@ class ParserGenerator {
   //! already an entry, resolution is attempted.
   void assertEntry(int state, int symbol, const Entry &action);
 
-  ItemFollowSet computeLookahead();
+  void computeLookahead();
 
-  std::pair<LALRPropagationGraph, ItemFollowSet> buildItemForPropGraph();
+  void buildItemForPropGraph();
 
   //! Note: The argument is intentionally mutable.
-  static void evalItemForPropGraph(std::pair<LALRPropagationGraph, ItemFollowSet>& propagation_data);
+  void evalItemForPropGraph();
 
   //! \brief Fill out a row in the parser table.
   void tryRuleInState(int state, const Item &rule);
@@ -334,6 +318,10 @@ class ParserGenerator {
 
   //! \brief What type of parser should be generated.
   ParserType parser_type_ = ParserType::LALR;
+
+  LALRPropagationGraph propagation_graph_;
+
+  ItemFollowSet item_follow_;
 
   //! \brief A string that records the history of the parser generation.
   std::stringstream parser_generation_trace_;

@@ -270,7 +270,7 @@ std::set<std::string> ParserGenerator::FollowSet(const std::string &symbol) {
 
 void ParserGenerator::WriteStates(std::ostream &out) const {
   int it = 0;
-  for (const auto& state: all_states_) {
+  for (const auto &state: all_states_) {
     auto augmented_state = closure(it);
 
     std::set<Item> augmented_set; // Part of the state that is not in the kernel.
@@ -280,7 +280,7 @@ void ParserGenerator::WriteStates(std::ostream &out) const {
 
     out << "---- State " << it << " -----------\n";
     // Write kernel
-    for (auto& item : state) {
+    for (auto &item: state) {
       out << "  " << writeItem(item) << "\n";
     }
     if (!augmented_set.empty()) {
@@ -398,8 +398,8 @@ inline void ParserGenerator::getProductions(std::istream &in, int production_id)
       acc.clear();
     }
 
-    // Start of a default lexer type (terminal), or the @null symbol.
-    // TODO: Redo this part.
+      // Start of a default lexer type (terminal), or the @null symbol.
+      // TODO: Redo this part.
     else if (c == '@') {
       in.get(c);
       while (!isspace(c) && !in.eof()) {
@@ -417,7 +417,7 @@ inline void ParserGenerator::getProductions(std::istream &in, int production_id)
       // Clear accumulator.
       acc.clear();
     }
-    // Other special symbol, like $null
+      // Other special symbol, like $null
     else if (c == '$') {
       in.get(c);
       while (!isspace(c) && !in.eof()) {
@@ -952,10 +952,10 @@ State ParserGenerator::advanceDot(const State &state, int symb) {
 void ParserGenerator::completeTable() {
   if (parser_type_ == ParserType::LALR) {
     // Used by LALR(k) parser.
-    auto item_follow = computeLookahead();
+    computeLookahead();
     for (int state_index = 0; state_index < all_states_.size(); ++state_index) {
       for (const auto &rule: all_productions_) {
-        tryRuleInStateLALR(state_index, rule, item_follow);
+        tryRuleInStateLALR(state_index, rule, item_follow_);
       }
     }
   }
@@ -1051,36 +1051,40 @@ void ParserGenerator::assertEntry(int state, int symbol, const Entry &action) {
   }
 }
 
-ItemFollowSet ParserGenerator::computeLookahead() {
+void ParserGenerator::computeLookahead() {
   // Used in LALR(1) parser.
   // This setup comes from "Crafting a Compiler" p. 213
 
-  auto setup = buildItemForPropGraph();
-  evalItemForPropGraph(setup);
-  return setup.second; // Return the ItemFollowSet
+  buildItemForPropGraph();
+  evalItemForPropGraph();
 }
 
-std::pair<LALRPropagationGraph, ItemFollowSet> ParserGenerator::buildItemForPropGraph() {
+void ParserGenerator::buildItemForPropGraph() {
   std::vector<StateItem> vertices;
-  LALRPropagationGraph propagation_graph;
+  propagation_graph_.Clear();
+  item_follow_.clear();
 
-  ItemFollowSet item_follow;
-
+  // Initialize item follow set for all vertices.
   auto state_id = 0, num_items = 0;
   for (const auto &state: all_states_) {
     auto augmented_state = closure(state_id);
+
     for (const auto &item: augmented_state) {
-      vertices.emplace_back(state_id, item);
-      item_follow[vertices.back()] = {};  // Initialize to empty, the "= {}" is not really needed.
+      vertices.emplace_back(state_id, item.WithoutInstructions() /* Just in case... */);
+      item_follow_[vertices.back()] = {};  // Initialize to empty, the "= {}" is not really needed.
       ++num_items;
     }
     ++state_id;
   }
 
-  for (const auto &production: productions_for_[start_nonterminal_]) {
+  // Initialize start state items so EOF follows each of them.
+  std::cout << "Initializing start states:\n";
+  for (const auto &item: closure(0)) {
     // item_follow[ (start_state, start -> * RHS(production) ] = { @EOF }
-    item_follow[StateItem{0, production}].insert(0 /* EOF */);
+    std::cout << writeItem(item) << "\n";
+    item_follow_[StateItem{0, item}].insert(0 /* EOF */);
   }
+  std::cout << std::endl;
 
   // Place edges of the propagation graph between *items*
   state_id = 0u;
@@ -1090,65 +1094,123 @@ std::pair<LALRPropagationGraph, ItemFollowSet> ParserGenerator::buildItemForProp
 
     for (const auto &item: augmented_state) { // Item: A -> alpha * B gamma  : for any (possibly empty) strings alpha, gamma
       if (auto el = item.GetElementFollowingBookmark(); el) {
-        StateItem start_vertex(state_id, item);
-        StateItem end_vertex(parse_table_[state_id][*el].GetState(), *item.AdvanceDot());
+        StateItem start_vertex(
+            state_id,
+            item.WithoutInstructions());
+        // Safe to unwrap item.AdvanceDot() since element following bookmark exists.
+        StateItem end_vertex(
+            parse_table_[state_id][*el].GetState(),
+            item.AdvanceDot()->WithoutInstructions());
 
-        std::cout << "start = (" << state_id << ", " << writeItem(item) << ")\n";
-        std::cout << "end =   (" << end_vertex.first << ", " << writeItem(end_vertex.second) << ")\n\n";
+        std::cout << "Added edge:\n";
+        std::cout << "  * start = (" << state_id << ", " << writeItem(item) << ")\n";
+        std::cout << "  * end =   (" << end_vertex.first << ", " << writeItem(end_vertex.second) << ")\n\n";
 
         // Add a new edge to the graph.
-        propagation_graph.AddEdge(start_vertex, end_vertex);
+        propagation_graph_.AddEdge(start_vertex, end_vertex);
         ++added_edges;
 
         std::optional<int> gamma = item.bookmark + 1 < item.size() ? std::optional(item.rhs[item.bookmark + 1]) : std::nullopt;
-        for (auto &vertex: vertices) {
-          // For each vertex of the form {state_id, B -> * delta} : for any (possibly empty) string delta
-          if (vertex.first == state_id && vertex.second.production == *el && vertex.second.IsBookmarkAtBeginning()) {
-            if (gamma) {
-              auto first_set = FirstSet(*gamma);
-              item_follow[vertex].insert(first_set.begin(), first_set.end());
+        std::set<int> first_set;
+        if (gamma) {
+          // TODO / NOTE: I think this may be wrong, we need the first set of the tail string, not just the next element. This is
+          //  (only) important if the next element can derive null.
+          first_set = FirstSet(*gamma);
+        }
 
-              std::cout << "Added to follow set of (" << vertex.first << ", " << writeItem(vertex.second) << "): ";
-              for (auto fs : first_set) std::cout << nameOf(fs) << " ";
-              std::cout << "\n\n";
-            }
-            // It is my understanding that if gamma = lambda, gamma =>* lambda is automatically and trivially true.
-            auto can_derive_empty = gamma ? nonterminal_derives_empty_[nonTerminalIndex(*gamma)] : true;
-            if (can_derive_empty) {
-              propagation_graph.AddEdge(start_vertex, vertex);
-              ++added_edges;
-
-              std::cout << "SPECIAL start = (" << state_id << ", " << writeItem(item) << ")\n";
-              std::cout << "SPECIAL start = (" << vertex.first << ", " << writeItem(vertex.second) << ")\n\n";
-            }
+        // Find items of the form (B -> * gamma) in the same state.
+        for (auto &other_item: augmented_state) {
+          if (other_item.production != *el || !other_item.IsBookmarkAtBeginning()) {
+            continue;
           }
+          // {state_id, B -> * gamma}
+          StateItem vertex(state_id, other_item.WithoutInstructions());
+
+          if (gamma) {
+            item_follow_[vertex].insert(first_set.begin(), first_set.end());
+
+            std::cout << "Added to follow set of (" << vertex.first << ", " << writeItem(vertex.second) << "): ";
+            for (auto fs: first_set) std::cout << nameOf(fs) << " ";
+            std::cout << "\n\n";
+          }
+          // It is my understanding that if gamma = lambda, gamma =>* lambda is automatically and trivially true.
+          auto can_derive_empty = gamma ? nonterminal_derives_empty_[nonTerminalIndex(*gamma)] : true;
+          if (can_derive_empty) {
+            propagation_graph_.AddEdge(start_vertex, vertex);
+            ++added_edges;
+
+            std::cout << "Since 'gamma' can derive empty, added edge:\n";
+            std::cout << "  * start = (" << state_id << ", " << writeItem(item) << ")\n";
+            std::cout << "  * start = (" << vertex.first << ", " << writeItem(vertex.second) << ")\n\n";
+          }
+
         }
       }
     }
     ++state_id;
   }
-
-  return {propagation_graph, item_follow};
 }
 
-void ParserGenerator::evalItemForPropGraph(std::pair<LALRPropagationGraph, ItemFollowSet> &propagation_data) {
-  auto&[graph, item_follow] = propagation_data;
+void ParserGenerator::evalItemForPropGraph() {
+  std::cout << "Before propagation, follow sets are:\n";
+  for (auto&[state_item, follow]: item_follow_) {
+    std::cout << "Labeled item (" << state_item.first << ", " << writeItem(state_item.second) << "): ";
+    for (auto id: follow) {
+      std::cout << nameOf(id) << " ";
+    }
+    std::cout << std::endl;
+  }
 
+  std::cout << std::endl;
   bool changed = false;
+  unsigned num_iters = 0;
   do {
     changed = false;
     // Iterate through all the edges in the LALR propagation graph.
-    for (auto&[v, endpoints]: graph.Edges()) {
-      for (auto &w: endpoints) {
-        auto old = item_follow[w];
-        auto &follow_v = item_follow[v];
-        item_follow[w].insert(follow_v.begin(), follow_v.end());
-        if (item_follow.at(w) != old) {
+    for (const auto& [v, endpoints]: propagation_graph_.Edges()) {
+      // Starting vertex's follow set.
+
+      // TODO: Find out what's wrong... I feel like at(...) should be fine here.
+      auto &follow_v = item_follow_[v];
+      for (const auto &w: endpoints) {
+
+//        std::cout << "W = (" << w.first << ", " << writeItem(w.second) << ")" << std::endl;
+//        auto it = item_follow_.find(w);
+//        std::cout << "W' = (" << it->first.first << ", " << writeItem(it->first.second) << ")" << std::endl;
+
+        // TODO: Find out what's wrong... I feel like at(...) should be fine here.
+        auto& follow_w = item_follow_[w];
+        auto old = follow_w;
+
+        follow_w.insert(follow_v.begin(), follow_v.end());
+        if (follow_w != old) {
           changed = true;
+
+          std::vector<int> temp;
+          std::set_difference(follow_w.begin(), follow_w.end(),
+                              old.begin(), old.end(),
+                              std::back_inserter(temp));
+          std::cout << "Added items from (" << v.first << ", " << writeItem(v.second) << ") to (" << w.first << ", " << writeItem(w.second) << "): ";
+          for (auto id: temp) {
+            std::cout << nameOf(id) << " ";
+          }
+          std::cout << std::endl;
         }
       }
     }
+    ++num_iters;
   } while (changed);
+
+  std::cout << "Eval Item For Prop Graph took " << num_iters << " iterations.\n\n";
+
+  std::cout << "After propagation, follow sets are:\n";
+  for (auto&[state_item, follow]: item_follow_) {
+    std::cout << "Labeled item (" << state_item.first << ", " << writeItem(state_item.second) << "): ";
+    for (auto id: follow) {
+      std::cout << nameOf(id) << " ";
+    }
+    std::cout << std::endl;
+  }
 }
 
 void ParserGenerator::tryRuleInState(int state, const Item &rule) {
@@ -1190,22 +1252,13 @@ void ParserGenerator::tryRuleInStateLALR(int state_index, const Item &rule, cons
   // Make rule into LHS(rule) -> RHS(rule) *
   auto rule_reduce = rule.MakeReducibleForm();
 
-  auto trial_state_item = StateItem(state_index, rule_reduce);
-
   // We must consider the full state, not just the kernel.
   auto augmented_state = closure(state_index);
-
-
-  if (state_index == 4) {
-    std::cout << "";
-  }
-
-  if (augmented_state.contains(rule_reduce)) { // If LHS(rule) -> RHS(rule) * is in State(state)
-    for (int sym = 0; sym < total_symbols_; ++sym) {
-      if (auto it = item_follow.find(trial_state_item); it != item_follow.end()) {
-        if (it->second.find(sym) != it->second.end()) {
-          assertEntry(state_index, sym, Entry(rule));
-        }
+  if (augmented_state.contains(rule_reduce)) { // i.e. if LHS(rule) -> RHS(rule) * is in State(state)
+    auto& follow_set = item_follow.at(StateItem(state_index, rule_reduce));
+    for (int sym = 0; sym < NumTerminals(); ++sym) {
+      if (auto it = follow_set.find(sym) != follow_set.end()) {
+        assertEntry(state_index, sym, Entry(rule));
       }
     }
   }

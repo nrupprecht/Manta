@@ -45,6 +45,13 @@ std::optional<Item> Item::AdvanceDot() const {
   return copy;
 }
 
+Item Item::WithoutInstructions() const {
+  auto copy = *this;
+  copy.res_info = ResolutionInfo();
+  copy.instructions = nullptr;
+  return copy;
+}
+
 std::optional<int> Item::GetElementFollowingBookmark() const {
   if (bookmark == rhs.size()) {
     return {};

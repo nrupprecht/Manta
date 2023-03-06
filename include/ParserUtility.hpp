@@ -97,6 +97,9 @@ struct Item : public ProductionRule {
   //! the end already, returns nullopt.
   std::optional<Item> AdvanceDot() const;
 
+  //! \brief Make a new identical Item without any instructions or resolution info
+  Item WithoutInstructions() const;
+
   //! \brief If the bookmark is at the end, returns {}, otherwise, returns the terminal or nonterminal
   //! immediately following the bookmark.
   std::optional<int> GetElementFollowingBookmark() const;
