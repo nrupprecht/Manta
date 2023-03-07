@@ -2,9 +2,9 @@
 // Created by Nathaniel Rupprecht on 2/2/21.
 //
 
-#include "ParserGenerator.h"
+#include "manta/generator/ParserGenerator.h"
 // Other files
-#include "LALRParser.hpp"
+#include "manta/parser/LALRParser.hpp"
 
 using namespace manta;
 

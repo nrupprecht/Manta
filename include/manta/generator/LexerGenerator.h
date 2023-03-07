@@ -4,9 +4,9 @@
 
 #pragma once
 
-#include "DeterministicFiniteAutomata.hpp"
-#include "IStreamContainer.hpp"
-#include "../include/Exceptions.h"
+#include "manta/lexer/DeterministicFiniteAutomata.hpp"
+#include "manta/utility/IStreamContainer.hpp"
+#include "manta/utility/Exceptions.h"
 
 namespace manta {
 

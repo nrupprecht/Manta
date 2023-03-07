@@ -5,7 +5,7 @@
 #ifndef MANTACLION_INCLUDE_DISPLAY_HPP_
 #define MANTACLION_INCLUDE_DISPLAY_HPP_
 
-#include "ParseNode.h"
+#include "manta/parser/ParseNode.h"
 
 namespace manta {
 

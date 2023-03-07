@@ -1,8 +1,8 @@
 #ifndef LEXER_DFA_HPP_MANTA_
 #define LEXER_DFA_HPP_MANTA_
 
-#include "DeterministicFiniteAutomata.hpp"
-#include "IStreamContainer.hpp"
+#include "manta/lexer/DeterministicFiniteAutomata.hpp"
+#include "manta/utility/IStreamContainer.hpp"
 #include <exception>
 
 namespace manta {

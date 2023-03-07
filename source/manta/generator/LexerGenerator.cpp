@@ -2,9 +2,9 @@
 // Created by Nathaniel Rupprecht on 2/1/21.
 //
 
-#include "LexerGenerator.h"
+#include "manta/generator/LexerGenerator.h"
 // Other files.
-#include "LexerDFA.hpp"
+#include "manta/lexer/LexerDFA.hpp"
 
 using namespace manta;
 

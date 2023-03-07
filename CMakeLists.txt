@@ -21,13 +21,14 @@ add_executable(
         MantaClion
         applications/main.cpp
         # Other
-        source/DeterministicFiniteAutomata.cpp
-        source/LexerDFA.cpp
-        source/ParserUtility.cpp
-        source/LALRParser.cpp
-        source/LexerGenerator.cpp
-        source/ParserGenerator.cpp
-        source/Display.cpp
+        source/manta/lexer/DeterministicFiniteAutomata.cpp
+        source/manta/lexer/LexerDFA.cpp
+        source/manta/parser/ParserUtility.cpp
+        source/manta/parser/LALRParser.cpp
+        source/manta/generator/LexerGenerator.cpp
+        source/manta/generator/ParserGenerator.cpp
+        source/manta/visualization/Display.cpp
+)
 )
 
 # ======
@@ -39,13 +40,13 @@ add_executable(
         UnitTest/UT_FirstFollow.cpp
         UnitTest/UT_SelfParse.cpp
         # Other
-        source/DeterministicFiniteAutomata.cpp
-        source/LexerDFA.cpp
-        source/ParserUtility.cpp
-        source/LALRParser.cpp
-        source/LexerGenerator.cpp
-        source/ParserGenerator.cpp
-        source/Display.cpp
+        source/manta/lexer/DeterministicFiniteAutomata.cpp
+        source/manta/lexer/LexerDFA.cpp
+        source/manta/parser/ParserUtility.cpp
+        source/manta/parser/LALRParser.cpp
+        source/manta/generator/LexerGenerator.cpp
+        source/manta/generator/ParserGenerator.cpp
+        source/manta/visualization/Display.cpp
         UnitTest/UT_Precedence.cpp
 )
 

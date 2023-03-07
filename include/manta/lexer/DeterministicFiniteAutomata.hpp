@@ -1,12 +1,11 @@
 #pragma once
 
-#include "LexerUtility.hpp"
-
+#include "manta/lexer/LexerUtility.hpp"
+#include "manta/utility/IStreamContainer.hpp"
 #include <istream>
-
 #include <set>
 #include <utility>
-#include "IStreamContainer.hpp"
+
 
 namespace manta {
 
@@ -211,8 +210,8 @@ class FiniteAutomaton {
 
   inline void consolidate_ranges(vector<pair<char, char>> &);
 
-  inline void create_transition_sets(std::map<int, std::vector<pair<char, char>>> &transition_ranges,
-                                     std::vector<std::tuple<set<int>, char, char>> &all_transition_sets);
+  inline void createTransitionSets(std::map<int, std::vector<pair<char, char>>> &transition_ranges,
+                                   std::vector<std::tuple<set<int>, char, char>> &all_transition_sets);
 
   //! \brief Pointer to an istream. Could be a stringstream or an ifstream.
   IStreamContainer instream_;

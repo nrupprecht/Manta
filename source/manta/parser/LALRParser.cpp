@@ -1,4 +1,4 @@
-#include "../include/LALRParser.hpp"
+#include "manta/parser/LALRParser.hpp"
 // Other files
 #include <string_view>
 

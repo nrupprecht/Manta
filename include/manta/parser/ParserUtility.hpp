@@ -1,6 +1,6 @@
 #pragma once
 
-#include "LexerUtility.hpp"
+#include "manta/lexer/LexerUtility.hpp"
 
 namespace manta {
 

@@ -1,4 +1,4 @@
-#include "../include/LexerDFA.hpp"
+#include "manta/lexer/LexerDFA.hpp"
 
 using namespace manta;
 

@@ -1,5 +1,4 @@
-#ifndef LEXER_HPP_MANTA_
-#define LEXER_HPP_MANTA_
+#pragma once
 
 // http://smlweb.cpsc.ucalgary.ca/start.html
 // https://web.cs.dal.ca/~sjackson/lalr1.html.......5/,
@@ -7,8 +6,8 @@
 #include <stack>
 #include <deque>
 
-#include "utility.hpp"
-#include "Exceptions.h"
+#include "manta/utility/utility.hpp"
+#include "manta/utility/Exceptions.h"
 
 namespace manta {
 
@@ -69,5 +68,3 @@ struct LexResult {
 };
 
 }
-
-#endif // LEXER_HPP_MANTA_

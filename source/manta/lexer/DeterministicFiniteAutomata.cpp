@@ -1,4 +1,4 @@
-#include "../include/DeterministicFiniteAutomata.hpp"
+#include "manta/lexer/DeterministicFiniteAutomata.hpp"
 
 using namespace manta;
 
@@ -378,7 +378,7 @@ inline void FiniteAutomaton::computeGoto(
 
   // Create transition sets. Set, initial character, final character.
   std::vector<std::tuple<set<int>, char, char>> all_transition_sets;
-  create_transition_sets(transition_ranges, all_transition_sets);
+  createTransitionSets(transition_ranges, all_transition_sets);
 
   for (auto &object: all_transition_sets) {
     // Unpack tuple.
@@ -480,7 +480,7 @@ inline void FiniteAutomaton::consolidate_ranges(vector<pair<char, char>> &vector
   // TODO: Write this function.
 }
 
-inline void FiniteAutomaton::create_transition_sets(
+inline void FiniteAutomaton::createTransitionSets(
     std::map<int, std::vector<pair<char, char>>> &transition_ranges,
     std::vector<std::tuple<set<int>, char, char>> &all_transition_sets) {
   // Character that starts/ends a range, whether that char starts or ends a range (false->starts range), and the state

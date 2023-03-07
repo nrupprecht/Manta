@@ -6,8 +6,8 @@
 #include <gtest/gtest.h>
 
 // Includes
-#include "ParserGenerator.h"
-#include "LALRParser.hpp"
+#include "manta/generator/ParserGenerator.h"
+#include "manta/parser/LALRParser.hpp"
 
 using namespace manta;
 

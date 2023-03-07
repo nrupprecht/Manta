@@ -1,8 +1,9 @@
-#include <utility>
 
-#include "../include/ParserUtility.hpp"
+
+#include "manta/parser/ParserUtility.hpp"
 // Other files
-#include "../include/LALRParser.hpp"
+#include <utility>
+#include "manta/parser/LALRParser.hpp"
 
 using namespace manta;
 
@@ -85,7 +86,7 @@ bool State::contains(const Item &item) const {
   // return item_set.find(item) != item_set.end();
 }
 
-ostream &operator<<(std::ostream &out, const State &state) {
+std::ostream &operator<<(std::ostream &out, const State &state) {
   if (state.empty()) out << "{}";
   else {
     out << "{";
@@ -108,23 +109,23 @@ bool State::empty() const {
   return item_set.empty();
 }
 
-set<Item>::iterator State::begin() {
+std::set<Item>::iterator State::begin() {
   return item_set.begin();
 }
 
-set<Item>::iterator State::end() {
+std::set<Item>::iterator State::end() {
   return item_set.end();
 }
 
-set<Item>::iterator State::begin() const {
+std::set<Item>::iterator State::begin() const {
   return item_set.begin();
 }
 
-set<Item>::iterator State::end() const {
+std::set<Item>::iterator State::end() const {
   return item_set.end();
 }
 
-set<Item>::iterator State::find(const Item &item) {
+std::set<Item>::iterator State::find(const Item &item) {
   return item_set.find(item);
 }
 
@@ -172,7 +173,7 @@ bool operator==(const Item &a, const Item &b) {
   return std::tie(a.production, a.bookmark, a.rhs) == std::tie(b.production, b.bookmark, b.rhs);
 }
 
-std::ostream &operator<<(ostream &out, const Item &item) {
+std::ostream &operator<<(std::ostream &out, const Item &item) {
   out << item.production << " -> ";
   for (int i = 0; i < item.size(); ++i) {
     if (i == item.bookmark) {
@@ -188,7 +189,7 @@ std::ostream &operator<<(ostream &out, const Item &item) {
   return out;
 }
 
-string toString(const Item &item) {
+std::string toString(const Item &item) {
   std::stringstream out;
   out << item.production << " -> ";
   for (int i = 0; i < item.size(); ++i) {
@@ -206,7 +207,7 @@ string toString(const Item &item) {
 }
 
 std::string Entry::Write(int length) const {
-  string str;
+  std::string str;
   switch (action) {
     case Action::Error: {
       str = " "; // x
@@ -225,7 +226,7 @@ std::string Entry::Write(int length) const {
       break;
     }
     default: {
-      cout << "Error. Bad Entry.\n";
+      std::cout << "Error. Bad Entry.\n";
       break;
     }
   }
@@ -256,7 +257,7 @@ std::ostream &operator<<(std::ostream &out, const Entry &entry) {
       break;
     }
     default: {
-      cout << "[Bad Entry]";
+      std::cout << "[Bad Entry]";
       break;
     }
   }

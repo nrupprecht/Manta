@@ -7,8 +7,8 @@
 
 #include <utility>
 
-#include "ParseNode.h"
-#include "LexerGenerator.h"
+#include "manta/parser/ParseNode.h"
+#include "manta/generator/LexerGenerator.h"
 
 namespace manta {
 

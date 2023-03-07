@@ -4,8 +4,8 @@
 
 #include <gtest/gtest.h>
 // Includes
-#include "LexerGenerator.h"
-#include "LexerDFA.hpp"
+#include "manta/generator/LexerGenerator.h"
+#include "manta/lexer/LexerDFA.hpp"
 
 using namespace manta;
 

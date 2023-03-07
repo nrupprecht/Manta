@@ -2,7 +2,7 @@
 // Created by Nathaniel Rupprecht on 8/7/21.
 //
 
-#include "Display.hpp"
+#include "manta/visualization/Display.hpp"
 
 using namespace manta;
 

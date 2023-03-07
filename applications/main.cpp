@@ -1,11 +1,7 @@
-
-#include "LexerGenerator.h"
-#include "LexerDFA.hpp"
-
-#include "ParserGenerator.h"
-#include "LALRParser.hpp"
-
-#include "Display.hpp"
+#include "manta/lexer/LexerDFA.hpp"
+#include "manta/generator/ParserGenerator.h"
+#include "manta/parser/LALRParser.hpp"
+#include "manta/visualization/Display.hpp"
 
 using namespace manta;
 
@@ -19,13 +15,13 @@ void compareParsers(const string &rulesFilepath) {
   CompareParsers(*slr_parser, *lalr_parser);
 }
 
-void testParser(const string &rulesFilepath, const string &codeFilepath) {
+void testParser(const string &rules_filepath, const string &code_filepath) {
   // Parser
-  ParserGenerator generator;
-  std::cout << "Parsing rules from \"" << rulesFilepath << "\"\n";
+  ParserGenerator generator(ParserType::LALR);
+  std::cout << "Parsing rules from \"" << rules_filepath << "\"\n";
   std::shared_ptr<LALRParser> parser;
   try {
-    parser = generator.CreateParserFromFile(rulesFilepath);
+    parser = generator.CreateParserFromFile(rules_filepath);
   }
   catch (const std::exception& ex) {
     std::cout << "Exception parsing rules: " << ex.what();
@@ -50,7 +46,7 @@ void testParser(const string &rulesFilepath, const string &codeFilepath) {
     std::cout << "Description parse successful.\n\n";
     std::shared_ptr<ParseNode> program;
     try {
-      program = parser->ParserCodeFile(codeFilepath);
+      program = parser->ParserCodeFile(code_filepath);
     }
     catch (const std::exception& ex) {
       std::cout << "Exception during parsing: " << ex.what() << std::endl;
@@ -72,10 +68,19 @@ void testParser(const string &rulesFilepath, const string &codeFilepath) {
 }
 
 int main(int argc, char **argv) {
-  // testParser("../config/simple-rules.txt", "../examples/code-ex.txt");
-  // testParser("../config/config_rules.txt", "../examples/example_config.txt");
+  // compareParsers("../config/simpler_rules.txt");
+
+  //testParser("../config/simple-rules.txt", "../examples/code-ex.txt");
+
   // testParser("../config/op_prec.txt", "../examples/code-ex.txt");
-  testParser("../config/full_rules.txt", "../examples/basic_parser_and_lexer.txt");
+
+  // testParser("../config/full_rules.txt", "../examples/basic_parser_and_lexer.txt");
+
+  testParser("../config/manta.txt", "../examples/manta_code.txt");
+
+  // testParser("../config/code_rules.txt", "../examples/codefile.txt");
+
+  // testParser("../config/lalr_grammar.txt", "../examples/lalr_example.txt");
 
   return 0;
 }
