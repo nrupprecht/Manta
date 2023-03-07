@@ -115,12 +115,8 @@ struct Item : public ProductionRule {
 
   friend bool operator<(const Item& a, const Item& b);
   friend bool operator==(const Item& a, const Item& b);
-  friend ostream& operator<<(ostream& out, const Item& item);
-  friend string toString(const Item&);
-
-//  bool operator<(const Item& rhs) const {
-//    return rhs.production
-//  }
+  friend std::ostream& operator<<(std::ostream& out, const Item& item);
+  friend std::string toString(const Item&);
 
   // --- Data items ---
 
@@ -150,7 +146,7 @@ struct State {
 
   NO_DISCARD bool contains(const Item& item) const;
 
-  friend ostream& operator<<(ostream& out, const State& state);
+  friend std::ostream& operator<<(std::ostream& out, const State& state);
 
   NO_DISCARD int size() const;
   NO_DISCARD bool empty() const;
@@ -212,9 +208,9 @@ struct Entry {
   StateID GetState() const { return state; }
   Item GetRule() const { return rule; }
 
-  string Write(int length) const;
+  std::string Write(int length) const;
 
-  friend ostream& operator<<(ostream&, const Entry&);
+  friend std::ostream& operator<<(std::ostream&, const Entry&);
 
   bool operator==(const Entry& rhs) const;
 

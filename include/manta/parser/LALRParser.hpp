@@ -16,10 +16,10 @@ class LALRParser {
   friend class CodeGenerator;
  public:
   //! \brief Use the parser to parse input from a file.
-  std::shared_ptr<ParseNode> ParserCodeFile(const string &file_name);
+  std::shared_ptr<ParseNode> ParserCodeFile(const std::string &file_name);
 
   //! \brief Use the parser to parse input from a string.
-  std::shared_ptr<ParseNode> ParseString(const string &input);
+  std::shared_ptr<ParseNode> ParseString(const std::string &input);
 
   //! \brief Pretty print the transition table.
   NO_DISCARD std::string PrintTable() const;
@@ -66,7 +66,7 @@ class LALRParser {
   void printFatalParseError(int state);
 
   //! \brief Construct a parser from its constituents.
-  LALRParser(std::map<int, string> inverse_production_map,
+  LALRParser(std::map<int, std::string> inverse_production_map,
              int start_production,
              int total_symbols,
              std::vector<std::vector<Entry>> parse_table,

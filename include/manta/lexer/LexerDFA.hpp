@@ -11,10 +11,10 @@ namespace manta {
 class LexerDFA {
  public:
   //! \brief Set up the lexer to parse a file. Takes the filename.
-  bool SetFileToLex(const string &fileName);
+  bool SetFileToLex(const std::string &fileName);
 
   //! \brief Set up the lexer to parse a string. Takes the string.
-  void SetStringToLex(const string &sentence);
+  void SetStringToLex(const std::string &sentence);
 
   // --- Helper functions.
 

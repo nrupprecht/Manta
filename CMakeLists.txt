@@ -25,6 +25,7 @@ add_executable(
         source/manta/lexer/LexerDFA.cpp
         source/manta/parser/ParserUtility.cpp
         source/manta/parser/LALRParser.cpp
+        source/manta/parser/ParseNode.cpp
         source/manta/generator/LexerGenerator.cpp
         source/manta/generator/ParserGenerator.cpp
         source/manta/visualization/Display.cpp
@@ -44,6 +45,7 @@ add_executable(
         source/manta/lexer/LexerDFA.cpp
         source/manta/parser/ParserUtility.cpp
         source/manta/parser/LALRParser.cpp
+        source/manta/parser/ParseNode.cpp
         source/manta/generator/LexerGenerator.cpp
         source/manta/generator/ParserGenerator.cpp
         source/manta/visualization/Display.cpp

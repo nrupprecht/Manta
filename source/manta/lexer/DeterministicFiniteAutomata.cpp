@@ -234,7 +234,7 @@ void FiniteAutomaton::ToStream(std::ostream &out) const {
   }
 }
 
-std::vector<std::pair<Precedence, int>> FiniteAutomaton::Accepts(const string &word) const {
+std::vector<std::pair<Precedence, int>> FiniteAutomaton::Accepts(const std::string &word) const {
   if (dfa_nodes_.empty()) {
     return {};
   }
@@ -278,14 +278,14 @@ FAStatus FiniteAutomaton::CheckStatus() const {
   return status_flag_;
 }
 
-char FiniteAutomaton::peek() const {
+char FiniteAutomaton::Peek() const {
   if (instream_.IsGood()) {
     return static_cast<char>(instream_->peek());
   }
   return 0;
 }
 
-void FiniteAutomaton::clear() {
+void FiniteAutomaton::Clear() {
   dfa_nodes_.clear();
 }
 
@@ -353,7 +353,7 @@ inline std::vector<std::pair<int, int>> FiniteAutomaton::acceptingStateLambda(co
 inline void FiniteAutomaton::computeGoto(
     std::set<int> &state,
     int state_id,
-    std::deque<pair<int, std::set<int>>> &working_stack,
+    std::deque<std::pair<int, std::set<int>>> &working_stack,
     std::vector<std::set<int>> &dfa_states,
     FiniteAutomaton &dfa) {
   // Lambda for checking whether a set is contained in dfa_states.
@@ -366,18 +366,18 @@ inline void FiniteAutomaton::computeGoto(
   std::set<int> lambda_set;
   // Compute transition ranges.
   for (int node_id: state) {
-    compute_transitions(node_id, transition_ranges, lambda_set);
+    computeTransitions(node_id, transition_ranges, lambda_set);
   }
 
   // Turn transition ranges into transitions to transition sets.
 
   // Consolidate each range vector as much as possible.
   for (auto &range_list: transition_ranges) {
-    consolidate_ranges(range_list.second);
+    consolidateRanges(range_list.second);
   }
 
   // Create transition sets. Set, initial character, final character.
-  std::vector<std::tuple<set<int>, char, char>> all_transition_sets;
+  std::vector<std::tuple<std::set<int>, char, char>> all_transition_sets;
   createTransitionSets(transition_ranges, all_transition_sets);
 
   for (auto &object: all_transition_sets) {
@@ -419,9 +419,9 @@ inline void FiniteAutomaton::computeGoto(
   }
 }
 
-inline void FiniteAutomaton::compute_transitions(const int node_id,
-                                                 std::map<int, std::vector<std::pair<char, char>>> &transition_ranges,
-                                                 std::set<int> &lambda_set) {
+inline void FiniteAutomaton::computeTransitions(int node_id,
+                                                std::map<int, std::vector<std::pair<char, char>>> &transition_ranges,
+                                                std::set<int> &lambda_set) {
   // Record states that are reachable by lambda transitions.
   std::deque<int> lambda_reachable;
   // Compute states reachable for non-lambda, and populate a deque of states reachable by lambda transitions.
@@ -471,20 +471,20 @@ inline void FiniteAutomaton::compute_transitions(const int node_id,
   // Compute transitions for lambda reachable states.
   while (!lambda_reachable.empty()) {
     int next_node = lambda_reachable.front();
-    compute_transitions(next_node, transition_ranges, lambda_set);
+    computeTransitions(next_node, transition_ranges, lambda_set);
     lambda_reachable.pop_front();
   }
 }
 
-inline void FiniteAutomaton::consolidate_ranges(vector<pair<char, char>> &vector_of_ranges) {
+inline void FiniteAutomaton::consolidateRanges(std::vector<std::pair<char, char>> &vector_of_ranges) {
   // TODO: Write this function.
 }
 
 inline void FiniteAutomaton::createTransitionSets(
-    std::map<int, std::vector<pair<char, char>>> &transition_ranges,
-    std::vector<std::tuple<set<int>, char, char>> &all_transition_sets) {
+    std::map<int, std::vector<std::pair<char, char>>> &transition_ranges,
+    std::vector<std::tuple<std::set<int>, char, char>> &all_transition_sets) {
   // Character that starts/ends a range, whether that char starts or ends a range (false->starts range), and the state
-  set<std::tuple<char, bool, int>> order_structure;
+  std::set<std::tuple<char, bool, int>> order_structure;
   for (const auto &range_obj: transition_ranges) {
     int node_id = range_obj.first;
     auto &range_vector = range_obj.second;
@@ -495,7 +495,7 @@ inline void FiniteAutomaton::createTransitionSets(
   }
 
   // Create transition sets.
-  set<int> current_states;
+  std::set<int> current_states;
   bool last_bool = true, first_time = true;;
   char last_char = -1;
   for (auto p = order_structure.begin(); p != order_structure.end(); ++p) {

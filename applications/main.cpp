@@ -5,7 +5,7 @@
 
 using namespace manta;
 
-void compareParsers(const string &rulesFilepath) {
+void compareParsers(const std::string &rulesFilepath) {
   ParserGenerator slr(ParserType::SLR);
   ParserGenerator lalr(ParserType::LALR);
 
@@ -15,7 +15,7 @@ void compareParsers(const string &rulesFilepath) {
   CompareParsers(*slr_parser, *lalr_parser);
 }
 
-void testParser(const string &rules_filepath, const string &code_filepath) {
+void testParser(const std::string &rules_filepath, const std::string &code_filepath) {
   // Parser
   ParserGenerator generator(ParserType::LALR);
   std::cout << "Parsing rules from \"" << rules_filepath << "\"\n";

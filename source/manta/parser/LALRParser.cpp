@@ -5,12 +5,12 @@
 using namespace manta;
 
 
-std::shared_ptr<ParseNode> LALRParser::ParseString(const string &input) {
+std::shared_ptr<ParseNode> LALRParser::ParseString(const std::string &input) {
   lexer_->SetStringToLex(input);
   return parse();
 }
 
-std::shared_ptr<ParseNode> LALRParser::ParserCodeFile(const string &file_name) {
+std::shared_ptr<ParseNode> LALRParser::ParserCodeFile(const std::string &file_name) {
   if (!lexer_->SetFileToLex(file_name)) {
     return nullptr;
   }
@@ -158,7 +158,7 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
       if (instructions) {
         for (const auto &instruction: instructions->children) {
           // Get the designator.
-          string functionName = instruction->designator;
+          std::string functionName = instruction->designator;
 
           // Rename the new node.
           if (functionName == "node") {
@@ -202,7 +202,7 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
       }
       else {
         for (auto &node: collect) {
-          production_node->add(node);
+          production_node->Add(node);
         }
       }
       // Clear collection vector.
@@ -413,7 +413,7 @@ void LALRParser::instructionNode(LALRParser::Node &self, const std::string &name
 }
 
 void LALRParser::instructionAdd(LALRParser::Node &self, LALRParser::Node &node) {
-  self->add(node);
+  self->Add(node);
   node = nullptr;
 }
 
@@ -428,7 +428,7 @@ void LALRParser::instructionReplace(LALRParser::Node &self, LALRParser::Node &no
 void LALRParser::instructionPush(LALRParser::Node &self, const std::string& name, LALRParser::Node &node) {
   // Create a new node.
   auto new_node = std::make_shared<ParseNode>(name, self);
-  new_node->add(node);
+  new_node->Add(node);
   self->children.push_back(new_node);
 }
 

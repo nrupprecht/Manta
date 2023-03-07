@@ -2,8 +2,7 @@
 // Created by Nathaniel Rupprecht on 2/2/21.
 //
 
-#ifndef MANTACLION_PARSERGENERATOR_H
-#define MANTACLION_PARSERGENERATOR_H
+#pragma once
 
 #include <utility>
 
@@ -190,7 +189,7 @@ class ParserGenerator {
   NO_DISCARD std::string writeItem(const Item &item) const;
 
   //! \brief Write a representation of an entire state to an ostream.
-  void writeState(const State &state, ostream &out, int id) const;
+  void writeState(const State &state, std::ostream &out, int id) const;
 
   //! \brief Get a production from it's representation in a stream.
   inline void getProductions(std::istream &in, int production_id);
@@ -202,16 +201,16 @@ class ParserGenerator {
   static inline std::shared_ptr<ParseNode> getInstructions(std::istream &fin, int pid);
 
   //! \brief Get all alphabetical characters and put them into a word. Returns true if the word was *not* terminated
-  //! by the EOF. Does not clear word at any point.
+  //! by the EOF. Does not Clear word at any point.
   static bool getWord(std::istream &in, std::string &word);
 
   //! Get all numeric characters and put them into a word. Returns true if the word was *not* terminated
-  //! by the EOF. Does not clear word at any point.
+  //! by the EOF. Does not Clear word at any point.
   static bool getInteger(std::istream &in, std::string &word);
 
   //! \brief Get the production number associated with a production name, registering it if it has not
   //! already been registered.
-  inline int registerProduction(const string &production);
+  inline int registerProduction(const std::string &production);
 
   //! \brief Shifts the production numbers from being negative to being positive numbers after the last lexer
   //! token number.
@@ -292,10 +291,10 @@ class ParserGenerator {
   LexerGenerator lexer_generator_;
 
   //! \brief Maps non-terminal names to non-terminal numbers.
-  std::map<string, int> nonterminal_map_;
+  std::map<std::string, int> nonterminal_map_;
 
   //! \brief Maps non-terminal numbers to non-terminal names.
-  std::map<int, string> inverse_nonterminal_map_;
+  std::map<int, std::string> inverse_nonterminal_map_;
 
   //! \brief The productions for each non-terminal. A State (here) is essentially a set of production rules.
   std::map<int, State> productions_for_;
@@ -354,5 +353,4 @@ class ParserGenerator {
   std::stringstream parser_generation_trace_;
 };
 
-} // manta
-#endif // MANTACLION_PARSERGENERATOR_H
+} // namespace manta

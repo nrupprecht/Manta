@@ -23,7 +23,7 @@ LexerGenerator::LexerGenerator(bool eof_token) {
 std::shared_ptr<LexerDFA> LexerGenerator::CreateLexer(const std::string &filename, bool clear_old) {
   std::ifstream fin(filename);
   if (fin.fail()) {
-    cout << "Failed to open file [" << filename << "].\n";
+    std::cout << "Failed to open file [" << filename << "].\n";
     return nullptr;
   }
   // Create parser.
@@ -45,7 +45,7 @@ std::shared_ptr<LexerDFA> LexerGenerator::CreateLexer(std::istream &instream, bo
 
   // Clear old data, add a new head node.
   if (clear_old) {
-    lexer_dfa_.clear();
+    lexer_dfa_.Clear();
     all_lexemes_.clear();
   }
 
@@ -142,7 +142,7 @@ std::shared_ptr<LexerDFA> LexerGenerator::CreateLexer(std::istream &instream, bo
       // Command.
     else if (c == '.') {
       pass_white_space();
-      string command;
+      std::string command;
       in_->get(c);
       // Get the command and check what it is.
       while (!in_->eof() && isalpha(c)) {
@@ -181,7 +181,7 @@ std::shared_ptr<LexerDFA> LexerGenerator::CreateLexer() {
           skip_lexemes_));
 }
 
-int LexerGenerator::Accepts(const string &word) const {
+int LexerGenerator::Accepts(const std::string &word) const {
   auto acceptance = lexer_dfa_.Accepts(word);
   if (acceptance.empty()) {
     return -1;
@@ -190,7 +190,7 @@ int LexerGenerator::Accepts(const string &word) const {
 }
 
 char LexerGenerator::peek() const {
-  return lexer_dfa_.peek();
+  return lexer_dfa_.Peek();
 }
 
 std::string LexerGenerator::getLexeme() const {
@@ -258,7 +258,7 @@ int LexerGenerator::LexemeID(const std::string &name) const {
   }
 }
 
-int LexerGenerator::ReservedIndex(const string &keyword) const {
+int LexerGenerator::ReservedIndex(const std::string &keyword) const {
   auto it = std::find_if(reserved_tokens_.begin(),
                          reserved_tokens_.end(),
                          [&keyword](const auto &pr) { return keyword == pr.first; });
@@ -270,7 +270,7 @@ int LexerGenerator::ReservedIndex(const string &keyword) const {
   }
 }
 
-int LexerGenerator::AddReserved(const string &keyword, int precedence) {
+int LexerGenerator::AddReserved(const std::string &keyword, int precedence) {
   // The call to escapeLiteral escapes characters, if necessary.
   return AddLexeme("RES:" + keyword, escapeLiteral(keyword), precedence);
 }

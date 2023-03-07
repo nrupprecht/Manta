@@ -6,7 +6,6 @@
 #include <set>
 #include <utility>
 
-
 namespace manta {
 
 using Precedence = int;
@@ -53,7 +52,7 @@ struct TransitionType {
   //! \return True if c is accepted by the transition.
   NO_DISCARD bool Accept(const char c) const {
     return (range_initial <= c && c <= range_final) // Normal transition
-          || range_final < range_initial;             // Lambda transition.
+        || range_final < range_initial;             // Lambda transition.
   }
 
   //! \brief Return whether this is a lambda (null) transition.
@@ -172,16 +171,18 @@ class FiniteAutomaton {
   NO_DISCARD FAStatus CheckStatus() const;
 
   //! \brief Peek at the next char in the stream.
-  NO_DISCARD char peek() const;
+  NO_DISCARD char Peek() const;
 
   //! \brief Clear all the states from the dfa.
-  void clear();
+  void Clear();
 
   //! \brief Set the repeat eof flag.
   void SetRepeatEOF(bool flag);
 
+  //! \brief Get the line number that the DFA is on.
   NO_DISCARD int GetLine() const { return line_; }
 
+  //! \brief Get the column in the line that the DFA is on.
   NO_DISCARD int GetCharacter() const { return character_; }
 
  private:
@@ -192,26 +193,26 @@ class FiniteAutomaton {
   //!
   //! \param c The character to try to accept.
   //! \return Whether the DFA will advance when fed the character.
-  inline bool tryAccept(char c);
+  bool tryAccept(char c);
 
   //! \brief Returns whether a state is either accepting, or lambda transitionable to an accepting state.
   //! Returns the (first reachable) accepting state number if accepting, or -1 if not accepting.
-  inline std::vector<std::pair<int, int>> acceptingStateLambda(unsigned);
+  std::vector<std::pair<int, int>> acceptingStateLambda(unsigned);
 
-  inline void computeGoto(std::set<int> &state,
-                          int state_id,
-                          std::deque<pair<int, set<int>>> &working_stack,
-                          std::vector<std::set<int>> &dfa_states,
-                          FiniteAutomaton &dfa);
+  void computeGoto(std::set<int> &state,
+                   int state_id,
+                   std::deque<std::pair<int, std::set<int>>> &working_stack,
+                   std::vector<std::set<int>> &dfa_states,
+                   FiniteAutomaton &dfa);
 
-  inline void compute_transitions(int node_id,
-                                  std::map<int, std::vector<std::pair<char, char>>> &transition_ranges,
-                                  std::set<int> &lambda_set);
+  void computeTransitions(int node_id,
+                          std::map<int, std::vector<std::pair<char, char>>> &transition_ranges,
+                          std::set<int> &lambda_set);
 
-  inline void consolidate_ranges(vector<pair<char, char>> &);
+  void consolidateRanges(std::vector<std::pair<char, char>> &);
 
-  inline void createTransitionSets(std::map<int, std::vector<pair<char, char>>> &transition_ranges,
-                                   std::vector<std::tuple<set<int>, char, char>> &all_transition_sets);
+  void createTransitionSets(std::map<int, std::vector<std::pair<char, char>>> &transition_ranges,
+                            std::vector<std::tuple<std::set<int>, char, char>> &all_transition_sets);
 
   //! \brief Pointer to an istream. Could be a stringstream or an ifstream.
   IStreamContainer instream_;

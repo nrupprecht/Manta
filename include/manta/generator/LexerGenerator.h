@@ -29,7 +29,7 @@ class LexerGenerator {
   std::shared_ptr<LexerDFA> CreateLexer();
 
   //! \brief Check if a string would be accepted by the lexer.
-  NO_DISCARD int Accepts(const string &word) const;
+  NO_DISCARD int Accepts(const std::string &word) const;
 
   //! \brief Return the name of a lexeme based on the id.
   NO_DISCARD const std::string &LexemeName(int index) const;

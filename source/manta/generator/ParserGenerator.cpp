@@ -29,11 +29,11 @@ std::shared_ptr<class LALRParser> ParserGenerator::CreateParserFromString(const 
 
 std::shared_ptr<LALRParser> ParserGenerator::CreateParserFromStream(std::istream &stream) {
   char c;
-  string production_name;
+  std::string production_name;
   int pid;
 
   // Create the lexer. We always add @eof as a lexer item.
-  lexer_generator_.CreateLexer(stream, false); // Do not clear old.
+  lexer_generator_.CreateLexer(stream, false); // Do not Clear old.
 
   // Find the .Parser indicator.
   stream.get(c);
@@ -334,7 +334,7 @@ std::string ParserGenerator::writeItem(const Item &item) const {
   return output;
 }
 
-void ParserGenerator::writeState(const State &state, ostream &out, int id) const {
+void ParserGenerator::writeState(const State &state, std::ostream &out, int id) const {
   out << "---- State " << id << " -----------\n";
   for (auto &item: state) {
     out << "  " << writeItem(item);
@@ -585,7 +585,7 @@ inline std::shared_ptr<ParseNode> ParserGenerator::getInstructions(std::istream 
 
       // Add a node.
       auto node = std::make_shared<ParseNode>(acc);
-      instruction->add(node);
+      instruction->Add(node);
       // Clear accumulator.
       acc.clear();
 
@@ -621,7 +621,7 @@ inline std::shared_ptr<ParseNode> ParserGenerator::getInstructions(std::istream 
             in.putback(c);
           }
           // Add child.
-          node->add(acc);
+          node->Add(acc);
           // Clear accumulator.
           acc.clear();
         }
@@ -634,7 +634,7 @@ inline std::shared_ptr<ParseNode> ParserGenerator::getInstructions(std::istream 
             in.get(c);
           }
           // Add child.
-          node->add(acc);
+          node->Add(acc);
           // Clear accumulator.
           acc.clear();
         }
@@ -681,7 +681,7 @@ bool ParserGenerator::getInteger(std::istream &in, std::string &word) {
   return false;
 }
 
-inline int ParserGenerator::registerProduction(const string &production) {
+inline int ParserGenerator::registerProduction(const std::string &production) {
   auto it = nonterminal_map_.find(production);
   if (it == nonterminal_map_.end()) {
     nonterminal_map_.emplace(production, num_productions_);
@@ -713,7 +713,7 @@ inline void ParserGenerator::shiftProductionNumbers() {
   }
 
   // Shift the ids in inverse map
-  std::map<int, string> new_inverse_map;
+  std::map<int, std::string> new_inverse_map;
   for (auto &p: inverse_nonterminal_map_) {
     new_inverse_map.emplace(lids - p.first, p.second);
   }
@@ -737,7 +737,7 @@ inline void ParserGenerator::shiftProductionNumbers() {
       }
       state.insert(item);
     }
-    new_productions_for.insert(pair<int, State>(lids - p.first, state));
+    new_productions_for.insert(std::pair<int, State>(lids - p.first, state));
   }
   productions_for_ = new_productions_for;
   // Set total_symbols_.

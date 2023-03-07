@@ -1,45 +1,24 @@
-#ifndef __UTILITY_HPP__MANTA__
-#define __UTILITY_HPP__MANTA__
+#pragma once
 
 #include <iostream>
-using std::cout;
-using std::endl;
-
 #include <ostream>
-using std::ostream;
-
 #include <vector>
-using std::vector;
-using std::pair;
-
 #include <list>
-using std::list;
-
 #include <set>
-using std::set;
-
 #include <map>
-using std::map;
-
 #include <unordered_map>
-using std::unordered_map;
-
 #include <string>
-using std::string;
-
 #include <sstream>
-using std::stringstream;
-
 #include <fstream>
 
 namespace manta {
 
 template <typename T>
-inline bool contains(const set<T> &s, T &&el) {
+inline bool contains(const std::set<T> &s, T &&el) {
   return s.find(el) != s.end();
 }
 
-inline bool prepends(const set<string> &s, const std::string &op) {
+inline bool prepends(const std::set<std::string> &s, const std::string &op) {
   // Check if the string is the first part of any string in the set.
   for (const auto &str: s) {
     int index = str.find(op);
@@ -51,39 +30,7 @@ inline bool prepends(const set<string> &s, const std::string &op) {
   return false;
 }
 
-// \todo Change this to atoi or something related.
-template <typename T>
-inline int toInt(T &&x) {
-  stringstream stream;
-  stream << x;
-  int y;
-  stream >> y;
-  return y;
-}
-
-// Less than comparison for vectors.
-template <typename T>
-inline bool less_than(const vector<T> &a, const vector<T> &b) {
-  // If the sizes are the same, compare in dictionary order.
-  if (a.size() == b.size()) {
-    for (int i = 0; i < a.size(); ++i) {
-      if (a[i] == b[i]) {
-        continue;
-      }
-      else {
-        return a[i] < b[i];
-      }
-    }
-    // The vectors are equal.
-    return false;
-  }
-    // Otherwise, the shorter vector is "lesser."
-  else {
-    return a.size() < b.size();
-  }
-}
-
-inline string repeat(char c, int length) {
+inline std::string repeat(char c, int length) {
   std::string str;
   str.reserve(length);
   for (int i = 0; i < length; ++i) {
@@ -92,11 +39,7 @@ inline string repeat(char c, int length) {
   return str;
 }
 
-inline int max(int a, int b) {
-  return a > b ? a : b;
-}
-
-inline string buffered(int i, int length) {
+inline std::string buffered(int i, int length) {
   int ai = abs(i);
   int l = i < 0 ? 1 : 0;
 
@@ -115,11 +58,11 @@ inline string buffered(int i, int length) {
   return str;
 }
 
-inline string buffered(const string &str, int length) {
-  return repeat(' ', max(length - str.size(), 0)) + str;
+inline std::string buffered(const std::string &str, int length) {
+  return repeat(' ', std::max(length - static_cast<int>(str.size()), 0)) + str;
 }
 
-inline string clean(const std::string &str) {
+inline std::string clean(const std::string &str) {
   std::string output;
   for (char c: str) {
     if (c == '\n') output += "\\n";
@@ -131,5 +74,4 @@ inline string clean(const std::string &str) {
   return output;
 }
 
-}
-#endif // __UTILITY_HPP__MANTA__
+} // namespace manta
