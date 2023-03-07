@@ -165,11 +165,11 @@ bool operator==(const State &s1, const State &s2) {
 }
 
 bool operator<(const Item &a, const Item &b) {
-  return a.production < b.production || a.bookmark < b.bookmark || less_than(a.rhs, b.rhs);
+  return std::tie(a.production, a.bookmark, a.rhs) < std::tie(b.production, b.bookmark, b.rhs);
 }
 
 bool operator==(const Item &a, const Item &b) {
-  return a.production == b.production && a.bookmark == b.bookmark && a.rhs == b.rhs;
+  return std::tie(a.production, a.bookmark, a.rhs) == std::tie(b.production, b.bookmark, b.rhs);
 }
 
 std::ostream &operator<<(ostream &out, const Item &item) {
@@ -264,4 +264,4 @@ std::ostream &operator<<(std::ostream &out, const Entry &entry) {
   return out;
 }
 
-}
+} // namespace manta

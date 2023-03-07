@@ -1060,7 +1060,6 @@ void ParserGenerator::computeLookahead() {
 }
 
 void ParserGenerator::buildItemForPropGraph() {
-  std::vector<StateItem> vertices;
   propagation_graph_.Clear();
   item_follow_.clear();
 
@@ -1070,21 +1069,19 @@ void ParserGenerator::buildItemForPropGraph() {
     auto augmented_state = closure(state_id);
 
     for (const auto &item: augmented_state) {
-      vertices.emplace_back(state_id, item.WithoutInstructions() /* Just in case... */);
-      item_follow_[vertices.back()] = {};  // Initialize to empty, the "= {}" is not really needed.
+      StateItem vertex(state_id, item.WithoutInstructions() /* Just in case... */ );
+      propagation_graph_.AddVertex(vertex);
+      item_follow_[vertex] = {};  // Initialize to empty, the "= {}" is not really needed.
       ++num_items;
     }
     ++state_id;
   }
 
   // Initialize start state items so EOF follows each of them.
-  std::cout << "Initializing start states:\n";
   for (const auto &item: closure(0)) {
     // item_follow[ (start_state, start -> * RHS(production) ] = { @EOF }
-    std::cout << writeItem(item) << "\n";
-    item_follow_[StateItem{0, item}].insert(0 /* EOF */);
+    item_follow_.at(StateItem(0, item)).insert(0 /* EOF */);
   }
-  std::cout << std::endl;
 
   // Place edges of the propagation graph between *items*
   state_id = 0u;
@@ -1099,12 +1096,15 @@ void ParserGenerator::buildItemForPropGraph() {
             item.WithoutInstructions());
         // Safe to unwrap item.AdvanceDot() since element following bookmark exists.
         StateItem end_vertex(
-            parse_table_[state_id][*el].GetState(),
+            parse_table_.at(state_id).at(*el).GetState(),
             item.AdvanceDot()->WithoutInstructions());
 
-        std::cout << "Added edge:\n";
-        std::cout << "  * start = (" << state_id << ", " << writeItem(item) << ")\n";
-        std::cout << "  * end =   (" << end_vertex.first << ", " << writeItem(end_vertex.second) << ")\n\n";
+        MANTA_ASSERT(propagation_graph_.HasVertex(start_vertex), "start vertex not in the graph");
+        MANTA_ASSERT(propagation_graph_.HasVertex(end_vertex), "end vertex not in the graph");
+
+//        std::cout << "Added edge:\n";
+//        std::cout << "  * start = (" << state_id << ", " << writeItem(item) << ")\n";
+//        std::cout << "  * end =   (" << end_vertex.first << ", " << writeItem(end_vertex.second) << ")\n\n";
 
         // Add a new edge to the graph.
         propagation_graph_.AddEdge(start_vertex, end_vertex);
@@ -1126,12 +1126,14 @@ void ParserGenerator::buildItemForPropGraph() {
           // {state_id, B -> * gamma}
           StateItem vertex(state_id, other_item.WithoutInstructions());
 
-          if (gamma) {
-            item_follow_[vertex].insert(first_set.begin(), first_set.end());
+          MANTA_ASSERT(propagation_graph_.HasVertex(vertex), "vertex not in the graph");
 
-            std::cout << "Added to follow set of (" << vertex.first << ", " << writeItem(vertex.second) << "): ";
-            for (auto fs: first_set) std::cout << nameOf(fs) << " ";
-            std::cout << "\n\n";
+          if (gamma) {
+            item_follow_.at(vertex).insert(first_set.begin(), first_set.end());
+
+//            std::cout << "Added to follow set of (" << vertex.first << ", " << writeItem(vertex.second) << "): ";
+//            for (auto fs: first_set) std::cout << nameOf(fs) << " ";
+//            std::cout << "\n\n";
           }
           // It is my understanding that if gamma = lambda, gamma =>* lambda is automatically and trivially true.
           auto can_derive_empty = gamma ? nonterminal_derives_empty_[nonTerminalIndex(*gamma)] : true;
@@ -1139,9 +1141,9 @@ void ParserGenerator::buildItemForPropGraph() {
             propagation_graph_.AddEdge(start_vertex, vertex);
             ++added_edges;
 
-            std::cout << "Since 'gamma' can derive empty, added edge:\n";
-            std::cout << "  * start = (" << state_id << ", " << writeItem(item) << ")\n";
-            std::cout << "  * start = (" << vertex.first << ", " << writeItem(vertex.second) << ")\n\n";
+//            std::cout << "Since 'gamma' can derive empty, added edge:\n";
+//            std::cout << "  * start = (" << state_id << ", " << writeItem(item) << ")\n";
+//            std::cout << "  * start = (" << vertex.first << ", " << writeItem(vertex.second) << ")\n\n";
           }
 
         }
@@ -1152,16 +1154,6 @@ void ParserGenerator::buildItemForPropGraph() {
 }
 
 void ParserGenerator::evalItemForPropGraph() {
-  std::cout << "Before propagation, follow sets are:\n";
-  for (auto&[state_item, follow]: item_follow_) {
-    std::cout << "Labeled item (" << state_item.first << ", " << writeItem(state_item.second) << "): ";
-    for (auto id: follow) {
-      std::cout << nameOf(id) << " ";
-    }
-    std::cout << std::endl;
-  }
-
-  std::cout << std::endl;
   bool changed = false;
   unsigned num_iters = 0;
   do {
@@ -1170,47 +1162,21 @@ void ParserGenerator::evalItemForPropGraph() {
     for (const auto& [v, endpoints]: propagation_graph_.Edges()) {
       // Starting vertex's follow set.
 
-      // TODO: Find out what's wrong... I feel like at(...) should be fine here.
-      auto &follow_v = item_follow_[v];
+      auto &follow_v = item_follow_.at(v);
       for (const auto &w: endpoints) {
 
-//        std::cout << "W = (" << w.first << ", " << writeItem(w.second) << ")" << std::endl;
-//        auto it = item_follow_.find(w);
-//        std::cout << "W' = (" << it->first.first << ", " << writeItem(it->first.second) << ")" << std::endl;
-
         // TODO: Find out what's wrong... I feel like at(...) should be fine here.
-        auto& follow_w = item_follow_[w];
+        auto& follow_w = item_follow_.at(w);
         auto old = follow_w;
 
         follow_w.insert(follow_v.begin(), follow_v.end());
         if (follow_w != old) {
           changed = true;
-
-          std::vector<int> temp;
-          std::set_difference(follow_w.begin(), follow_w.end(),
-                              old.begin(), old.end(),
-                              std::back_inserter(temp));
-          std::cout << "Added items from (" << v.first << ", " << writeItem(v.second) << ") to (" << w.first << ", " << writeItem(w.second) << "): ";
-          for (auto id: temp) {
-            std::cout << nameOf(id) << " ";
-          }
-          std::cout << std::endl;
         }
       }
     }
     ++num_iters;
   } while (changed);
-
-  std::cout << "Eval Item For Prop Graph took " << num_iters << " iterations.\n\n";
-
-  std::cout << "After propagation, follow sets are:\n";
-  for (auto&[state_item, follow]: item_follow_) {
-    std::cout << "Labeled item (" << state_item.first << ", " << writeItem(state_item.second) << "): ";
-    for (auto id: follow) {
-      std::cout << nameOf(id) << " ";
-    }
-    std::cout << std::endl;
-  }
 }
 
 void ParserGenerator::tryRuleInState(int state, const Item &rule) {

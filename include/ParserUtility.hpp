@@ -1,5 +1,4 @@
-#ifndef __PARSER_CLASSES_HPP__MANTA__
-#define __PARSER_CLASSES_HPP__MANTA__
+#pragma once
 
 #include "LexerUtility.hpp"
 
@@ -50,8 +49,18 @@ struct ProductionRule {
 
   void add(int r);
   int& at(int i);
-  int at(int i) const;
-  int size() const;
+  NO_DISCARD int at(int i) const;
+  NO_DISCARD int size() const;
+
+
+
+  bool operator<(const ProductionRule& rule) const {
+    return std::tie(production, rhs) < std::tie(rule.production, rule.rhs);
+  }
+
+  bool operator==(const ProductionRule& rule) {
+    return std::tie(production, rhs) == std::tie(rule.production, rule.rhs);
+  }
 
   // --- Data items ---
 
@@ -109,6 +118,10 @@ struct Item : public ProductionRule {
   friend ostream& operator<<(ostream& out, const Item& item);
   friend string toString(const Item&);
 
+//  bool operator<(const Item& rhs) const {
+//    return rhs.production
+//  }
+
   // --- Data items ---
 
   //! \brief The location of the bookmark.
@@ -118,6 +131,13 @@ struct Item : public ProductionRule {
   //! not a state item.
   mutable int bookmark = 0;
 };
+
+
+bool operator<(const Item& a, const Item& b);
+bool operator==(const Item& a, const Item& b);
+std::ostream& operator<<(std::ostream& out, const Item& item);
+std::string toString(const Item&);
+
 
 //! \brief Define a state to be a set of Items, with some extra features for convenience.
 struct State {
@@ -209,5 +229,4 @@ struct Entry {
   Item rule;
 };
 
-} // manta
-#endif // __PARSER_CLASSES_HPP__MANTA__
+} // namespace manta
