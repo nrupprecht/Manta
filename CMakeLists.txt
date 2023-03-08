@@ -77,8 +77,6 @@ add_library(${PROJECT_NAME} ${PROJECT_FILES})
 #set(CMAKE_MACOSX_RPATH OFF)
 set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
 
-# add_library(${PROJECT_NAME} SHARED)
-
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
@@ -114,8 +112,7 @@ string                (TOUPPER ${PROJECT_NAME} PROJECT_NAME_UPPER)
 generate_export_header(${PROJECT_NAME}
         EXPORT_FILE_NAME     ${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}/export.h
         EXPORT_MACRO_NAME    ${PROJECT_NAME_UPPER}_EXPORT
-        STATIC_DEFINE        ${PROJECT_NAME_UPPER}_STATIC
-        )
+        STATIC_DEFINE        ${PROJECT_NAME_UPPER}_STATIC)
 
 ##################################################    Testing     ##################################################
 if(BUILD_TESTS)
@@ -135,26 +132,17 @@ if(BUILD_TESTS)
         get_filename_component(_NAME ${_SOURCE} NAME_WE)
         add_executable        (${_NAME} ${_SOURCE} $<TARGET_OBJECTS:${TEST_MAIN_NAME}>)
         target_link_libraries (${_NAME} ${PROJECT_NAME})
-        add_test              (${_NAME} ${_NAME})
+        # NOTE: I used to just have add_test(${_NAME} ${_NAME}) here, but then when I would try to run all CTests, it couldn't find the executables.
+        add_test              (NAME ${_NAME} COMMAND ${_NAME})
         set_property          (TARGET ${_NAME} PROPERTY FOLDER tests)
         assign_source_group   (${_SOURCE})
     endforeach()
 endif()
 
-
 if (${BUILD_APPLICATIONS})
     message(STATUS "Building applications...")
     add_subdirectory("${PROJECT_SOURCE_DIR}/applications" "applications")
 endif()
-
-#file( GLOB APP_SOURCES applications/*.cpp )
-#foreach( _SOURCE ${APP_SOURCES} )
-#    get_filename_component(_NAME ${_SOURCE} NAME_WE)
-#    add_executable( ${_NAME} ${_SOURCE} )
-#    target_link_libraries( ${testname} ${PROJECT_NAME} )
-#    assign_source_group   (${_SOURCE})
-#endforeach( _SOURCE ${APP_SOURCES} )
-
 
 ##################################################  Installation  ##################################################
 install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}-config
