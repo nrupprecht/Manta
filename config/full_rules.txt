@@ -28,6 +28,8 @@
 
     newlines -> newlines @newlines | @newlines
 
+    lexeme_def_or -> @or | @newlines @or
+
     # ========================================================
     #  Lexer
     # ========================================================
@@ -42,8 +44,6 @@
 
     lexeme_definition -> @lexeme_name @semicolon @regex                     : add($0), add($2)
 
-    skip_definition -> ".Skip" @lexeme_name
-
     # ========================================================
     #  Parser
     # ========================================================
@@ -53,12 +53,14 @@
     start_indicator -> ".Start" @identifier                                                         : add($1)
 
     parser_definitions -> parser_definitions newlines parser_definition                            : adopt($0), add($2)
-        | parser_definition                                                                         # : replace($0)
+        | parser_definition
 
     parser_definition -> @identifier "->" production_lines                                          : push("production_name", $0), add($2)
 
     production_lines -> production_and_data                                                         : replace($0)
-        | production_lines @or production_and_data                                                  : node("options"), adopt($0), add($2)
+        | production_lines or production_and_data                                                   : node("options"), adopt($0), add($2)
+
+    or -> @or
 
     production_and_data -> production_atoms
         | production_atoms @semicolon actions                                                       : add($0), add($2)

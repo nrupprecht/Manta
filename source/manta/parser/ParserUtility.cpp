@@ -1,6 +1,6 @@
 
 
-#include "manta/parser/ParserUtility.hpp"
+#include "manta/utility/ParserUtility.hpp"
 // Other files
 #include <utility>
 #include "manta/parser/LALRParser.hpp"

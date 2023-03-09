@@ -6,7 +6,7 @@
 
 #include <utility>
 #include "ParseNode.h"
-#include "ParserUtility.hpp"
+#include "manta/utility/ParserUtility.hpp"
 #include "manta/lexer/LexerDFA.hpp"
 
 namespace manta {

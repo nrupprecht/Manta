@@ -2,12 +2,9 @@
 // Created by Nathaniel Rupprecht on 2/2/21.
 //
 
-#ifndef MANTACLION_PARSENODE_H
-#define MANTACLION_PARSENODE_H
+#pragma once
 
-#include <utility>
-
-#include "ParserUtility.hpp"
+#include "manta/utility/ParserUtility.hpp"
 
 namespace manta {
 
@@ -39,5 +36,4 @@ struct ParseNode : public std::enable_shared_from_this<ParseNode> {
 //! \brief Stream operator to write a ParseNode.
 std::ostream &operator<<(std::ostream &out, const ParseNode &node);
 
-}
-#endif //MANTACLION_PARSENODE_H
+} // namespace manta

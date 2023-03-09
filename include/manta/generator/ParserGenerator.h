@@ -4,10 +4,9 @@
 
 #pragma once
 
-#include <utility>
-
 #include "manta/parser/ParseNode.h"
 #include "manta/generator/LexerGenerator.h"
+#include "manta/generator/DescriptionParser.h"
 
 namespace manta {
 
@@ -188,34 +187,6 @@ class ParserGenerator {
   //! \brief Write an item (a production rule + bookmark) to a string.
   NO_DISCARD std::string writeItem(const Item &item) const;
 
-  //! \brief Write a representation of an entire state to an ostream.
-  void writeState(const State &state, std::ostream &out, int id) const;
-
-  //! \brief Get a production from it's representation in a stream.
-  inline void getProductions(std::istream &in, int production_id);
-
-  //! \brief Find the conflict resolution info for a production.
-  static void findResInfo(std::istream &in, ResolutionInfo &res_info);
-
-  //! \brief Get the instruction for a production.
-  static inline std::shared_ptr<ParseNode> getInstructions(std::istream &fin, int pid);
-
-  //! \brief Get all alphabetical characters and put them into a word. Returns true if the word was *not* terminated
-  //! by the EOF. Does not Clear word at any point.
-  static bool getWord(std::istream &in, std::string &word);
-
-  //! Get all numeric characters and put them into a word. Returns true if the word was *not* terminated
-  //! by the EOF. Does not Clear word at any point.
-  static bool getInteger(std::istream &in, std::string &word);
-
-  //! \brief Get the production number associated with a production name, registering it if it has not
-  //! already been registered.
-  inline int registerProduction(const std::string &production);
-
-  //! \brief Shifts the production numbers from being negative to being positive numbers after the last lexer
-  //! token number.
-  inline void shiftProductionNumbers();
-
   //! \brief Compute the nonterminal_derives_empty_ vector, which indicates which states can derive empty.
   void createStateDerivesEmpty();
 
@@ -287,41 +258,45 @@ class ParserGenerator {
   //  Private member variables.
   // ======================================================
 
-  //! \brief A lexer generator.
-  LexerGenerator lexer_generator_;
+//  //! \brief A lexer generator.
+//  LexerGenerator lexer_generator_;
+//
+//  //! \brief Maps non-terminal names to non-terminal numbers.
+//  std::map<std::string, int> nonterminal_map_;
+//
+//  //! \brief Maps non-terminal numbers to non-terminal names.
+//  std::map<int, std::string> inverse_nonterminal_map_;
+//
+//  //! \brief The productions for each non-terminal. A State (here) is essentially a set of production rules.
+//  std::map<int, State> productions_for_;
+//
+//  //! \brief All the productions, for all non-terminals.
+//  std::vector<Item> all_productions_;
+//
+//  //! \brief Whether a non-terminal can derive empty.
+//  std::vector<bool> nonterminal_derives_empty_;
+//
+//  //! \brief The number of terminals in the correspondence vector.
+//  int num_productions_ = 0;
+//
+//  //! \brief Which non-terminal is the starting non-terminal.
+//  int start_nonterminal_ = 0;
+//
+//  //! \brief The name of the start non-terminal. By default, this is "start."
+//  std::string start_nonterminal_name_ = "start";
+//
+//  //! \brief The total number of lexer ids (terminals) plus non-terminal symbols. This is the number
+//  //! of columns in the parse_table_.
+//  int total_symbols_ = 0;
+//
+//  //! \brief The number to assign to the next production.
+//  //!
+//  //! Note: To keep things easy to compare, right now we are starting productions at 1.
+//  int next_production_label_ = 1;
 
-  //! \brief Maps non-terminal names to non-terminal numbers.
-  std::map<std::string, int> nonterminal_map_;
 
-  //! \brief Maps non-terminal numbers to non-terminal names.
-  std::map<int, std::string> inverse_nonterminal_map_;
 
-  //! \brief The productions for each non-terminal. A State (here) is essentially a set of production rules.
-  std::map<int, State> productions_for_;
-
-  //! \brief All the productions, for all non-terminals.
-  std::vector<Item> all_productions_;
-
-  //! \brief Whether a non-terminal can derive empty.
-  std::vector<bool> nonterminal_derives_empty_;
-
-  //! \brief The number of terminals in the correspondence vector.
-  int num_productions_ = 0;
-
-  //! \brief Which non-terminal is the starting non-terminal.
-  int start_nonterminal_ = 0;
-
-  //! \brief The name of the start non-terminal. By default, this is "start."
-  std::string start_nonterminal_name_ = "start";
-
-  //! \brief The total number of lexer ids (terminals) plus non-terminal symbols. This is the number
-  //! of columns in the parse_table_.
-  int total_symbols_ = 0;
-
-  //! \brief The number to assign to the next production.
-  //!
-  //! Note: To keep things easy to compare, right now we are starting productions at 1.
-  int next_production_label_ = 1;
+  std::shared_ptr<ProductionRulesData> production_rules_data_{};
 
   //! \brief The parse table. It is a vector so we can add new states.
   //!
