@@ -5,97 +5,15 @@
 #pragma once
 
 #include "manta/parser/ParseNode.h"
+#include "manta/utility/WorkDeque.h"
 #include "manta/generator/LexerGenerator.h"
 #include "manta/generator/DescriptionParser.h"
+#include "manta/generator/LALRPropagationGraph.h"
 
 namespace manta {
 
 //! \brief Determines what type of parser to create.
 enum class ParserType { LR0, SLR, LALR };
-
-//! \brief Object that acts as a deque of work, but you can only add new items if
-//! they have never been added before.
-template<typename T>
-struct WorkDeque {
- public:
-  bool Add(const T& item) {
-    if (auto it = marked_.find(item); it == marked_.end()) {
-      work_.push_back(item);
-      marked_.insert(item);
-      return true;
-    }
-    return false;
-  }
-
-  T PopNext() {
-    auto temp = std::move(work_.front());
-    work_.pop_front();
-    return temp;
-  }
-
-  NO_DISCARD bool Empty() const {
-    return work_.empty();
-  }
-
- private:
-  //! \brief Current work items.
-  std::deque<T> work_;
-  //! \brief All items that have ever been seen.
-  std::set<T> marked_;
-};
-
-//! \brief LALR uses "state items" that are pairs of states and items.
-using StateItem = std::pair<StateID, Item>;
-
-//! \brief Typedef for an LALR item follow set.
-using ItemFollowSet = std::map<StateItem, std::set<int>>;
-
-//! \brief A structure to represent an LALR propagation graph, which is used to construct LALR parsers.
-class LALRPropagationGraph {
- public:
-  void AddVertex(const StateItem& v) {
-    vertices_.insert(v);
-  }
-
-  void AddEdge(const StateItem& v, const StateItem& w) {
-    auto [_, did_insert] = edges_[v].insert(w);
-    if (did_insert) {
-      ++num_edges_;
-    }
-
-    vertices_.insert(v);
-    vertices_.insert(w);
-  }
-
-  NO_DISCARD bool HasVertex(const StateItem& v) const {
-    return vertices_.contains(v);
-  }
-
-  NO_DISCARD const std::map<StateItem, std::set<StateItem>>& Edges() const {
-    return edges_;
-  }
-
-  NO_DISCARD const std::set<StateItem>& Vertices() const {
-    return vertices_;
-  }
-
-  NO_DISCARD std::size_t NumVertices() const {
-    return vertices_.size();
-  }
-
-  NO_DISCARD std::size_t NumEdges() const {
-    return num_edges_;
-  }
-
-  void Clear() {
-    edges_.clear();
-  }
-
- private:
-  std::set<StateItem> vertices_;
-  std::map<StateItem, std::set<StateItem>> edges_;
-  std::size_t num_edges_ = 0;
-};
 
 // Forward declare LALR parser.
 class LALRParser;
@@ -105,7 +23,6 @@ class LALRParser;
 //!     The start of the parser description with be the indicator ".Parser"
 class ParserGenerator {
  public:
-
   //! \brief Create a parser generator of the specified type.
   explicit ParserGenerator(ParserType type = ParserType::SLR);
 

@@ -294,10 +294,10 @@ std::string LALRParser::PrintTable() const {
       std::copy(name.begin() + 4, name.end(), name.begin());
       name.resize(name.size() - 4);
     }
-    buffered_names.push_back(repeat(' ', max_size - name.size()) + name);
+    buffered_names.push_back(repeat(' ', static_cast<int>(max_size - name.size())) + name);
   }
   for (auto&[id, name]: inverse_production_map_) {
-    buffered_names.push_back(repeat(' ', max_size - name.size()) + name);
+    buffered_names.push_back(repeat(' ', static_cast<int>(max_size - name.size())) + name);
   }
 
   for (std::size_t j = 0; j < max_size; ++j) {
@@ -427,7 +427,7 @@ void LALRParser::instructionReplace(LALRParser::Node &self, LALRParser::Node &no
 
 void LALRParser::instructionPush(LALRParser::Node &self, const std::string& name, LALRParser::Node &node) {
   // Create a new node.
-  auto new_node = std::make_shared<ParseNode>(name, self);
+  auto new_node = std::make_shared<ParseNode>(name);
   new_node->Add(node);
   self->children.push_back(new_node);
 }

@@ -178,7 +178,7 @@ void ParserGenerator::createStateDerivesEmpty() {
   // See p. 128 - 130 of "Crafting a Compiler"
   // TODO: Test.
 
-  WorkDeque<ProductionID> work_deque;
+  utility::WorkDeque<ProductionID> work_deque;
   std::map<Item, bool> rule_derives_empty;
   // Count the symbols on the RHS of each production that do not derive empty.
   //  This is updated throughout the algorithm.

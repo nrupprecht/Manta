@@ -11,7 +11,8 @@
 
 namespace manta {
 
-
+//! \brief A combined lexer and parser. This can be a LR0, SLR, or LALR parser, despite the name.
+//!
 class LALRParser {
   friend class CodeGenerator;
  public:
@@ -27,7 +28,7 @@ class LALRParser {
   static std::string PrintAsMathematica(const std::shared_ptr<ParseNode> &head);
 
   //! \brief Get the number of steps that the last parse took.
-  std::size_t NumParseSteps() const;
+  NO_DISCARD std::size_t NumParseSteps() const;
 
   //! \brief Get the parse trace string.
   NO_DISCARD const std::string &GetParseTrace() const;
@@ -36,7 +37,7 @@ class LALRParser {
   //!
   //! Mostly useful for testing.
   //!
-  std::shared_ptr<LexerDFA> GetLexer() const;
+  NO_DISCARD std::shared_ptr<LexerDFA> GetLexer() const;
 
   friend class ParserGenerator;
 

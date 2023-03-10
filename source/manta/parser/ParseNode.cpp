@@ -7,39 +7,32 @@
 using namespace manta;
 
 ParseNode::ParseNode(const std::string& d) {
-  for (auto c : d) {
+  for (auto c: d) {
     if (c == '\n') designator.append("\\n");
     else if (c == '\t') designator.append("\\t");
     else designator.push_back(c);
   }
 };
 
-ParseNode::ParseNode(std::string designator, const std::shared_ptr<ParseNode>& p)
-: designator(std::move(designator)), parent(p) {};
-
-
-ParseNode& ParseNode::operator=(const ParseNode &node) {
+ParseNode &ParseNode::operator=(const ParseNode &node) {
   designator = node.designator;
-  parent = node.parent;
   for (const auto &child: node.children) {
     auto new_child = std::make_shared<ParseNode>("");
     *new_child = *child;
-    new_child->parent = shared_from_this();
     children.push_back(new_child);
   }
   return *this;
 }
 
 void ParseNode::Add(const std::string &str) {
-  children.push_back(std::make_shared<ParseNode>(str, shared_from_this()));
+  children.push_back(std::make_shared<ParseNode>(str));
 }
 
 void ParseNode::Add(const std::shared_ptr<ParseNode> &node) {
-  node->parent = shared_from_this();
   children.push_back(node);
 }
 
-std::ostream& manta::operator<<(std::ostream &out, const ParseNode &node) {
+std::ostream &manta::operator<<(std::ostream &out, const ParseNode &node) {
   // Make sure we don't print actual newlines or things like that.
   std::string alias = node.designator;
   if (alias == "\n") alias = "\\n";
@@ -67,7 +60,7 @@ std::string ParseNode::printTerminals() const {
   // If this is a terminal.
   if (children.empty()) {
     std::string alias{};
-    for (auto c : designator) {
+    for (auto c: designator) {
       if (c == '\n') alias.append("\\n");
       else if (c == '\t') alias.append("\\t");
       else alias.push_back(c);

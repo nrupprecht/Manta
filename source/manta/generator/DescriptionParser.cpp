@@ -10,7 +10,7 @@ using namespace manta;
 
 
 std::shared_ptr<ProductionRulesData> DescriptionParser::ParseDescription(std::istream &stream) {
-
+  // Create a new production rules object.
   production_rules_data_ = std::make_shared<ProductionRulesData>();
 
   char c;

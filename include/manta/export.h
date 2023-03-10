@@ -9,15 +9,15 @@
 #  ifndef MANTA_EXPORT
 #    ifdef Manta_EXPORTS
         /* We are building this library */
-#      define MANTA_EXPORT __attribute__((visibility("default")))
+#      define MANTA_EXPORT 
 #    else
         /* We are using this library */
-#      define MANTA_EXPORT __attribute__((visibility("default")))
+#      define MANTA_EXPORT 
 #    endif
 #  endif
 
 #  ifndef MANTA_NO_EXPORT
-#    define MANTA_NO_EXPORT __attribute__((visibility("hidden")))
+#    define MANTA_NO_EXPORT 
 #  endif
 #endif
 

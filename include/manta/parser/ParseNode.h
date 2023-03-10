@@ -8,10 +8,8 @@
 
 namespace manta {
 
-struct ParseNode : public std::enable_shared_from_this<ParseNode> {
-  explicit ParseNode(const std::string& d);
-
-  ParseNode(std::string designator, const std::shared_ptr<ParseNode>& p);
+struct ParseNode {
+  explicit ParseNode(const std::string& designator);
 
   ParseNode &operator=(const ParseNode &node);
 
@@ -25,9 +23,6 @@ struct ParseNode : public std::enable_shared_from_this<ParseNode> {
 
   //! Node label.
   std::string designator;
-
-  //! \brief The node may have a parent. Use a weak_ptr since the parent has shared pointers to its children.
-  std::optional<std::weak_ptr<ParseNode>> parent{};
 
   //! \brief All the children of the Node.
   std::vector<std::shared_ptr<ParseNode>> children;
