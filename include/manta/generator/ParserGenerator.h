@@ -5,6 +5,7 @@
 #pragma once
 
 #include "manta/parser/ParseNode.h"
+#include "manta/lexer/LexerDFA.hpp"
 #include "manta/utility/WorkDeque.h"
 #include "manta/generator/LexerGenerator.h"
 #include "manta/generator/DescriptionParser.h"
@@ -18,6 +19,19 @@ enum class ParserType { LR0, SLR, LALR };
 // Forward declare LALR parser.
 class LALRParser;
 
+//! \brief All the data needed to create a full parser, e.g. transition table, meta data, lexer, etc.
+struct ParserData {
+  std::shared_ptr<ProductionRulesData> production_rules_data;
+
+  //! \brief The full parse table used by the Parser.
+  std::vector<std::vector<Entry>> parse_table;
+
+  //! \brief All the different states.
+  std::vector<State> all_states;
+
+  std::shared_ptr<LexerDFA> lexer;
+};
+
 //! \brief Class that can read a description of a parser and create from that a table-driven LALRParser.
 //!
 //!     The start of the parser description with be the indicator ".Parser"
@@ -25,6 +39,10 @@ class ParserGenerator {
  public:
   //! \brief Create a parser generator of the specified type.
   explicit ParserGenerator(ParserType type = ParserType::SLR);
+
+  //! \brief Read the description of a Parser from a stream and create all the data necessary to
+  //! run that parser.
+  std::shared_ptr<ParserData> CreateParserData(std::istream& stream);
 
   //! \brief Parse a description of a grammar from a file to create a parser.
   std::shared_ptr<LALRParser> CreateParserFromFile(const std::string &filename);
@@ -123,10 +141,10 @@ class ParserGenerator {
   bool computeLR0();
 
   //! \brief Adds a state to the parser as it is being built.
-  int addState(const State &items);
+  int addState(const State &items, std::deque<int>& work_list);
 
   //! \brief Fill in the goto for state s.
-  void computeGoto(int s);
+  void computeGoto(int s, std::deque<int>& work_list);
 
   //! \brief Compute the closure of state s.
   State closure(int s) const;
@@ -194,9 +212,6 @@ class ParserGenerator {
 
   //! \brief All the different states.
   std::vector<State> all_states_;
-
-  //! \brief Work list for creating table.
-  std::deque<int> work_list_;
 
   //! \brief A flag that should be set to false if something fails.
   bool status_ = true;

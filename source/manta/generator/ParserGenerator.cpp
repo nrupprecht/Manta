@@ -12,6 +12,34 @@ using namespace manta;
 ParserGenerator::ParserGenerator(ParserType type)
     : parser_type_(type) {}
 
+std::shared_ptr<ParserData> ParserGenerator::CreateParserData(std::istream& stream) {
+  // Parse the stream to get description of the lexer and the parser.
+  DescriptionParser parser_parser;
+  production_rules_data_ = parser_parser.ParseDescription(stream);
+
+  // Now, create the parser from its description.
+
+  // Compute which productions can derive empty.
+  createStateDerivesEmpty();
+
+  // Generate the parse table.
+  computeLR0();
+
+  // Complete the table
+  completeTable();
+
+  // Create (recreate? Check: do we need to do this?) the lexer.
+  auto lexer = production_rules_data_->lexer_generator.CreateLexer();
+
+  auto parser_data = std::make_shared<ParserData>();
+  parser_data->production_rules_data = production_rules_data_;
+  parser_data->parse_table = parse_table_;
+  parser_data->all_states = all_states_;
+  parser_data->lexer = lexer;
+
+  return parser_data;
+}
+
 std::shared_ptr<LALRParser> ParserGenerator::CreateParserFromFile(const std::string &filename) {
   std::ifstream fin(filename);
   if (fin.fail()) {
@@ -28,33 +56,17 @@ std::shared_ptr<class LALRParser> ParserGenerator::CreateParserFromString(const 
 }
 
 std::shared_ptr<LALRParser> ParserGenerator::CreateParserFromStream(std::istream &stream) {
-  // Parse the stream to get description of the lexer and the parser.
-  DescriptionParser parser_parser;
-  production_rules_data_ = parser_parser.ParseDescription(stream);
+  auto parser_data = CreateParserData(stream);
 
-  // Now, create the parser from its description.
-
-  // Compute which productions can derive empty.
-  createStateDerivesEmpty();
-
-  // Generate the parse table.
-  computeLR0();
-
-  // Complete the table
-  completeTable();
-
-  // Reduce the number of states.
-
-  auto lexer = production_rules_data_->lexer_generator.CreateLexer();
   // Note - this uses a private constructor.
   return std::shared_ptr<LALRParser>(
       new LALRParser(
-          production_rules_data_->inverse_nonterminal_map,
-          production_rules_data_->start_nonterminal,
-          production_rules_data_->total_symbols,
-          parse_table_,
-          all_states_,
-          lexer));
+          parser_data->production_rules_data->inverse_nonterminal_map,
+          parser_data->production_rules_data->start_nonterminal,
+          parser_data->production_rules_data->total_symbols,
+          parser_data->parse_table,
+          parser_data->all_states,
+          parser_data->lexer));
 }
 
 int ParserGenerator::NumNonTerminals() const {
@@ -259,24 +271,24 @@ bool ParserGenerator::computeLR0() {
     return status_;
   }
 
-  State start_items = st->second;
+  State start_items = st->second; // Copy, since we will zero the bookmark.
   start_items.zero_bookmarks();
 
   // Add the start state.
-  work_list_.clear();
-  addState(start_items);
+  std::deque<int> work_list;
+  addState(start_items, work_list);
   // Go through the work list until it is empty.
-  while (!work_list_.empty() && status_) {
-    int s = work_list_.front();
-    work_list_.pop_front();
-    computeGoto(s);
+  while (!work_list.empty() && status_) {
+    int s = work_list.front();
+    work_list.pop_front();
+    computeGoto(s, work_list);
   }
 
   // Return success.
   return status_;
 }
 
-int ParserGenerator::addState(const State &items) {
+int ParserGenerator::addState(const State &items, std::deque<int>& work_list) {
   // Try to find a state that is the given collection of items.
   int s = findState(items);
   // If the items are not a state, create a state for them.
@@ -285,13 +297,13 @@ int ParserGenerator::addState(const State &items) {
     s = static_cast<int>(all_states_.size()) - 1;
     // Initialize entries to Error.
     parse_table_.emplace_back(production_rules_data_->total_symbols, Entry());
-    work_list_.push_back(s);
+    work_list.push_back(s);
   }
   // Return the state number.
   return s;
 }
 
-void ParserGenerator::computeGoto(int s) {
+void ParserGenerator::computeGoto(int s, std::deque<int>& work_list) {
   // Find the closure of state s.
   State closed = closure(s);
 
@@ -299,7 +311,7 @@ void ParserGenerator::computeGoto(int s) {
   for (int x = 0; x < production_rules_data_->total_symbols; ++x) {
     State relevantItems = advanceDot(closed, x);
     if (!relevantItems.empty()) {
-      int sn = addState(relevantItems);
+      int sn = addState(relevantItems, work_list);
       // Get the resolution info for the shift.
       ResolutionInfo res_info{};
       bool found_res_info = false, differing_res_info = false;

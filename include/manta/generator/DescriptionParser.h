@@ -51,6 +51,8 @@ struct ProductionRulesData {
 //!
 class DescriptionParser {
  public:
+  //! \brief Parse the description of a parser from a stream, creating the ProductionRulesData that can be used to
+  //! to make the parser.
   std::shared_ptr<ProductionRulesData> ParseDescription(std::istream &stream);
 
   //! \brief An exception class that represents encountering an unexpected character type or state while parsing.
@@ -105,4 +107,5 @@ class DescriptionParser {
   std::stringstream parser_generation_trace_;
 };
 
-}
+
+} // namespace manta
