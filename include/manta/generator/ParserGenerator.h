@@ -141,16 +141,20 @@ class ParserGenerator {
   //! already an entry, resolution is attempted.
   void assertEntry(int state, int symbol, const Entry &action);
 
+  //! \brief Step in LALR parser generation to compute the LALR propagation graph and follow sets.
   void computeLookahead();
 
+  //! \brief Create the LALR propagation graph and initial follow sets.
   void buildItemForPropGraph();
 
-  //! Note: The argument is intentionally mutable.
+  //! \brief Propagate the initial follow sets through the LALR propagation graph to get the complete
+  //! follow sets.
   void evalItemForPropGraph();
 
   //! \brief Fill out a row in the parser table.
   void tryRuleInState(int state, const Item &rule);
 
+  //! \brief The LALR version of computing what actions should be reduce.
   void tryRuleInStateLALR(int state_index, const Item& rule, const ItemFollowSet& item_follow);
 
   //! \brief Tries to find a state in all_states_. Returns -1 for failure.
@@ -175,44 +179,7 @@ class ParserGenerator {
   //  Private member variables.
   // ======================================================
 
-//  //! \brief A lexer generator.
-//  LexerGenerator lexer_generator_;
-//
-//  //! \brief Maps non-terminal names to non-terminal numbers.
-//  std::map<std::string, int> nonterminal_map_;
-//
-//  //! \brief Maps non-terminal numbers to non-terminal names.
-//  std::map<int, std::string> inverse_nonterminal_map_;
-//
-//  //! \brief The productions for each non-terminal. A State (here) is essentially a set of production rules.
-//  std::map<int, State> productions_for_;
-//
-//  //! \brief All the productions, for all non-terminals.
-//  std::vector<Item> all_productions_;
-//
-//  //! \brief Whether a non-terminal can derive empty.
-//  std::vector<bool> nonterminal_derives_empty_;
-//
-//  //! \brief The number of terminals in the correspondence vector.
-//  int num_productions_ = 0;
-//
-//  //! \brief Which non-terminal is the starting non-terminal.
-//  int start_nonterminal_ = 0;
-//
-//  //! \brief The name of the start non-terminal. By default, this is "start."
-//  std::string start_nonterminal_name_ = "start";
-//
-//  //! \brief The total number of lexer ids (terminals) plus non-terminal symbols. This is the number
-//  //! of columns in the parse_table_.
-//  int total_symbols_ = 0;
-//
-//  //! \brief The number to assign to the next production.
-//  //!
-//  //! Note: To keep things easy to compare, right now we are starting productions at 1.
-//  int next_production_label_ = 1;
-
-
-
+  //! \brief The data that defines the parser to create. Includes the lexer.
   std::shared_ptr<ProductionRulesData> production_rules_data_{};
 
   //! \brief The parse table. It is a vector so we can add new states.

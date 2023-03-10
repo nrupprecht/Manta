@@ -456,9 +456,21 @@ inline std::shared_ptr<ParseNode> DescriptionParser::getInstructions(std::istrea
             acc.push_back(c);
             in.get(c);
           }
+
+          // Allow for arguments like "$0.arg_list"
+          if (!in.eof() && c == '.') {
+              acc.push_back(c);
+              in.get(c);
+              while (!in.eof() && (isalpha(c) || c == '_')) {
+                acc.push_back(c);
+                in.get(c);
+              }
+          }
+
           if (!in.eof()) {
             in.putback(c);
           }
+
           // Add child.
           node->Add(acc);
           // Clear accumulator.
