@@ -70,11 +70,11 @@ std::shared_ptr<LALRParser> ParserGenerator::CreateParserFromStream(std::istream
 }
 
 int ParserGenerator::NumNonTerminals() const {
-  return production_rules_data_->total_symbols - static_cast<int>(production_rules_data_->lexer_generator.GetNumLexemes());
+  return production_rules_data_->NumNonTerminals();
 }
 
 int ParserGenerator::NumTerminals() const {
-  return static_cast<int>(production_rules_data_->lexer_generator.GetNumLexemes());
+  return production_rules_data_->NumTerminals();
 }
 
 int ParserGenerator::GetNonterminalID(const std::string &non_terminal) const {

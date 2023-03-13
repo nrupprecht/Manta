@@ -82,6 +82,7 @@
         | arg
 
     arg -> @pos_arg : replace($0)
+        | @pos_arg "." @identifier : node("ArgData"), add($0), add($2)
         | @literal  : replace($0)
 
 .End

@@ -4,9 +4,10 @@
 
 namespace manta {
 
-typedef int ProductionID;
-typedef int ActionID;
-typedef int StateID;
+using NonterminalID = int;
+using ProductionID = int;
+using ActionID = int;
+using StateID = int;
 
 //! \brief Enum for the associativity of an operator/production rule.
 enum class Associativity { Left, Right, None };
@@ -64,7 +65,10 @@ struct ProductionRule {
 
   // --- Data items ---
 
-  //! \brief The production ID that this is a rule for. I.e., the left hand side of a production rule.
+  // NOTE(Nate): Check how production and production_label differ - can we consolidate?
+
+  //! \brief The nonterminal ID that this is a rule for. I.e., the left hand side of a production rule.
+  // TODO: This should be nonterminal_id, not "production"
   ProductionID production = -1;
 
   //! \brief A number for the production, i.e. this is the n-th production.
@@ -169,6 +173,7 @@ struct State {
 //! \brief Table entry action types.
 enum class Action { Error, Shift, Reduce, Accept };
 
+//! \brief Write an action as a string.
 inline std::string ToString(Action action) {
   switch (action) {
     case Action::Error:return "Error";
@@ -206,7 +211,7 @@ struct Entry {
 
   Action GetAction() const { return action; }
   StateID GetState() const { return state; }
-  Item GetRule() const { return rule; }
+  const Item& GetRule() const { return rule; }
 
   std::string Write(int length) const;
 

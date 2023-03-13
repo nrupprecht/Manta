@@ -42,6 +42,37 @@ struct ProductionRulesData {
   //! \brief The total number of lexer ids (terminals) plus non-terminal symbols. This is the number
   //! of columns in the parse_table_.
   int total_symbols = 0;
+
+  // ============================================================================
+  //  Helper functions.
+  // ============================================================================
+
+  NO_DISCARD const std::string& GetName(int id) const {
+    if (id < NumTerminals()) {
+      return lexer_generator.LexemeName(id);
+    }
+    return GetNonterminalName(id);
+  }
+
+  NO_DISCARD const std::string& GetNonterminalName(int id) const {
+    return inverse_nonterminal_map.at(id);
+  }
+
+  NO_DISCARD int NumNonTerminals() const {
+    return total_symbols - static_cast<int>(lexer_generator.GetNumLexemes());
+  }
+
+  NO_DISCARD int NumTerminals() const {
+    return static_cast<int>(lexer_generator.GetNumLexemes());
+  }
+
+  NO_DISCARD bool IsNonTerminal(int id) const {
+    return lexer_generator.GetNumLexemes() <= id;
+  }
+
+  NO_DISCARD bool IsTerminal(int id) const {
+    return !IsNonTerminal(id);
+  }
 };
 
 

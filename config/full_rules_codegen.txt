@@ -1,0 +1,87 @@
+.Lexer
+    @special_symbol:  r`.\@+`
+    @lexeme_name: r`@(\@ | _)+`
+    @semicolon: r`:`
+    @identifier: r`( \@ | _ )+`
+    @regex: r` r \` ( \\ \` | [~ \`] )* \` `
+    @literal: r` " ( \\" | [~"] )* " `
+    @or: r`\|`
+    @pos_arg: r`$ \d+`
+    @comment: r`# [~\n]* \n`
+
+    @spaces: r`\s+`
+    @newlines: r`\n+`
+
+    .Skip spaces
+    .Skip comment
+.End
+
+.Parser
+
+    .Start start
+
+    start -> lexer_block @newlines parser_block @eof                          : field($0), field($2)
+
+    # ========================================================
+    #  Utility
+    # ========================================================
+
+    newlines -> newlines @newlines | @newlines
+
+    lexeme_def_or -> @or | @newlines @or
+
+    # ========================================================
+    #  Lexer
+    # ========================================================
+
+    lexer_block -> ".Lexer" newlines lexer_definitions newlines ".End"
+
+    lexer_definitions -> lexer_definitions newlines lexeme_line         : insert($0.definitions, "definitions"), push($2, "definitions")
+        | lexeme_line                                                   : push($0, "definitions")
+
+    lexeme_line -> lexeme_definition                                        : node("Lexeme")
+
+    lexeme_definition -> @lexeme_name @semicolon @regex                     : field($0, "name"), field($2, "regex")
+
+    # ========================================================
+    #  Parser
+    # ========================================================
+
+    parser_block -> ".Parser" newlines start_indicator newlines parser_definitions newlines ".End"     : field($2), field($4)
+
+    start_indicator -> ".Start" @identifier                                                         : field($1, "start_name")
+
+    parser_definitions -> parser_definitions newlines parser_definition                             : insert($0.definitions, "definitions"), field($2)
+        | parser_definition                                                                         : push($0, "definitions")
+
+    parser_definition -> @identifier "->" production_lines                                          : field($2)
+
+    production_lines -> production_and_data         : node("options"), push($0, "productions")
+        | production_lines or production_and_data   : node("options"), insert($0.productions, "productions"), push($2, "productions")
+
+    or -> @or
+
+    production_and_data -> production_atoms     : field($0)
+        | production_atoms @semicolon actions                                                       : field($0), field($2)
+
+    production_atoms -> production_atoms production_atom    : insert($0.atoms, "atoms"), push($1, "atoms")
+        | production_atom                                   : push($0, "atoms")
+
+    production_atom -> "(" production_atoms ")"     : node("grouping")
+        | @identifier
+        | @literal
+        | @lexeme_name
+
+    actions -> actions "," action
+        | action
+
+    action -> @identifier "(" args ")"          : field($0, "fn_name"), field($2)
+
+    args -> args "," arg
+        | arg
+
+    arg -> @pos_arg
+        | @pos_arg "." @identifier : node("ArgData"), field($0, "pos"), field($2, "field_name")
+        | @literal
+
+.End

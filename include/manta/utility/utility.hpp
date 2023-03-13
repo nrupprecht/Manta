@@ -13,6 +13,16 @@
 
 namespace manta {
 
+//! \brief Combine a hash with the hash of another object.
+//!
+//! This is (I believe) the boost hash combine function, which I got from here:
+//!     https://stackoverflow.com/questions/2590677/how-do-i-combine-hash-values-in-c0x
+//!
+template <class T>
+inline void HashCombine(std::size_t& seed, const T& v) {
+  seed ^= std::hash<T>{}(v) + 0x9e3779b9 + (seed<<6) + (seed>>2);
+}
+
 template <typename T>
 inline bool contains(const std::set<T> &s, T &&el) {
   return s.find(el) != s.end();
