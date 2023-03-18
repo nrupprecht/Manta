@@ -34,9 +34,9 @@
     #  Lexer
     # ========================================================
 
-    lexer_block -> ".Lexer" newlines lexer_definitions newlines ".End"
+    lexer_block -> ".Lexer" newlines lexer_definitions newlines ".End"  : field($2.definitions)
 
-    lexer_definitions -> lexer_definitions newlines lexeme_line         : insert($0.definitions, "definitions"), push($2, "definitions")
+    lexer_definitions -> lexer_definitions newlines lexeme_line         : append($0.definitions, "definitions"), push($2, "definitions")
         | lexeme_line                                                   : push($0, "definitions")
 
     lexeme_line -> lexeme_definition                                        : node("Lexeme")
@@ -47,24 +47,24 @@
     #  Parser
     # ========================================================
 
-    parser_block -> ".Parser" newlines start_indicator newlines parser_definitions newlines ".End"     : field($2), field($4)
+    parser_block -> ".Parser" newlines start_indicator newlines parser_definitions newlines ".End"  : node("Parser"), field($2.start_name), field($4, "definition")
 
-    start_indicator -> ".Start" @identifier                                                         : field($1, "start_name")
+    start_indicator -> ".Start" @identifier                             : field($1, "start_name")
 
-    parser_definitions -> parser_definitions newlines parser_definition                             : insert($0.definitions, "definitions"), field($2)
-        | parser_definition                                                                         : push($0, "definitions")
+    parser_definitions -> parser_definitions newlines parser_definition : append($0.definitions, "definitions"), push($2, "definitions")
+        | parser_definition                                             : push($0, "definitions")
 
-    parser_definition -> @identifier "->" production_lines                                          : field($2)
+    parser_definition -> @identifier "->" production_lines : field($0, "nonterminal_name"), field($2)
 
     production_lines -> production_and_data         : node("options"), push($0, "productions")
-        | production_lines or production_and_data   : node("options"), insert($0.productions, "productions"), push($2, "productions")
+        | production_lines or production_and_data   : node("options"), append($0.productions, "productions"), push($2, "productions")
 
     or -> @or
 
     production_and_data -> production_atoms     : field($0)
-        | production_atoms @semicolon actions                                                       : field($0), field($2)
+        | production_atoms @semicolon actions   : field($0), field($2)
 
-    production_atoms -> production_atoms production_atom    : insert($0.atoms, "atoms"), push($1, "atoms")
+    production_atoms -> production_atoms production_atom    : append($0.atoms, "atoms"), push($1, "atoms")
         | production_atom                                   : push($0, "atoms")
 
     production_atom -> "(" production_atoms ")"     : node("grouping")
@@ -72,16 +72,16 @@
         | @literal
         | @lexeme_name
 
-    actions -> actions "," action
-        | action
+    actions -> actions "," action : append($0.actions, "actions"), push($2, "actions")
+        | action                  : push($0, "actions")
 
     action -> @identifier "(" args ")"          : field($0, "fn_name"), field($2)
 
-    args -> args "," arg
-        | arg
+    args -> args "," arg : append($0.arguments, "arguments"), push($2, "arguments")
+        | arg : push($0, "arguments")
 
-    arg -> @pos_arg
-        | @pos_arg "." @identifier : node("ArgData"), field($0, "pos"), field($2, "field_name")
-        | @literal
+    arg -> @pos_arg : node("PosArg"), field($0, "pos")
+        | @pos_arg "." @identifier : node("PosArg"), field($0, "pos"), field($2, "field_name")
+        | @literal  : node("StringArg"), field($0, "argument")
 
 .End

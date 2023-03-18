@@ -4,6 +4,7 @@
 
 #include "manta/utility/utility.hpp"
 
+
 namespace {
 
 std::string toUpper(std::string str) {
@@ -61,7 +62,15 @@ struct ASTTypeVector : public ASTType {
   }
 
   std::size_t HashID() const override {
-    return Hash();
+    auto hash = ASTType::Hash();
+    HashCombine(hash, vector_type->HashID());
+    return hash;
+  }
+
+  static std::size_t PotentialHashID(const ASTType* vector_type) {
+    auto hash = ASTType(ASTGeneralType::Vector).HashID();
+    HashCombine(hash, vector_type->HashID());
+    return hash;
   }
 };
 
@@ -154,7 +163,7 @@ struct ASTNodeDescription : public ASTType {
   }
 };
 
-//! \brief Class that keeps track of all known types for AST nodes.
+//! \brief Class that keeps track of and owns the data for all types.
 //!
 //! This class also knows how to generate C++ code representing the nodes, but you can imagine that this class could
 //! be left as just an IR of all the nodes, and separate classes could do the actual codegen into a target language.
@@ -202,9 +211,11 @@ class ASTNodeManager {
     out << "};\n\n";
 
     // Write definition of ASTNodeBase
+    out << "//! \\brief The base class for all AST nodes.\n";
+    out << "//! \n";
     out << "struct ASTNodeBase {\n";
     out << "\tASTNodeBase(ASTNodeType node_type) : node_type(node_type) {}\n\n";
-    out << "\tASTNodeType node_type;\n";
+    out << "\tconst ASTNodeType node_type;\n";
     // TODO: Add visitor pattern function or other additional members?
     out << "};\n\n";
 
@@ -223,13 +234,24 @@ class ASTNodeManager {
     return all_types_.at(ASTTypeString{}.HashID()).get();
   }
 
-  ASTType* MakeShared(ASTType* pointed_type) {
+  ASTType* MakeShared(const ASTType* pointed_type) {
     auto potential_hash_id = ASTTypeSharedPointer::PotentialHashID(pointed_type);
     if (auto it = all_types_.find(potential_hash_id); it != all_types_.end()) {
       return it->second.get();
     }
     auto new_type = std::make_shared<ASTTypeSharedPointer>(pointed_type);
-    MANTA_ASSERT(potential_hash_id == new_type->Hash(), "error in the potential-hash-ID function");
+    MANTA_ASSERT(potential_hash_id == new_type->HashID(), "error in the potential-hash-ID function");
+    all_types_[potential_hash_id] = new_type;
+    return new_type.get();
+  }
+
+  ASTType* MakeVector(const ASTType* vector_type) {
+    auto potential_hash_id = ASTTypeVector::PotentialHashID(vector_type);
+    if (auto it = all_types_.find(potential_hash_id); it != all_types_.end()) {
+      return it->second.get();
+    }
+    auto new_type = std::make_shared<ASTTypeVector>(vector_type);
+    MANTA_ASSERT(potential_hash_id == new_type->HashID(), "error in the potential-hash-ID function");
     all_types_[potential_hash_id] = new_type;
     return new_type.get();
   }
@@ -265,32 +287,10 @@ class ASTNodeManager {
     for (auto[field_name, field_description]: description->members_) {
       // Write type.
       out << "  ";
-      writeType(out, field_description);
+      out << field_description->Write();
       out << " " << field_name << "{};\n";
     }
     out << "};\n\n";
-  }
-
-  void writeType(std::ostream& out, const ASTType* description) const {
-    switch (description->general_type) {
-      case ASTGeneralType::Vector: // Vector type
-        out << "std::vector<";
-        writeType(out, reinterpret_cast<const ASTTypeVector*>(description)->vector_type);
-        out << ">";
-        break;
-      case ASTGeneralType::SharedPointer: // Shared pointer type
-        out << "std::shared_ptr<";
-        writeType(out, reinterpret_cast<const ASTTypeSharedPointer*>(description)->pointed_type);
-        out << ">";
-        break;
-      case ASTGeneralType::String: // String type
-        out << "std::string";
-        break;
-      case ASTGeneralType::Node: // Node type
-        out << reinterpret_cast<const ASTNodeDescription*>(description)->node_type_name;
-        break;
-      default: MANTA_FAIL("unrecognized node type");
-    }
   }
 
   //! \brief Map from type name of a type to the description of that type.
