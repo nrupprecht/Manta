@@ -1,7 +1,6 @@
 #include "manta/generator/ParserCodegen.h"
 // Other files.
-#include "manta/generator/typesystem/TypeDeduction.h"
-#include "manta/generator/typesystem/TypeRelationship.h"
+
 
 using namespace manta;
 using namespace manta::typesystem;
@@ -22,15 +21,16 @@ std::vector<std::string> split(const std::string& str, char deliminator) {
   return segments;
 }
 
-std::pair<NonterminalID, std::optional<std::string>> getSourceData(const std::string& argument_string, const Item& item) {
+std::tuple<int, NonterminalID, std::optional<std::string>> getSourceData(const std::string& argument_string, const Item& item) {
   auto segments = split(argument_string, '.');
   MANTA_ASSERT(segments.size() == 1 || segments.size() == 2, "argument name must be in one of the forms '$N' or '$N.<field-name>'");
-  auto referenced_type = item.rhs.at(std::stoi(segments[0]));
+  auto position = std::stoi(segments[0]);
+  auto referenced_type = item.rhs.at(position);
   if (segments.size() == 1) {
-    return {referenced_type, {} /* No field name */ };
+    return {position, referenced_type, {} /* No field name */ };
   }
   else { // Specifies field name.
-    return {referenced_type, segments[1]};
+    return {position, referenced_type, segments[1]};
   }
 }
 
@@ -62,28 +62,28 @@ void createGeneralNode(
       target_field_name += "__" + std::to_string(count);
     }
 
-    // Non-terminal
     if (production_rules_data.IsNonTerminal(referenced_type)) {
+      // Non-terminal
       if (generated_nodes_have_node_in_name) {
         target_field_name += "__node";
       }
-
-      TypeRelationship relationship{
-          static_cast<NonterminalID>(referenced_type),
-          {}, // No field access.
-          node_type_description->node_type_name,
-          target_field_name,
-          CheckType::Field,
-      };
-      relationships[node_type_description->node_type_name].push_back(relationship);
     }
-      // Terminal
     else {
       // Directly add the field, which is known to be a string.
       // TODO: Allow for other types of fields? The problem would be that, like llvm, we'd need arbitrary precision numbers
       //  so we didn't lose information. Strings do not have this problem.
       node_type_description->AddField(target_field_name, node_manager.GetStringType());
     }
+
+    TypeRelationship relationship{
+        static_cast<NonterminalID>(referenced_type),
+        production_rules_data.IsNonTerminal(referenced_type),
+        {}, // No field access.
+        node_type_description->node_type_name,
+        target_field_name,
+        CheckType::Field,
+    };
+    relationships[node_type_description->node_type_name].push_back(relationship);
 
     ++count;
   }
@@ -107,7 +107,7 @@ void processFieldCommand(
   MANTA_ASSERT(num_args == 1 || num_args == 2, "field function needs one or two arguments, not " << num_args);
 
   std::string target_field_name{};
-  auto[referenced_type, source_field_name] = getSourceData(get_arg(0), item);
+  auto[position, referenced_type, source_field_name] = getSourceData(get_arg(0), item);
 
   // Type is a non-terminal. A field name does not have to be specified.
   if (production_rules_data.NumTerminals() <= referenced_type) {
@@ -141,10 +141,12 @@ void processFieldCommand(
 
   TypeRelationship relationship{
       static_cast<NonterminalID>(referenced_type),
+      production_rules_data.IsNonTerminal(referenced_type),
       source_field_name,
       node_type_description->node_type_name,
       target_field_name,
       CheckType::Field,
+      position,
   };
   relationships[node_type_description->node_type_name].push_back(relationship);
 }
@@ -167,16 +169,18 @@ void processAppendCommand(
   MANTA_ASSERT(arguments.size() == 2, "append function needs two arguments, not " << arguments.size());
 
   std::string target_field_name{};
-  auto[referenced_type, source_field_name] = getSourceData(get_arg(0), item);
+  auto[position, referenced_type, source_field_name] = getSourceData(get_arg(0), item);
   MANTA_ASSERT(source_field_name,
                "append function's first argument must reference a field, item was " << item_number << " for non-terminal " << nonterminal_name);
 
   TypeRelationship relationship{
       static_cast<NonterminalID>(referenced_type),
+      production_rules_data.IsNonTerminal(referenced_type),
       source_field_name,
       node_type_description->node_type_name,
       get_arg(1),
       CheckType::Append,
+      position,
   };
   relationships[node_type_description->node_type_name].push_back(relationship);
 }
@@ -197,14 +201,16 @@ void processPushCommand(
   MANTA_REQUIRE(arguments.size() == 2, "push function needs two arguments, not " << arguments.size());
 
   std::string target_field_name{};
-  auto[referenced_type, source_field_name] = getSourceData(get_arg(0), item);
+  auto[position, referenced_type, source_field_name] = getSourceData(get_arg(0), item);
 
   TypeRelationship relationship{
       static_cast<NonterminalID>(referenced_type),
+      true,
       source_field_name,
       node_type_description->node_type_name,
       get_arg(1),
       CheckType::Push,
+      position,
   };
   relationships[node_type_description->node_type_name].push_back(relationship);
 }
@@ -241,7 +247,7 @@ const ASTType* deduceTypesDFS(FieldTracker& target_field,
   if (auto it = unsolved_relationships.find(target_field); it != unsolved_relationships.end()) {
     // Try each relationship whose source field has not already been referenced (to prevent infinite loops).
     for (auto& rel: it->second) {
-      std::pair reference(rel->nonterminal_id, *rel->source_field_name);
+      std::pair reference(rel->referenced_id, *rel->source_field_name);
       if (!referenced_fields.contains(reference)) {
         referenced_fields.insert(reference);
         type = deduceTypesDFS(reference, node_manager, deduction, unsolved_relationships, referenced_fields);
@@ -254,7 +260,7 @@ const ASTType* deduceTypesDFS(FieldTracker& target_field,
     }
   }
 
-  MANTA_ASSERT(type, "could not deduct type for field " << target_field.first << ", " << target_field.second);
+  MANTA_ASSERT(type, "could not deduce type for field " << target_field.first << ", " << target_field.second);
 
   // Set the type in all the different data structures.
   auto& base_type_name = deduction.GetBaseTypeName(target_field.first);
@@ -365,7 +371,7 @@ TypeDeduction deduceTypes(
 
     for (auto& rel: relationships_for_type) {
       // Don't have to do a check if the referenced field is a terminal, instead of a non-terminal.
-      if (production_rules_data.IsTerminal(rel.nonterminal_id)) {
+      if (production_rules_data.IsTerminal(rel.referenced_id)) {
         // Type is (right now) always string for terminals.
         set_field_type(type_name, rel.target_field_name, node_manager.GetStringType(), nonterminals_types);
         continue;
@@ -374,7 +380,7 @@ TypeDeduction deduceTypes(
       // Only need to deduce types when we reference a field of another type.
       if (!rel.source_field_name) {
         // The type will be the node type. We can fill this in right away, now that every base class has been created.
-        auto& base_type_name = deduction.GetBaseTypeName(rel.nonterminal_id);
+        auto& base_type_name = deduction.GetBaseTypeName(rel.referenced_id);
 
         auto base_type = node_manager.GetNodeDescription(base_type_name);
         if (rel.check_type == CheckType::Field) {
@@ -393,7 +399,7 @@ TypeDeduction deduceTypes(
         }
       }
       else {
-        auto referenced_nonterminal = rel.nonterminal_id;
+        auto referenced_nonterminal = rel.referenced_id;
 
         // Make sure the referenced field is common
         MANTA_ASSERT(
@@ -471,12 +477,15 @@ TypeDeduction deduceTypes(
     // target field, but the target field's type will have been deduced, so we wouldn't need to follow any of its relationships.
     std::map<FieldTracker, std::vector<TypeRelationship*>> unsolved_relationships;
     for (auto& relationship: field_type_relationships) {
-      std::pair reference(relationship.nonterminal_id, *relationship.source_field_name);
+      std::pair reference(relationship.referenced_id, *relationship.source_field_name);
       unsolved_relationships[reference].push_back(&relationship);
     }
 
     // Depth first search to deduce the type needed for each remaining relationship.
     for (auto& relationship: field_type_relationships) {
+      if (!relationship.target_is_nonterminal) {
+        continue;
+      }
       // Check to see if the target field's type has already been deduced.
       auto nonterminal_id = nonterminals_for_type.at(relationship.referencing_type);
       auto type = deduction.GetFieldType(nonterminal_id, relationship.target_field_name);
@@ -486,7 +495,7 @@ TypeDeduction deduceTypes(
 
       std::set<FieldTracker> referenced_fields;
 
-      std::pair reference(relationship.nonterminal_id, *relationship.source_field_name);
+      std::pair reference(relationship.referenced_id, *relationship.source_field_name);
       type = deduceTypesDFS(reference, node_manager, deduction, unsolved_relationships, referenced_fields);
       type = makeType(relationship.check_type, type, node_manager);
 
@@ -502,15 +511,275 @@ TypeDeduction deduceTypes(
 
 
 void ParserCodegen::GenerateParserCode(std::ostream& code_out, const std::shared_ptr<const ParserData>& parser_data) const {
-  // Write the guard and includes.
-  code_out << "#pragma once\n\n#include <vector>\n#include <string>\n\n\n";
 
+  auto[node_manager,
+  relationships,
+  nonterminals_for_type,
+  node_types_for_item] = createRelationships(parser_data);
+
+  auto deduced_types = deduceTypes(node_manager,
+                                   relationships,
+                                   nonterminals_for_type,
+                                   *parser_data->production_rules_data);
+
+  std::cout << "\nDone deducing types. Filling in type descriptions.\n" << std::endl;
+
+  // Fill in all type descriptions from the deduced types.
+  for (auto[nonterminal_id, nonterminals_types]: deduced_types.GetTypesData()) {
+    for (auto&[type_name, description]: nonterminals_types.sub_types) {
+      std::cout << "Filling in type description for " << type_name << "." << std::endl;
+      for (auto& field_name: nonterminals_types.GetFields(type_name)) {
+        auto sanitized_field_name = field_name; // fieldNameFromTarget(field_name);
+        auto type = nonterminals_types.GetFieldType(sanitized_field_name);
+
+        MANTA_ASSERT(type, "could not deduce the type of '" << type_name << "::" << sanitized_field_name);
+        description->members_[sanitized_field_name] = type;
+        std::cout << "  * Got type of " << type_name << "::" << sanitized_field_name << ": " << type->Write() << "\n";
+      }
+    }
+  }
+
+  // Write the guard and includes.
+  code_out << "#pragma once\n\n#include <vector>\n#include <string>\n\n";
+  code_out << "// Include the support for the parser.\n";
+  code_out << "#include \"manta/generator/ParserDriver.h\"\n\n";
+
+  // Create the node class definitions.
+  node_manager.CreateAllDefinitions(code_out);
+
+  // Create the parser and the functions that handle creating new nodes through reduction of items.
+  // ... TODO ...
+
+  // Write parser declarations.
+  std::string parser_class_name = "Parser";
+  code_out << "\n//! \\brief The main parser class.\n//!\n";
+  code_out << "class " << parser_class_name << " {\n";
+  code_out << "public:\n";
+
+  code_out << "private:\n";
+
+  auto item_number = 0u;
+  for (auto& item: parser_data->production_rules_data->all_productions) {
+    // TODO: Sanitize names.
+
+    auto& node_type_name = node_types_for_item.at(item_number);
+
+    code_out << "  std::shared_ptr<" << node_type_name << ">\n";
+    code_out << "  ReduceTo_" + node_type_name << "_ViaItem_" << item_number << "(";
+    auto i = 0;
+    for (auto id: item.rhs) {
+      if (i != 0) code_out << ",";
+      if (parser_data->production_rules_data->IsNonTerminal(id)) {
+        // Get the base type for this non-terminal.
+        auto& base_type = deduced_types.GetBaseTypeName(id);
+        code_out << "\n      const std::shared_ptr<" << base_type << ">& "
+                 // parser_data->production_rules_data->GetName(id)
+                 << "argument_" << i;
+      }
+      else {
+        code_out << "\n      const std::string& argument_" << i;
+      }
+      ++i;
+    }
+    code_out << ");\n\n";
+
+    ++item_number;
+  }
+
+  ////
+
+  code_out << "};\n" << std::endl;
+
+  code_out << std::endl;
+  code_out << "// ========================================================================\n";
+  code_out << "//  Parser reduction functions.\n";
+  code_out << "// ========================================================================\n";
+  code_out << std::endl;
+
+  item_number = 0u;
+  for (auto& item: parser_data->production_rules_data->all_productions) {
+    // TODO: Sanitize names.
+
+    std::cout << "Creating reduction function for item " << item_number << "." << std::endl;
+    auto& node_type_name = node_types_for_item.at(item_number);
+    std::cout << "Node type name is '" << node_type_name << "'." << std::endl;
+
+    code_out << "std::shared_ptr<" << node_type_name << ">\n";
+    code_out << parser_class_name << "::ReduceTo_" + node_type_name << "_ViaItem_" << item_number;
+    code_out << "(";
+
+    // Arguments.
+    // std::map<int, int> count_duplicates;
+    auto i = 0;
+    for (auto id: item.rhs) {
+      // auto count = count_duplicates[id]++;
+      if (i != 0) code_out << ",";
+      if (parser_data->production_rules_data->IsNonTerminal(id)) {
+        // Get the base type for this non-terminal.
+        auto& base_type = deduced_types.GetBaseTypeName(id);
+        code_out << "\n    const std::shared_ptr<" << base_type << ">& "
+                 // parser_data->production_rules_data->GetName(id)
+                 << "argument_" << i;
+      }
+      else {
+        code_out << "\n    const std::string& argument_" << i;
+      }
+      ++i;
+    }
+    code_out << ") {\n";
+    code_out << "  auto new_node = std::make_shared<" << node_type_name << ">();\n\n";
+    code_out << "  // Set fields in the new node.\n";
+    // Get relationships for this node.
+    auto& relationships_for_node = relationships.at(node_type_name);
+    std::sort(relationships_for_node.end(), relationships_for_node.end(), [](auto& l, auto& r) {
+      return l.position < r.position;
+    });
+    for (auto& rel: relationships_for_node) {
+      auto field_name = fieldNameFromTarget(rel.target_field_name);
+      switch (rel.check_type) {
+        case CheckType::Push: {
+          code_out << "  new_node->" << field_name << ".push_back(argument_" << rel.position << ");\n";
+          break;
+        }
+        case CheckType::Append: {
+          const std::string arg_name = "argument_" + std::to_string(rel.position);
+          code_out << "  new_node->" << field_name << ".insert("
+                   << "new_node->" << field_name << ".end(), "
+                   << arg_name << ".cbegin(), " << arg_name << ".cend());\n";
+          break;
+        }
+        case CheckType::Field: {
+          code_out << "  new_node->" << field_name << " = argument_" << rel.position << ";\n";
+          break;
+        }
+      }
+
+    }
+    code_out << "\n";
+    code_out << "  return new_node;\n";
+    code_out << "}\n" << std::endl;
+
+    std::cout << "Done writing code for reduction of item " << item_number << "." << std::endl;
+    ++item_number;
+  }
+
+  // Write parser definitions
+  code_out << std::endl;
+  code_out << "// ========================================================================\n";
+  code_out << "//  LALR Parser.\n";
+  code_out << "// ========================================================================\n";
+  code_out << std::endl;
+  code_out << "class Parser : public ParserDriverBase<ASTNodeBase, Parser> {\n";
+  code_out << "public:\n";
+  code_out << "  //! \\brief Constructor, initializes the parser.\n  //!\n";
+  code_out << "  void Parser();\n\n";
+  code_out << "  //! \\brief Function to parse the input.\n  //!\n";
+  code_out << "  void ParseInput();\n\n";
+  code_out << "protected:\n";
+  code_out << "  //! \\brief The reduce function, which allows this parser to call the reduction functions.\n";
+  code_out << "  std::shared_ptr<ASTNodeBase> reduce(unsigned reduction_id, const std::vector<ASTNodeBase>& collected_nodes);\n\n";
+  code_out << "  //! \\brief The parser table.\n  //!\n";
+  code_out << "  std::vector<std::vector<Entry>> parse_table_;\n";
+
+  code_out << "};\n\n";
+
+  code_out << "Parser::Parser() {\n";
+
+  code_out << "  start_nonterminal_ = " << parser_data->production_rules_data->start_nonterminal << ";\n";
+
+  code_out << "  // Allocate space for the parser table.\n";
+  code_out << "  parse_table_.assign("
+           << parser_data->parse_table.size() << ", std::vector<Entry>("
+           << parser_data->parse_table[0].size() << "," << "Entry()" << "));\n\n";
+  code_out << "  // Create the table. There are better, though more difficult, ways to serialize this information.";
+  auto row_it = 0u;
+  for (auto& row: parser_data->parse_table) {
+    for (auto col_it = 0u; col_it < row.size(); ++col_it) {
+      auto& entry = row[col_it];
+      if (!entry.IsError()) {
+        code_out << "  parse_table_[" << row_it << "][" << col_it << "] = ";
+        if (entry.IsReduce()) {
+          auto& item = entry.GetRule();
+          code_out << "Entry(Item(" << item.production << ", " << item.production_label << ", 0, {";
+          for (auto i = 0u; i < item.rhs.size(); ++i) {
+            if (i != 0) code_out << ", ";
+            code_out << item.rhs[i];
+          }
+          code_out << "});  // Reduce\n";
+        }
+        else if (entry.IsShift()) {
+          code_out << "Entry(" << entry.GetState() << ");  // Shift\n";
+        }
+        else if (entry.IsAccept()) {
+          code_out << "Entry(true);  // Accept\n";
+        }
+      }
+    }
+    ++row_it;
+  }
+
+  code_out << "}\n\n";
+
+  code_out << "void Parser::ParseInput() {\n  parse();\n}\n\n";
+
+  code_out << "std::shared_ptr<ASTNodeBase> reduce(unsigned reduction_id, const std::vector<ASTNodeBase>& collected_nodes) {\n";
+
+  item_number = 0u;
+
+  code_out << "  switch (reduction_id) {\n";
+  for (auto& item: parser_data->production_rules_data->all_productions) {
+    // TODO: Sanitize names.
+
+    auto& node_type_name = node_types_for_item.at(item_number);
+    code_out << "    case " << item_number << ": {\n";
+    code_out << "      return ReduceTo_" + node_type_name << "_ViaItem_" << item_number << "(";
+    auto i = 0;
+    for (auto id: item.rhs) {
+      if (i != 0) code_out << ",";
+      if (parser_data->production_rules_data->IsNonTerminal(id)) {
+        // Get the base type for this non-terminal.
+        code_out << "\n          std::reinterpret_pointer_cast<";
+
+        auto& base_type = deduced_types.GetBaseTypeName(id);
+        code_out << base_type << ">(collect[" << i << "])";
+      }
+      else {
+        code_out << "\n          reinterpret_cast<ASTLexeme>(collect[" << i << "].get())->literal";
+      }
+      ++i;
+    }
+    code_out << ");\n";
+    code_out << "    }\n";
+
+    ++item_number;
+  }
+  code_out << "    default: {\n";
+  code_out << "      MANTA_FAIL(\"unrecognized production\" << reduction_id << \", cannot reduce\");\n";
+  code_out << "    }\n";
+  code_out << "  }\n";
+
+  code_out << "}\n\n";
+}
+
+void ParserCodegen::GenerateParserCode(std::ostream& code_out, std::istream& parser_description, ParserType parser_type) const {
+  ParserGenerator generator(parser_type);
+  GenerateParserCode(code_out, generator.CreateParserData(parser_description));
+}
+
+std::tuple<
+    ASTNodeManager,
+    std::map<std::string, std::vector<TypeRelationship>>,
+    std::map<std::string, NonterminalID>,
+    std::map<unsigned, std::string>
+>
+ParserCodegen::createRelationships(const std::shared_ptr<const ParserData>& parser_data) const {
   // Look at all reduction rules to figure out the types of AST nodes that are required.
 
   ASTNodeManager node_manager;
 
   std::map<std::string, std::vector<TypeRelationship>> relationships;
   std::map<std::string, NonterminalID> nonterminals_for_type;
+  std::map<unsigned, std::string> node_types_for_item;
 
   unsigned item_number = 0, generated_nodes = 0;
   for (auto& item: parser_data->production_rules_data->all_productions) {
@@ -547,6 +816,7 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out, const std::shared
         // Create a node type name from the production name.
         node_type_name = "ASTNode_" + nonterminal_name;
       }
+      node_types_for_item[item_number] = node_type_name;
 
       if (auto it = nonterminals_for_type.find(node_type_name); it != nonterminals_for_type.end()) {
         // Make sure that the non-terminal IDs match, i.e. a type only corresponds to one non-terminal.
@@ -595,7 +865,8 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out, const std::shared
       }
     }
     else {
-      auto node_type_name = "ASTNodeGeneral_" + std::to_string(generated_nodes) + "__" + nonterminal_name;
+      auto node_type_name = "ASTNodeGeneral_" + std::to_string(generated_nodes) + "_" + nonterminal_name;
+      node_types_for_item[item_number] = node_type_name;
       ++generated_nodes;
 
       createGeneralNode(
@@ -609,34 +880,24 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out, const std::shared
           nonterminals_for_type,
           tag_generated_field_names,
           generated_nodes_have_node_in_name);
-      ++generated_nodes;
     }
 
     ++item_number;
   }
 
-  auto deduced_types = deduceTypes(node_manager, relationships, nonterminals_for_type, *parser_data->production_rules_data);
-
-  std::cout << "\nDone deducing types. Filling in type descriptions.\n" << std::endl;
-
-  // Fill in all type descriptions from the deduced types.
-  for (auto[nonterminal_id, nonterminals_types]: deduced_types.GetTypesData()) {
-    for (auto&[type_name, description]: nonterminals_types.sub_types) {
-      std::cout << "Filling in type description for " << type_name << "." << std::endl;
-      for (auto& field_name: nonterminals_types.GetFields(type_name)) {
-        auto type = nonterminals_types.GetFieldType(field_name);
-
-        MANTA_ASSERT(type, "could not deduce the type of '" << type_name << "::" << field_name);
-        description->members_[field_name] = type;
-        std::cout << "  * Got type of " << type_name << "::" << field_name << ": " << type->Write() << "\n";
-      }
-    }
-  }
-
-  node_manager.CreateAllDefinitions(code_out);
+  return {node_manager, relationships, nonterminals_for_type, node_types_for_item};
 }
 
-void ParserCodegen::GenerateParserCode(std::ostream& code_out, std::istream& parser_description, ParserType parser_type) const {
-  ParserGenerator generator(parser_type);
-  GenerateParserCode(code_out, generator.CreateParserData(parser_description));
+std::string ParserCodegen::fieldNameFromTarget(const std::string& target_name) {
+  // Check if the target name is a reserved keyword or other problematic word.
+  // TODO: Fill in all keywords.
+  static std::set<std::string> keywords = {
+      "class", "char", "int", "float", "double",
+      "or", "and", "std"
+  };
+
+  if (keywords.contains(target_name)) {
+    return "var_" + target_name;
+  }
+  return target_name;
 }

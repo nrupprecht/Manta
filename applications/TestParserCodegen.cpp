@@ -9,7 +9,7 @@ int main(int argc, char **argv) {
 
   ParserCodegen generator;
 
-  std::ofstream fout("../../generatedparsers/TestParser.h");
+  std::ofstream fout("../../include/manta/generatedparsers/TestParser.h");
   if (fout.fail()) {
     std::cout << "Error opening file to write parser code.";
     return 0;

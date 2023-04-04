@@ -202,8 +202,10 @@ class ASTNodeManager {
   void CreateAllDefinitions(std::ostream& out) const {
     out << "//! \\brief Define the enums for each node type.\n//!\n";
     out << "enum class ASTNodeType {\n";
+    out << "  // Node for basic lexemes.\n";
+    out << "  AST_Lexeme,\n";
     for (auto&[nonterminal_id, types_for_nonterminal]: node_types_for_nonterminal_) {
-      out << "  // Enums for productions associated with non-terminal " << nonterminal_id << "\n";
+      out << "  // Enums for productions associated with non-terminal " << nonterminal_id << ".\n";
       for (auto&[_, description]: types_for_nonterminal) {
         out << "  " << description->node_type_name << ",\n";
       }
@@ -214,10 +216,29 @@ class ASTNodeManager {
     out << "//! \\brief The base class for all AST nodes.\n";
     out << "//! \n";
     out << "struct ASTNodeBase {\n";
-    out << "\tASTNodeBase(ASTNodeType node_type) : node_type(node_type) {}\n\n";
-    out << "\tconst ASTNodeType node_type;\n";
+    out << "  explicit ASTNodeBase(ASTNodeType node_type) : node_type(node_type) {}\n\n";
+    out << "  const ASTNodeType node_type;\n";
     // TODO: Add visitor pattern function or other additional members?
     out << "};\n\n";
+
+    // Add node for terminals
+    out << "//! \\brief Node type for lexemes. Just contains the literal.\n";
+    out << "//! \n";
+    out << "struct ASTLexeme : public ASTNodeBase {\n";
+    out << "  ASTLexeme() : ASTNodeBase(ASTNodeType::AST_Lexeme) {}\n\n";
+    out << "  const std::string literal;\n";
+    out << "};\n\n";
+
+    // Forward declare all structures.
+    out << "// ============================================================================\n";
+    out << "//  Forward declare all AST node structures.\n";
+    out << "// ============================================================================\n\n";
+    for (auto&[nonterminal_id, types_for_nonterminal]: node_types_for_nonterminal_) {
+      for (auto&[_, description]: types_for_nonterminal) {
+        out << "struct " << description->node_type_name << ";\n";
+      }
+    }
+    out << "\n";
 
     for (auto&[nonterminal_id, types_for_nonterminal]: node_types_for_nonterminal_) {
       out << "// ============================================================================\n";
@@ -281,7 +302,21 @@ class ASTNodeManager {
     out << " {\n";
 
     // Initialize with the correct enum.
-    out << "  " << description->node_type_name << "()\n    : ASTNodeBase(ASTNodeType::" << description->node_type_name << ") {}\n\n";
+    out << "  //! \\brief Default constructor for " << description->node_type_name << ".\n  //!\n";
+    out << "  " << description->node_type_name << "()\n";
+    if (description->parent_classes.empty()) {
+      out << "    : ASTNodeBase(ASTNodeType::" << description->node_type_name << ") {}\n\n";
+
+      // Add second constructor, for passing the node subtype.
+      out << "  //! \\brief Constructor to pass a sub-node-type up to the base.\n  //!\n";
+      out << "  explicit " << description->node_type_name << "(ASTNodeType subtype)\n";
+      out << "    : ASTNodeBase(subtype) {}\n\n";
+    }
+    else {
+      // This is not general. I am assuming that there is one parent node, and it has the correct constructor.
+      // TODO: Introduce enum subtypes for the node subtypes?
+      out << "    : " << (*description->parent_classes.begin())->node_type_name << "(ASTNodeType::" << description->node_type_name << ") {}\n\n";
+    }
 
     // Define all fields.
     for (auto[field_name, field_description]: description->members_) {

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "manta/generator/ParserGenerator.h"
+#include "manta/generator/typesystem/TypeDeduction.h"
+#include "manta/generator/typesystem/TypeRelationship.h"
 
 namespace manta {
 
@@ -9,21 +11,32 @@ class ParserCodegen {
   void GenerateParserCode(std::ostream& code_out, const std::shared_ptr<const ParserData>& parser_data) const;
   void GenerateParserCode(std::ostream& code_out, std::istream& parser_description, ParserType parser_type) const;
 
-  void SetTagGeneratedFieldNames(bool flag) {
+  [[maybe_unused]] void SetTagGeneratedFieldNames(bool flag) {
     tag_generated_field_names = flag;
   }
 
-  void SetGeneratedNodesHaveNodeInName(bool flag) {
+  [[maybe_unused]] void SetGeneratedNodesHaveNodeInName(bool flag) {
     generated_nodes_have_node_in_name = flag;
   }
 
  private:
+
+  NO_DISCARD
+  std::tuple<
+      ASTNodeManager,
+      std::map<std::string, std::vector<typesystem::TypeRelationship>>,
+      std::map<std::string, NonterminalID>,
+      std::map<unsigned, std::string>
+  >
+  createRelationships(const std::shared_ptr<const ParserData>& parser_data) const;
+
+  static std::string fieldNameFromTarget(const std::string& target_name);
+
   //! \brief If true, generated field names will be tagged with the argument number.
   //!
   //! This is useful if there will be multiple identical lexemes or non-terminals in a single reduction.
   //!
   bool tag_generated_field_names = false;
-
 
   //! \brief If true, generated field names for shared pointers to AST nodes will have a "_node" suffix attached.
   //!

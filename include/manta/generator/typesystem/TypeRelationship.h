@@ -18,8 +18,11 @@ enum class CheckType {
 };
 
 struct TypeRelationship {
-  //! \brief The nonterminal type of the $N
-  NonterminalID nonterminal_id{};
+  //! \brief The terminal or non-terminal type of the $N
+  NonterminalID referenced_id{};
+
+  //! \brief Whether the item referenced by referenced_id is actually a non-terminal.
+  bool target_is_nonterminal = true;
 
   //! \brief If a dependent name was referenced, it is stored here.
   std::optional<std::string> source_field_name{};
@@ -34,13 +37,16 @@ struct TypeRelationship {
 
   //! \brief In what context the name was being used.
   //!
-  //! For all checks, it must be checked that all references to this name for the node sub-types of nonterminal_id must be of the same type,
+  //! For all checks, it must be checked that all references to this name for the node sub-types of referenced_id must be of the same type,
   //! and any source_field_name must exist in each non-terminal sub-type.
   //!
   //! Field check:    <no additional checks>
   //! Append check:   The type must be a vector type.
   //! Push check:     The type of target_field_name must be a vector type, whose vector type matches that of the pushed node or node field.
   CheckType check_type = CheckType::Field;
+
+  //! \brief What position is the target in the RHS of the item that created this relationship.
+  int position;
 };
 
 }

@@ -42,8 +42,8 @@ constexpr ResolutionInfo NullResolutionInfo{};
 
 //! \brief Encode a production rule, like A -> a X b, etc.
 struct ProductionRule {
-  explicit ProductionRule(ProductionID production, int label)
-      : production(production), production_label(label) {}
+  explicit ProductionRule(ProductionID production, int label, const std::vector<int> rhs = {})
+      : production(production), production_label(label), rhs(rhs) {}
 
   //! \brief Create an empty production rule.
   ProductionRule() = default;
@@ -52,8 +52,6 @@ struct ProductionRule {
   int& at(int i);
   NO_DISCARD int at(int i) const;
   NO_DISCARD int size() const;
-
-
 
   bool operator<(const ProductionRule& rule) const {
     return std::tie(production, rhs) < std::tie(rule.production, rule.rhs);
@@ -68,11 +66,11 @@ struct ProductionRule {
   // NOTE(Nate): Check how production and production_label differ - can we consolidate?
 
   //! \brief The nonterminal ID that this is a rule for. I.e., the left hand side of a production rule.
-  // TODO: This should be nonterminal_id, not "production"
+  // TODO: This should be referenced_id, not "production"
   ProductionID production = -1;
 
   //! \brief A number for the production, i.e. this is the n-th production.
-  int production_label;
+  int production_label{};
 
   //! \brief The right hand side of the production.
   std::vector<int> rhs;
@@ -91,8 +89,8 @@ struct ProductionRule {
 //! A state is a set of state items.
 //! \TODO: Change Item to be a pointer to a production rule, plus a bookmark.
 struct Item : public ProductionRule {
-  Item(ProductionID production, int label, int bookmark = 0)
-      : ProductionRule(production, label), bookmark(bookmark) {}
+  Item(ProductionID production, int label, int bookmark = 0, const std::vector<int>& rhs = {})
+      : ProductionRule(production, label, rhs), bookmark(bookmark) {}
 
   //! \brief Create an empty item.
   Item() = default;
