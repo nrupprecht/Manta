@@ -59,13 +59,13 @@ void createGeneralNode(
     }
     auto target_field_name = name;
     if (tag_generated_field_names) {
-      target_field_name += "__" + std::to_string(count);
+      target_field_name += "_" + std::to_string(count);
     }
 
     if (production_rules_data.IsNonTerminal(referenced_type)) {
       // Non-terminal
       if (generated_nodes_have_node_in_name) {
-        target_field_name += "__node";
+        target_field_name += "_node";
       }
     }
     else {
@@ -529,12 +529,11 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out, const std::shared
     for (auto&[type_name, description]: nonterminals_types.sub_types) {
       std::cout << "Filling in type description for " << type_name << "." << std::endl;
       for (auto& field_name: nonterminals_types.GetFields(type_name)) {
-        auto sanitized_field_name = field_name; // fieldNameFromTarget(field_name);
-        auto type = nonterminals_types.GetFieldType(sanitized_field_name);
+        auto type = nonterminals_types.GetFieldType(field_name);
 
-        MANTA_ASSERT(type, "could not deduce the type of '" << type_name << "::" << sanitized_field_name);
-        description->members_[sanitized_field_name] = type;
-        std::cout << "  * Got type of " << type_name << "::" << sanitized_field_name << ": " << type->Write() << "\n";
+        MANTA_ASSERT(type, "could not deduce the type of '" << type_name << "::" << field_name);
+        description->members_[field_name] = type;
+        std::cout << "  * Got type of " << type_name << "::" << field_name << ": " << type->Write() << "\n";
       }
     }
   }
@@ -547,16 +546,33 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out, const std::shared
   // Create the node class definitions.
   node_manager.CreateAllDefinitions(code_out);
 
-  // Create the parser and the functions that handle creating new nodes through reduction of items.
-  // ... TODO ...
+  code_out << std::endl;
+  code_out << "// ========================================================================\n";
+  code_out << "//  Parser reduction functions.\n";
+  code_out << "// ========================================================================\n";
+  code_out << std::endl;
 
-  // Write parser declarations.
   std::string parser_class_name = "Parser";
-  code_out << "\n//! \\brief The main parser class.\n//!\n";
-  code_out << "class " << parser_class_name << " {\n";
-  code_out << "public:\n";
 
-  code_out << "private:\n";
+  // Write parser definitions
+  code_out << std::endl;
+  code_out << "// ========================================================================\n";
+  code_out << "//  LALR Parser.\n";
+  code_out << "// ========================================================================\n";
+  code_out << std::endl;
+  code_out << "class Parser : public manta::ParserDriverBase<ASTNodeBase, Parser> {\n";
+  code_out << "public:\n";
+  code_out << "  //! \\brief Constructor, initializes the parser.\n  //!\n";
+  code_out << "  Parser();\n\n";
+  code_out << "  //! \\brief Function to parse the input.\n  //!\n";
+  code_out << "  void ParseInput();\n\n";
+  code_out << "protected:\n";
+  code_out << "  //! \\brief Function that sets up the lexer.\n//!\n";
+  code_out << "  void createLexer();\n\n";
+  code_out << "  //! \\brief The reduce function, which allows this parser to call the reduction functions.\n";
+  code_out << "  std::shared_ptr<ASTNodeBase> reduce(unsigned reduction_id, const std::vector<std::shared_ptr<ASTNodeBase>>& collected_nodes);\n\n";
+  code_out << "  //! \\brief The parser table.\n  //!\n";
+  code_out << "  std::vector<std::vector<manta::Entry>> parse_table_;\n";
 
   auto item_number = 0u;
   for (auto& item: parser_data->production_rules_data->all_productions) {
@@ -572,9 +588,7 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out, const std::shared
       if (parser_data->production_rules_data->IsNonTerminal(id)) {
         // Get the base type for this non-terminal.
         auto& base_type = deduced_types.GetBaseTypeName(id);
-        code_out << "\n      const std::shared_ptr<" << base_type << ">& "
-                 // parser_data->production_rules_data->GetName(id)
-                 << "argument_" << i;
+        code_out << "\n      const std::shared_ptr<" << base_type << ">& argument_" << i;
       }
       else {
         code_out << "\n      const std::string& argument_" << i;
@@ -585,16 +599,89 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out, const std::shared
 
     ++item_number;
   }
+  code_out << "};\n\n";
 
-  ////
+  code_out << "Parser::Parser() {\n";
+  code_out << "  using namespace manta;\n\n";
+  code_out << "  start_nonterminal_ = " << parser_data->production_rules_data->start_nonterminal << ";\n";
+  code_out << "  // Allocate space for the parser table.\n";
+  code_out << "  parse_table_.assign("
+           << parser_data->parse_table.size() << ", std::vector<Entry>("
+           << parser_data->parse_table[0].size() << "," << "Entry()" << "));\n\n";
+  code_out << "  // Create the table. There are better, though more difficult, ways to serialize this information.";
+  auto row_it = 0u;
+  for (auto& row: parser_data->parse_table) {
+    for (auto col_it = 0u; col_it < row.size(); ++col_it) {
+      auto& entry = row[col_it];
+      if (!entry.IsError()) {
+        code_out << "  parse_table_[" << row_it << "][" << col_it << "] = ";
+        if (entry.IsReduce()) {
+          auto& item = entry.GetRule();
+          code_out << "Entry(Item(" << item.production << ", " << item.production_label << ", 0, {";
+          for (auto i = 0u; i < item.rhs.size(); ++i) {
+            if (i != 0) code_out << ", ";
+            code_out << item.rhs[i];
+          }
+          code_out << "}));  // Reduce\n";
+        }
+        else if (entry.IsShift()) {
+          code_out << "Entry(" << entry.GetState() << ");  // Shift\n";
+        }
+        else if (entry.IsAccept()) {
+          code_out << "Entry(true);  // Accept\n";
+        }
+      }
+    }
+    ++row_it;
+  }
 
-  code_out << "};\n" << std::endl;
+  code_out << "  createLexer();\n";
+  code_out << "}\n\n";
 
-  code_out << std::endl;
-  code_out << "// ========================================================================\n";
-  code_out << "//  Parser reduction functions.\n";
-  code_out << "// ========================================================================\n";
-  code_out << std::endl;
+  code_out << "void Parser::ParseInput() {\n  parse();\n}\n\n";
+
+  // Generate the code to create the lexer.
+  code_out << "void Parser::createLexer() {\n";
+  // TODO: Create lexer.
+  code_out << "}\n\n";
+
+  code_out << "std::shared_ptr<ASTNodeBase> Parser::reduce(unsigned reduction_id, const std::vector<std::shared_ptr<ASTNodeBase>>& collected_nodes) {\n";
+
+  item_number = 0u;
+
+  code_out << "  switch (reduction_id) {\n";
+  for (auto& item: parser_data->production_rules_data->all_productions) {
+    // TODO: Sanitize names.
+
+    auto& node_type_name = node_types_for_item.at(item_number);
+    code_out << "    case " << item_number << ": {\n";
+    code_out << "      return ReduceTo_" + node_type_name << "_ViaItem_" << item_number << "(";
+    auto i = 0;
+    for (auto id: item.rhs) {
+      if (i != 0) code_out << ",";
+      if (parser_data->production_rules_data->IsNonTerminal(id)) {
+        // Get the base type for this non-terminal.
+        code_out << "\n          std::reinterpret_pointer_cast<";
+
+        auto& base_type = deduced_types.GetBaseTypeName(id);
+        code_out << base_type << ">(collected_nodes[" << i << "])";
+      }
+      else {
+        code_out << "\n          reinterpret_cast<ASTLexeme*>(collected_nodes[" << i << "].get())->literal";
+      }
+      ++i;
+    }
+    code_out << ");\n";
+    code_out << "    }\n";
+
+    ++item_number;
+  }
+  code_out << "    default: {\n";
+  code_out << "      MANTA_FAIL(\"unrecognized production\" << reduction_id << \", cannot reduce\");\n";
+  code_out << "    }\n";
+  code_out << "  }\n";
+
+  code_out << "}\n\n";
 
   item_number = 0u;
   for (auto& item: parser_data->production_rules_data->all_productions) {
@@ -635,7 +722,7 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out, const std::shared
       return l.position < r.position;
     });
     for (auto& rel: relationships_for_node) {
-      auto field_name = fieldNameFromTarget(rel.target_field_name);
+      auto&& field_name = rel.target_field_name;
       switch (rel.check_type) {
         case CheckType::Push: {
           code_out << "  new_node->" << field_name << ".push_back(argument_" << rel.position << ");\n";
@@ -643,9 +730,11 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out, const std::shared
         }
         case CheckType::Append: {
           const std::string arg_name = "argument_" + std::to_string(rel.position);
+
           code_out << "  new_node->" << field_name << ".insert("
                    << "new_node->" << field_name << ".end(), "
-                   << arg_name << ".cbegin(), " << arg_name << ".cend());\n";
+                   << arg_name << "->" << *rel.source_field_name<< ".cbegin(), "
+                   << arg_name << "->" << *rel.source_field_name<< ".cend());\n";
           break;
         }
         case CheckType::Field: {
@@ -662,103 +751,6 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out, const std::shared
     std::cout << "Done writing code for reduction of item " << item_number << "." << std::endl;
     ++item_number;
   }
-
-  // Write parser definitions
-  code_out << std::endl;
-  code_out << "// ========================================================================\n";
-  code_out << "//  LALR Parser.\n";
-  code_out << "// ========================================================================\n";
-  code_out << std::endl;
-  code_out << "class Parser : public ParserDriverBase<ASTNodeBase, Parser> {\n";
-  code_out << "public:\n";
-  code_out << "  //! \\brief Constructor, initializes the parser.\n  //!\n";
-  code_out << "  void Parser();\n\n";
-  code_out << "  //! \\brief Function to parse the input.\n  //!\n";
-  code_out << "  void ParseInput();\n\n";
-  code_out << "protected:\n";
-  code_out << "  //! \\brief The reduce function, which allows this parser to call the reduction functions.\n";
-  code_out << "  std::shared_ptr<ASTNodeBase> reduce(unsigned reduction_id, const std::vector<ASTNodeBase>& collected_nodes);\n\n";
-  code_out << "  //! \\brief The parser table.\n  //!\n";
-  code_out << "  std::vector<std::vector<Entry>> parse_table_;\n";
-
-  code_out << "};\n\n";
-
-  code_out << "Parser::Parser() {\n";
-
-  code_out << "  start_nonterminal_ = " << parser_data->production_rules_data->start_nonterminal << ";\n";
-
-  code_out << "  // Allocate space for the parser table.\n";
-  code_out << "  parse_table_.assign("
-           << parser_data->parse_table.size() << ", std::vector<Entry>("
-           << parser_data->parse_table[0].size() << "," << "Entry()" << "));\n\n";
-  code_out << "  // Create the table. There are better, though more difficult, ways to serialize this information.";
-  auto row_it = 0u;
-  for (auto& row: parser_data->parse_table) {
-    for (auto col_it = 0u; col_it < row.size(); ++col_it) {
-      auto& entry = row[col_it];
-      if (!entry.IsError()) {
-        code_out << "  parse_table_[" << row_it << "][" << col_it << "] = ";
-        if (entry.IsReduce()) {
-          auto& item = entry.GetRule();
-          code_out << "Entry(Item(" << item.production << ", " << item.production_label << ", 0, {";
-          for (auto i = 0u; i < item.rhs.size(); ++i) {
-            if (i != 0) code_out << ", ";
-            code_out << item.rhs[i];
-          }
-          code_out << "});  // Reduce\n";
-        }
-        else if (entry.IsShift()) {
-          code_out << "Entry(" << entry.GetState() << ");  // Shift\n";
-        }
-        else if (entry.IsAccept()) {
-          code_out << "Entry(true);  // Accept\n";
-        }
-      }
-    }
-    ++row_it;
-  }
-
-  code_out << "}\n\n";
-
-  code_out << "void Parser::ParseInput() {\n  parse();\n}\n\n";
-
-  code_out << "std::shared_ptr<ASTNodeBase> reduce(unsigned reduction_id, const std::vector<ASTNodeBase>& collected_nodes) {\n";
-
-  item_number = 0u;
-
-  code_out << "  switch (reduction_id) {\n";
-  for (auto& item: parser_data->production_rules_data->all_productions) {
-    // TODO: Sanitize names.
-
-    auto& node_type_name = node_types_for_item.at(item_number);
-    code_out << "    case " << item_number << ": {\n";
-    code_out << "      return ReduceTo_" + node_type_name << "_ViaItem_" << item_number << "(";
-    auto i = 0;
-    for (auto id: item.rhs) {
-      if (i != 0) code_out << ",";
-      if (parser_data->production_rules_data->IsNonTerminal(id)) {
-        // Get the base type for this non-terminal.
-        code_out << "\n          std::reinterpret_pointer_cast<";
-
-        auto& base_type = deduced_types.GetBaseTypeName(id);
-        code_out << base_type << ">(collect[" << i << "])";
-      }
-      else {
-        code_out << "\n          reinterpret_cast<ASTLexeme>(collect[" << i << "].get())->literal";
-      }
-      ++i;
-    }
-    code_out << ");\n";
-    code_out << "    }\n";
-
-    ++item_number;
-  }
-  code_out << "    default: {\n";
-  code_out << "      MANTA_FAIL(\"unrecognized production\" << reduction_id << \", cannot reduce\");\n";
-  code_out << "    }\n";
-  code_out << "  }\n";
-
-  code_out << "}\n\n";
 }
 
 void ParserCodegen::GenerateParserCode(std::ostream& code_out, std::istream& parser_description, ParserType parser_type) const {

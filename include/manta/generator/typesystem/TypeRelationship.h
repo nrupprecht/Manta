@@ -46,7 +46,7 @@ struct TypeRelationship {
   CheckType check_type = CheckType::Field;
 
   //! \brief What position is the target in the RHS of the item that created this relationship.
-  int position;
+  int position{};
 };
 
 }

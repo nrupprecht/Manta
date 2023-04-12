@@ -447,7 +447,7 @@ std::string LALRParser::entryToString(const Entry &entry) {
 //                }
 //                // Otherwise, this corresponds to a lexeme.
 //                else {
-//                    output += " @" + lexer->lexemeName(r);
+//                    output += " @" + lexer_generator->lexemeName(r);
 //                }
     }
   }

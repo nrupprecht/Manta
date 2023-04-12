@@ -8,6 +8,7 @@
 #include "ParseNode.h"
 #include "manta/utility/ParserUtility.hpp"
 #include "manta/lexer/LexerDFA.hpp"
+#include "manta/parser/ParserData.h"
 
 namespace manta {
 
@@ -79,6 +80,15 @@ class LALRParser {
         parse_table_(std::move(parse_table)),
         all_states_(std::move(all_states)),
         lexer_(std::move(lexer)) {};
+
+  LALRParser(const std::shared_ptr<ParserData>& parser_data)
+      : LALRParser(parser_data->production_rules_data->inverse_nonterminal_map,
+                   parser_data->production_rules_data->start_nonterminal,
+                   parser_data->production_rules_data->total_symbols,
+                   parser_data->parse_table,
+                   parser_data->all_states,
+                   parser_data->lexer_generator->CreateLexer())
+  {}
 
   // ================================================
   //  Private member variables.

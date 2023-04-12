@@ -13,7 +13,7 @@ ParserGenerator::ParserGenerator(ParserType type)
     : parser_type_(type) {}
 
 std::shared_ptr<ParserData> ParserGenerator::CreateParserData(std::istream& stream) {
-  // Parse the stream to get description of the lexer and the parser.
+  // Parse the stream to get description of the lexer_generator and the parser.
   DescriptionParser parser_parser;
   production_rules_data_ = parser_parser.ParseDescription(stream);
 
@@ -28,14 +28,13 @@ std::shared_ptr<ParserData> ParserGenerator::CreateParserData(std::istream& stre
   // Complete the table
   completeTable();
 
-  // Create (recreate? Check: do we need to do this?) the lexer.
-  auto lexer = production_rules_data_->lexer_generator.CreateLexer();
+  // Create (recreate? Check: do we need to do this?) the lexer_generator.
 
   auto parser_data = std::make_shared<ParserData>();
   parser_data->production_rules_data = production_rules_data_;
   parser_data->parse_table = parse_table_;
   parser_data->all_states = all_states_;
-  parser_data->lexer = lexer;
+  parser_data->lexer_generator = production_rules_data_->lexer_generator;
 
   return parser_data;
 }
@@ -59,14 +58,7 @@ std::shared_ptr<LALRParser> ParserGenerator::CreateParserFromStream(std::istream
   auto parser_data = CreateParserData(stream);
 
   // Note - this uses a private constructor.
-  return std::shared_ptr<LALRParser>(
-      new LALRParser(
-          parser_data->production_rules_data->inverse_nonterminal_map,
-          parser_data->production_rules_data->start_nonterminal,
-          parser_data->production_rules_data->total_symbols,
-          parser_data->parse_table,
-          parser_data->all_states,
-          parser_data->lexer));
+  return std::shared_ptr<LALRParser>(new LALRParser(parser_data));
 }
 
 int ParserGenerator::NumNonTerminals() const {
@@ -91,7 +83,7 @@ std::set<std::string> ParserGenerator::FirstSet(const std::string &symbol) {
   std::set<std::string> output;
   std::for_each(
       first_set.begin(), first_set.end(),
-      [&](int x) { output.insert(production_rules_data_->lexer_generator.LexemeName(x)); });
+      [&](int x) { output.insert(production_rules_data_->lexer_generator->LexemeName(x)); });
   return output;
 }
 
@@ -116,7 +108,7 @@ std::set<std::string> ParserGenerator::FollowSet(const std::string &symbol) {
   std::set<std::string> output;
   std::for_each(
       follow_set.begin(), follow_set.end(),
-      [&](int x) { output.insert(production_rules_data_->lexer_generator.LexemeName(x)); });
+      [&](int x) { output.insert(production_rules_data_->lexer_generator->LexemeName(x)); });
   return output;
 }
 
@@ -152,7 +144,7 @@ std::string ParserGenerator::GetParserGenerationTrace() const {
 
 std::string ParserGenerator::nameOf(int id) const {
   if (isTerminal(id)) {
-    auto lex_name = production_rules_data_->lexer_generator.LexemeName(id);
+    auto lex_name = production_rules_data_->lexer_generator->LexemeName(id);
     if (lex_name.find("RES:") == 0) {
       std::copy(lex_name.begin() + 4, lex_name.end(), lex_name.begin() + 1);
       lex_name[0] = '"';
@@ -351,7 +343,7 @@ State ParserGenerator::closure(int s) const {
       int next = -1 < bookmark && bookmark < A.rhs.size() ? A.rhs.at(bookmark) : -1;
 
       // If the bookmark was behind a non-terminal, we need to add that non-terminal to the closure.
-      if (production_rules_data_->lexer_generator.GetNumLexemes() < next) {
+      if (production_rules_data_->lexer_generator->GetNumLexemes() < next) {
         // Find the production for next.
         auto it = production_rules_data_->productions_for.find(next);
         if (it == production_rules_data_->productions_for.end()) {

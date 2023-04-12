@@ -18,7 +18,7 @@ std::shared_ptr<ProductionRulesData> DescriptionParser::ParseDescription(std::is
   int pid;
 
   // Create the lexer. We always add @eof as a lexer item.
-  production_rules_data_->lexer_generator.CreateLexer(stream, false); // Do not Clear old.
+  production_rules_data_->lexer_generator->CreateLexer(stream, false); // Do not Clear old.
 
   // Find the .Parser indicator.
   stream.get(c);
@@ -205,7 +205,7 @@ inline void DescriptionParser::getProductions(std::istream &in, int production_i
       }
       // Found the literal. Register.
       if (!acc.empty()) {
-        int id = production_rules_data_->lexer_generator.AddReserved(acc);
+        int id = production_rules_data_->lexer_generator->AddReserved(acc);
         // Add to production
         production.add(id);
       }
@@ -248,7 +248,7 @@ inline void DescriptionParser::getProductions(std::istream &in, int production_i
       }
 
       // Ask the lexer generator for the lexeme ID of the terminal
-      int id = production_rules_data_->lexer_generator.LexemeID(acc);
+      int id = production_rules_data_->lexer_generator->LexemeID(acc);
       if (id < 0) {
         throw UnrecognizedLexerItem("word " + acc + " not a valid lexeme type");
       }
@@ -544,7 +544,7 @@ int DescriptionParser::registerProduction(const std::string &production) {
 
 void DescriptionParser::shiftProductionNumbers() {
   // Get the number of terminals.
-  int lids = static_cast<int>(production_rules_data_->lexer_generator.GetNumLexemes());
+  int lids = static_cast<int>(production_rules_data_->lexer_generator->GetNumLexemes());
 
   // Shift the ids in production map.
   for (auto &p: production_rules_data_->nonterminal_map) {

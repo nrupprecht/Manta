@@ -12,8 +12,11 @@ namespace manta {
 //! \brief Object that contains the definition of a lexer and the productions that make up a grammar.
 //!
 struct ProductionRulesData {
-  //! \brief A lexer generator.
-  LexerGenerator lexer_generator;
+  ProductionRulesData() 
+  : lexer_generator(std::make_shared<LexerGenerator>()) {}
+
+  //! \brief A lexer_generator generator.
+  std::shared_ptr<LexerGenerator> lexer_generator{};
 
   //! \brief Maps non-terminal names to non-terminal numbers.
   std::map<std::string, int> nonterminal_map;
@@ -49,7 +52,7 @@ struct ProductionRulesData {
 
   NO_DISCARD const std::string& GetName(int id) const {
     if (id < NumTerminals()) {
-      return lexer_generator.LexemeName(id);
+      return lexer_generator->LexemeName(id);
     }
     return GetNonterminalName(id);
   }
@@ -59,15 +62,15 @@ struct ProductionRulesData {
   }
 
   NO_DISCARD int NumNonTerminals() const {
-    return total_symbols - static_cast<int>(lexer_generator.GetNumLexemes());
+    return total_symbols - static_cast<int>(lexer_generator->GetNumLexemes());
   }
 
   NO_DISCARD int NumTerminals() const {
-    return static_cast<int>(lexer_generator.GetNumLexemes());
+    return static_cast<int>(lexer_generator->GetNumLexemes());
   }
 
   NO_DISCARD bool IsNonTerminal(int id) const {
-    return lexer_generator.GetNumLexemes() <= id;
+    return lexer_generator->GetNumLexemes() <= id;
   }
 
   NO_DISCARD bool IsTerminal(int id) const {

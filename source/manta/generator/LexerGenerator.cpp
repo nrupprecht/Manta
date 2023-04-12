@@ -181,6 +181,10 @@ std::shared_ptr<LexerDFA> LexerGenerator::CreateLexer() {
           skip_lexemes_));
 }
 
+const std::map<std::string, std::string>& LexerGenerator::GetDefiningExpressions() const {
+  return defining_expressions_;
+}
+
 int LexerGenerator::Accepts(const std::string &word) const {
   auto acceptance = lexer_dfa_.Accepts(word);
   if (acceptance.empty()) {
@@ -308,6 +312,9 @@ int LexerGenerator::AddLexeme(const std::string &lexeme, const std::string &rege
   lexer_dfa_.AddAcceptance(end_id, lexeme_number, precedence);
   // Lambda transition from head node to start_id node.
   lexer_dfa_.AddTransition(head_id_, start_id);
+
+  // Store the defining expression for lexemes.
+  defining_expressions_[lexeme] = regex;
 
   return lexeme_number;
 }

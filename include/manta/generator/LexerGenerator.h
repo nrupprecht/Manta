@@ -28,7 +28,10 @@ class LexerGenerator {
   //! \brief Create a lexer from the current NDFA.
   std::shared_ptr<LexerDFA> CreateLexer();
 
-  //! \brief Check if a string would be accepted by the lexer.
+  //! \brief Get the regex string that defines each lexeme.
+  const std::map<std::string, std::string>& GetDefiningExpressions() const;
+
+  //! \brief Check if a string would be accepted by the lexer_generator.
   NO_DISCARD int Accepts(const std::string &word) const;
 
   //! \brief Return the name of a lexeme based on the id.
@@ -133,6 +136,9 @@ class LexerGenerator {
 
   //! \brief The underlying deterministic finite automaton used to do the parsing.
   FiniteAutomaton lexer_dfa_;
+
+  //! \brief Map from lexeme name to its definition.
+  std::map<std::string, std::string> defining_expressions_;
 };
 
 } // namespace manta

@@ -5,6 +5,7 @@
 #pragma once
 
 #include "manta/parser/ParseNode.h"
+#include "manta/parser/ParserData.h"
 #include "manta/lexer/LexerDFA.hpp"
 #include "manta/utility/WorkDeque.h"
 #include "manta/generator/LexerGenerator.h"
@@ -19,18 +20,6 @@ enum class ParserType { LR0, SLR, LALR };
 // Forward declare LALR parser.
 class LALRParser;
 
-//! \brief All the data needed to create a full parser, e.g. transition table, meta data, lexer, etc.
-struct ParserData {
-  std::shared_ptr<ProductionRulesData> production_rules_data;
-
-  //! \brief The full parse table used by the Parser.
-  std::vector<std::vector<Entry>> parse_table;
-
-  //! \brief All the different states.
-  std::vector<State> all_states;
-
-  std::shared_ptr<LexerDFA> lexer;
-};
 
 //! \brief Class that can read a description of a parser and create from that a table-driven LALRParser.
 //!
