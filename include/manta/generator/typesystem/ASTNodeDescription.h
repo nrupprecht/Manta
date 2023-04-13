@@ -3,7 +3,11 @@
 #include <utility>
 
 #include "manta/utility/utility.hpp"
+#include "manta/utility/Exceptions.h"
 
+namespace manta {
+using NonterminalID = int;
+}
 
 namespace {
 
@@ -251,7 +255,7 @@ class ASTNodeManager {
     }
   }
 
-  ASTType* GetStringType() const {
+  NO_DISCARD ASTType* GetStringType() const {
     return all_types_.at(ASTTypeString{}.HashID()).get();
   }
 

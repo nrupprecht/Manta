@@ -21,15 +21,6 @@ class ParserCodegen {
 
  private:
 
-  NO_DISCARD
-  std::tuple<
-      ASTNodeManager,
-      std::map<std::string, std::vector<typesystem::TypeRelationship>>,
-      std::map<std::string, NonterminalID>,
-      std::map<unsigned, std::string>
-  >
-  createRelationships(const std::shared_ptr<const ParserData>& parser_data) const;
-
   static std::string fieldNameFromTarget(const std::string& target_name);
 
   //! \brief If true, generated field names will be tagged with the argument number.
