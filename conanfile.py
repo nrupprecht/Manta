@@ -25,7 +25,6 @@ class Project(ConanFile):
     def requirements(self):
         """ List all required conan packages here. """
         self.requires("gtest/1.11.0")
-        pass
 
     def build(self):
         cmake          = CMake(self)

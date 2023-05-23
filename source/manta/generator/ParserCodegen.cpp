@@ -1,42 +1,37 @@
+#include <manta/generator/typesystem/CppCodegen.h>
 #include "manta/generator/ParserCodegen.h"
 // Other files.
 #include "manta/generator/typesystem/TypeCreation.h"
+#include "manta/lightning/Lightning.h"
 
 using namespace manta;
 using namespace manta::typesystem;
 
-namespace {
+void ParserCodegen::GenerateParserCode(std::ostream& code_out,
+                                       const std::shared_ptr<const ParserData>& parser_data) const {
+  ParserDataToTypeManager manager(false, true);
+  auto& [node_manager, relationships, nonterminals_for_type, node_types_for_item] = manager.CreateRelationships(parser_data);
+  auto deduced_types = manager.DeduceTypes();
 
-} // namespace <unnamed>
-
-
-void ParserCodegen::GenerateParserCode(std::ostream& code_out, const std::shared_ptr<const ParserData>& parser_data) const {
-
-  auto[node_manager, relationships, nonterminals_for_type, node_types_for_item]
-  = CreateRelationships(parser_data,
-                        tag_generated_field_names,
-                        generated_nodes_have_node_in_name);
-
-  auto deduced_types = DeduceTypes(node_manager,
-                                   relationships,
-                                   nonterminals_for_type,
-                                   *parser_data->production_rules_data);
-
-  std::cout << "\nDone deducing types. Filling in type descriptions.\n" << std::endl;
+  LOG_SEV(Info) << "Done deducing types. Filling in type descriptions.";
 
   // Fill in all type descriptions from the deduced types.
   for (auto[nonterminal_id, nonterminals_types]: deduced_types.GetTypesData()) {
     for (auto&[type_name, description]: nonterminals_types.sub_types) {
-      std::cout << "Filling in type description for " << type_name << "." << std::endl;
-      for (auto& field_name: nonterminals_types.GetFields(type_name)) {
+      LOG_SEV(Info) << "Filling in type description for " << type_name << ", getting fields for type '" << type_name << "'.";
+      auto& field_names = nonterminals_types.GetFields(type_name);
+      LOG_SEV(Debug) << "There are " << field_names.size() << " fields for '" << type_name << "'.";
+      for (auto& field_name: field_names) {
+        LOG_SEV(Debug) << "Looking for type of field '" << field_name << "'.";
         auto type = nonterminals_types.GetFieldType(field_name);
 
         MANTA_ASSERT(type, "could not deduce the type of '" << type_name << "::" << field_name);
-        description->members_[field_name] = type;
-        std::cout << "  * Got type of " << type_name << "::" << field_name << ": " << type->Write() << "\n";
+        description->fields[field_name] = type;
+        LOG_SEV(Debug) << "  * Got type of " << type_name << "::" << field_name << ": " << type->Write() << ".";
       }
     }
   }
+  LOG_SEV(Info) << "Done filling in all type descriptions.";
 
   // Write the guard and includes.
   code_out << "#pragma once\n\n#include <vector>\n#include <string>\n\n";
@@ -44,13 +39,11 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out, const std::shared
   code_out << "#include \"manta/generator/ParserDriver.h\"\n\n";
 
   // Create the node class definitions.
-  node_manager.CreateAllDefinitions(code_out);
+  LOG_SEV(Info) << "Generating code for all AST node definitions.";
 
-  code_out << std::endl;
-  code_out << "// ========================================================================\n";
-  code_out << "//  Parser reduction functions.\n";
-  code_out << "// ========================================================================\n";
-  code_out << std::endl;
+  CppCodeGen codegen;
+
+  node_manager.CreateAllDefinitions(code_out, codegen);
 
   std::string parser_class_name = "Parser";
 
@@ -74,11 +67,14 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out, const std::shared
   code_out << "  //! \\brief The parser table.\n  //!\n";
   code_out << "  std::vector<std::vector<manta::Entry>> parse_table_;\n";
 
+  LOG_SEV(Info) << "Generating declarations of all reduce functions.";
   auto item_number = 0u;
   for (auto& item: parser_data->production_rules_data->all_productions) {
     // TODO: Sanitize names.
 
+    LOG_SEV(Debug) << "Looking for node type name for item " << item_number << ".";
     auto& node_type_name = node_types_for_item.at(item_number);
+    LOG_SEV(Debug) << "Node type name for item " << item_number << " is " << node_type_name;
 
     code_out << "  std::shared_ptr<" << node_type_name << ">\n";
     code_out << "  ReduceTo_" + node_type_name << "_ViaItem_" << item_number << "(";
@@ -100,6 +96,8 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out, const std::shared
     ++item_number;
   }
   code_out << "};\n\n";
+
+  LOG_SEV(Info) << "Generating definitions of Parser's functions.";
 
   code_out << "Parser::Parser() {\n";
   code_out << "  using namespace manta;\n\n";
@@ -187,9 +185,9 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out, const std::shared
   for (auto& item: parser_data->production_rules_data->all_productions) {
     // TODO: Sanitize names.
 
-    std::cout << "Creating reduction function for item " << item_number << "." << std::endl;
+    LOG_SEV(Debug) << "Creating reduction function for item " << item_number << ".";
     auto& node_type_name = node_types_for_item.at(item_number);
-    std::cout << "Node type name is '" << node_type_name << "'." << std::endl;
+    LOG_SEV(Debug) << "Node type name is '" << node_type_name << "'.";
 
     code_out << "std::shared_ptr<" << node_type_name << ">\n";
     code_out << parser_class_name << "::ReduceTo_" + node_type_name << "_ViaItem_" << item_number;
@@ -248,7 +246,7 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out, const std::shared
     code_out << "  return new_node;\n";
     code_out << "}\n" << std::endl;
 
-    std::cout << "Done writing code for reduction of item " << item_number << "." << std::endl;
+    LOG_SEV(Info) << "Done writing code for reduction of item " << item_number << ".";
     ++item_number;
   }
 }

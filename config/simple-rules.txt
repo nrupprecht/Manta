@@ -1,7 +1,6 @@
-# Definition of the lexer.
+# Definition of the lexer_generator.
 .Lexer
 
-    @eof: r`\0`
     @int: r`\d+`
     @whitespaces: r`\s+`
     @newlines: r`\n+`
@@ -12,20 +11,20 @@
 .Parser
 
     # Entry point is named start.
-    start -> exprs newlines : add($0)
+    start -> exprs newlines : field($0, "expressions")
 
     newlines -> @newlines
         | @eof # So the last line doesn't need to end with a newline.
 
-    exprs -> exprs newlines expr : adopt($0) add($2)
-        | expr                   : replace($0)
+    exprs -> exprs newlines expr : append($0.expressions, "expressions") push($2, "expressions")
+        | expr : push($0, "expressions")
 
-    expr -> "(" expr ")"     : replace($1)
-        | expr "+" expr     -> prec(1) assoc(Left) : node("sum") add($0) add($2)
-        | expr "-" expr     -> prec(1) assoc(Left) : node("sub") add($0) add($2)
-        | expr "*" expr     -> prec(2) assoc(Left) : node("mult") add($0) add($2)
-        | expr "/" expr     -> prec(2) assoc(Left) : node("div") add($0) add($2)
-        | expr "^" expr     -> prec(3) assoc(Right) : node("exp") add($0) add($2)
-        | @int              : replace($0)
+    expr -> "(" expr ")"     : node("expr") field($1)
+        | expr "+" expr     -> prec(1) assoc(Left) : node("sum") field($0, "first") field($2, "second")
+        | expr "-" expr     -> prec(1) assoc(Left) : node("sub") field($0, "first") field($2, "second")
+        | expr "*" expr     -> prec(2) assoc(Left) : node("mult") field($0, "first") field($2, "second")
+        | expr "/" expr     -> prec(2) assoc(Left) : node("div") field($0, "first") field($2, "second")
+        | expr "^" expr     -> prec(3) assoc(Right) : node("exp") field($0, "first") field($2, "second")
+        | @int
 
 .End

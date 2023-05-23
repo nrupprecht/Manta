@@ -2,7 +2,6 @@
 // Created by Nathaniel Rupprecht on 3/17/23.
 //
 
-
 #pragma once
 
 #include "manta/generator/typesystem/ASTNodeDescription.h"
@@ -26,10 +25,10 @@ class TypeDeduction {
     //!
     //! This map's index contains all fields.
     //!
-    std::map<std::string, const ASTType*> field_type_descriptions{};
+    std::map<std::string, const TypeDescription*> field_type_descriptions{};
 
     //! \brief The type descriptions of the sub-types.
-    std::map<std::string, ASTNodeDescription*> sub_types{};
+    std::map<std::string, TypeDescriptionStructure*> sub_types{};
 
     //! \brief If there are multiple subtypes for this nonterminal, we have them derive from a base type.
     //! Otherwise, there is only one node type, so that is the base node type.
@@ -41,7 +40,7 @@ class TypeDeduction {
       sub_types[type_name];
     }
 
-    void AddField(const std::string& type_name, const std::string& field_name, const ASTType* field_type = nullptr) {
+    void AddField(const std::string& type_name, const std::string& field_name, const TypeDescription* field_type = nullptr) {
       all_fields.insert(field_name);
       fields_for_type[type_name].insert(field_name);
       field_type_descriptions[field_name] = field_type;
@@ -51,7 +50,7 @@ class TypeDeduction {
       return fields_for_type.at(type_name);
     }
 
-    const ASTType* GetFieldType(const std::string& field_name) {
+    const TypeDescription* GetFieldType(const std::string& field_name) {
       return field_type_descriptions.at(field_name);
     }
 
@@ -86,7 +85,7 @@ class TypeDeduction {
     all_type_names.insert(type_name);
   }
 
-  void AddField(NonterminalID nonterminal, const std::string& type_name, const std::string& field_name, const ASTType* field_type = nullptr) {
+  void AddField(NonterminalID nonterminal, const std::string& type_name, const std::string& field_name, const TypeDescription* field_type = nullptr) {
     types_data[nonterminal].AddField(type_name, field_name, field_type);
   }
 
@@ -106,7 +105,7 @@ class TypeDeduction {
 
   //! \brief Get the type of a common field.
   //!
-  NO_DISCARD const ASTType* GetFieldType(NonterminalID nonterminal_id, const std::string& field_name) const {
+  NO_DISCARD const TypeDescription* GetFieldType(NonterminalID nonterminal_id, const std::string& field_name) const {
     return types_data.at(nonterminal_id).field_type_descriptions.at(field_name);
   }
 
@@ -133,6 +132,8 @@ class TypeDeduction {
 
   std::map<NonterminalID, NonterminalsTypes> types_data;
   std::set<std::string> all_type_names{};
+  //! \brief The names of all types that were additionally generated as base types for nodes.
+  std::set<std::string> base_type_names{};
 };
 
 } // namespace manta::typesystem
