@@ -10,6 +10,8 @@ set                   (CMAKE_VISIBILITY_INLINES_HIDDEN 1)
 include               (set_max_warning_level)
 set_max_warning_level ()
 
+include               (FetchContent)
+
 ##################################################    Options     ##################################################
 option(BUILD_SHARED_LIBS "Build shared (dynamic) libraries." OFF)
 option(BUILD_TESTS "Build tests." ON)
@@ -52,16 +54,28 @@ add_conan_remote(conan-community https://api.bintray.com/conan/conan-community/c
 #   import_library(Boost_INCLUDE_DIRS Boost_IOSTREAMS_LIBRARY_DEBUG Boost_IOSTREAMS_LIBRARY_RELEASE)
 # - You may also set the PROJECT_INCLUDE_DIRS and PROJECT_LIBRARIES instead of using import_library.
 
+FetchContent_Declare(
+        Lightning
+        GIT_REPOSITORY https://github.com/nrupprecht/Lightning.git
+        GIT_TAG        main
+)
+FetchContent_MakeAvailable(Lightning)
+include_directories(${Lightning_SOURCE_DIR}/include)
+
+
 conan_cmake_run(CONANFILE conanfile.py BASIC_SETUP BUILD missing)
 list           (APPEND PROJECT_INCLUDE_DIRS ${CONAN_INCLUDE_DIRS_RELEASE})
 list           (APPEND PROJECT_COMPILE_DEFINITIONS ${CONAN_COMPILE_DEFINITIONS_RELEASE})
 foreach        (_LIB ${CONAN_LIBS_DEBUG})
+    message(STATUS "  * Adding library ${_LIB} as debug")
     list         (APPEND PROJECT_LIBRARIES debug ${_LIB})
 endforeach     ()
 foreach        (_LIB ${CONAN_LIBS_RELEASE})
+    message(STATUS "  * Adding library ${_LIB} as release")
     list         (APPEND PROJECT_LIBRARIES optimized ${_LIB})
 endforeach     ()
 foreach        (_LIB ${CONAN_LIBS})
+    message(STATUS "  * Adding library ${_LIB}")
     list       (APPEND PROJECT_LIBRARIES ${_LIB})
 endforeach ()
 
