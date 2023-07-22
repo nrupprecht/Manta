@@ -97,6 +97,6 @@ void LexerDFA::SetRepeatEOF(bool flag) {
   lexer_dfa_.SetRepeatEOF(flag);
 }
 
-inline bool LexerDFA::isSkip(int lexeme_id) {
+bool LexerDFA::isSkip(int lexeme_id) const {
   return std::find(skip_lexemes_.begin(), skip_lexemes_.end(), lexeme_id) != skip_lexemes_.end();
 }

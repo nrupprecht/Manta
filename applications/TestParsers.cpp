@@ -3,7 +3,10 @@
 #include "manta/parser/LALRParser.hpp"
 #include "manta/visualization/Display.hpp"
 
+#include <Lightning/Lightning.h>
+
 using namespace manta;
+using namespace lightning;
 
 void compareParsers(const std::string &rulesFilepath) {
   ParserGenerator slr(ParserType::SLR);
@@ -18,24 +21,24 @@ void compareParsers(const std::string &rulesFilepath) {
 void testParser(const std::string &rules_filepath, const std::string &code_filepath) {
   // Parser
   ParserGenerator generator(ParserType::LALR);
-  std::cout << "Parsing rules from \"" << rules_filepath << "\"\n";
+  LOG_SEV(Info) << "Parsing rules from \"" << rules_filepath << "\"";
   std::shared_ptr<LALRParser> parser;
   try {
     parser = generator.CreateParserFromFile(rules_filepath);
   }
   catch (const std::exception& ex) {
-    std::cout << "Exception parsing rules: " << ex.what();
+    LOG_SEV(Error) << "Exception parsing rules: " << ex.what();
     return;
   }
 
   auto parser_gen_trace = generator.GetParserGenerationTrace();
   if (!parser_gen_trace.empty()) {
-    std::cout
+    LOG_SEV(Info)
         << "\n--- Parser Generation Trace     --- \n" << parser_gen_trace
         << "\n--- End Parser Generation Trace ---\n";
   }
   else {
-    std::cout << "\nNo parser generation trace.\n";
+    LOG_SEV(Info) << "No parser generation trace.";
   }
 
   if (parser) {
@@ -43,40 +46,44 @@ void testParser(const std::string &rules_filepath, const std::string &code_filep
     std::cout << "\n";
     generator.WriteStates(std::cout);
     std::cout << "\n" << parser->PrintTable() << "\n\n";
-    std::cout << "Description parse successful.\n\n";
+    LOG_SEV(Info) << "Description parse successful.\n\n";
     std::shared_ptr<ParseNode> program;
     try {
       program = parser->ParserCodeFile(code_filepath);
     }
     catch (const std::exception& ex) {
-      std::cout << "Exception during parsing: " << ex.what() << std::endl;
+      LOG_SEV(Error) << "Exception during parsing: " << ex.what();
     }
     if (program) {
-      std::cout << "Parse took " << parser->NumParseSteps() << " steps.\n";
+      LOG_SEV(Info) << "Parse took " << parser->NumParseSteps() << " steps.";
       std::cout << Display::RenderParseTree(program);
     } else {
-      std::cout << "FAILURE parsing file. Printing parse trace:\n\n";
+      LOG_SEV(Warning) << "FAILURE parsing file. Printing parse trace:\n\n";
       std::cout << "=============================================================\n\n";
       std::cout << parser->GetParseTrace() << "\n";
     }
 
   } else {
-    std::cout << "Failure to create Parser." << "\n";
+    LOG_SEV(Warning) << "Failure to create Parser.";
     std::cout << generator.GetParserGenerationTrace() << "\n";
   }
 
 }
 
 int main(int argc, char **argv) {
+  lightning::Global::GetCore()->AddSink(std::make_shared<OstreamSink>());
+
   // compareParsers("../config/simpler_rules.txt");
 
   //testParser("../../config/simple-rules.txt", "../../examples/code-ex.txt");
 
   // testParser("../../config/op_prec.txt", "../../examples/code-ex.txt");
 
-  // testParser("../../config/full_rules.txt", "../../examples/basic_parser_and_lexer.txt");
+  testParser("../../config/full_rules.txt", "../../examples/basic_parser_and_lexer.txt");
 
-  testParser("../../config/manta.txt", "../../examples/manta_code.txt");
+  // testParser("../../config/manta.txt", "../../examples/manta_code.txt");
+
+  // testParser("../../config/test_newline_or.txt", "../../examples/test_newline_or.txt");
 
   // testParser("../../config/code_rules.txt", "../../examples/codefile.txt");
 

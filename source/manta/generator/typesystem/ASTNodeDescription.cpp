@@ -3,7 +3,7 @@
 //
 
 #include "manta/generator/typesystem/ASTNodeDescription.h"
-#include "manta/lightning/Lightning.h"
+#include <Lightning/Lightning.h>
 
 using namespace manta;
 using namespace manta;

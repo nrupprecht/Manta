@@ -6,7 +6,8 @@
 // Other files.
 #include "manta/generator/typesystem/TypeDeduction.h"
 #include "manta/generator/typesystem/TypeRelationship.h"
-#include "manta/lightning/Lightning.h"
+#include <Lightning/Lightning.h>
+
 
 namespace {
 

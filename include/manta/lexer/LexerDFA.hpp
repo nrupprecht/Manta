@@ -1,5 +1,4 @@
-#ifndef LEXER_DFA_HPP_MANTA_
-#define LEXER_DFA_HPP_MANTA_
+#pragma once
 
 #include "manta/lexer/DeterministicFiniteAutomata.hpp"
 #include "manta/utility/IStreamContainer.hpp"
@@ -16,7 +15,9 @@ class LexerDFA {
   //! \brief Set up the lexer to parse a string. Takes the string.
   void SetStringToLex(const std::string &sentence);
 
-  // --- Helper functions.
+  // =====================================================================================
+  //  Helper functions.
+  // =====================================================================================
 
   //! Returns whether there are any characters left to be processed.
   NO_DISCARD bool CheckAnyRemaining() const;
@@ -66,7 +67,7 @@ class LexerDFA {
       reserved_tokens_(std::move(reserved)) {};
 
   //! \brief Check if a token should be skipped.
-  inline bool isSkip(int lexeme_id);
+  NO_DISCARD bool isSkip(int lexeme_id) const;
 
   //! \brief A vector of lexemes.
   std::vector<std::string> all_lexemes_;
@@ -95,5 +96,4 @@ inline std::string lexAllToString(const std::shared_ptr<LexerDFA> &lexer) {
   return stream.str();
 }
 
-} // manta
-#endif // LEXER_DFA_HPP_MANTA_
+} // namespace manta

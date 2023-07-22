@@ -46,11 +46,11 @@ class TypeDeduction {
       field_type_descriptions[field_name] = field_type;
     }
 
-    const std::set<std::string>& GetFields(const std::string& type_name) {
+    NO_DISCARD const std::set<std::string>& GetFields(const std::string& type_name) const {
       return fields_for_type.at(type_name);
     }
 
-    const TypeDescription* GetFieldType(const std::string& field_name) {
+    NO_DISCARD const TypeDescription* GetFieldType(const std::string& field_name) const {
       return field_type_descriptions.at(field_name);
     }
 
