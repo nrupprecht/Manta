@@ -4,6 +4,8 @@
 
 #include "manta/generator/LexerGenerator.h"
 // Other files.
+#include <Lightning/Lightning.h>
+
 #include "manta/lexer/LexerDFA.hpp"
 
 using namespace manta;
@@ -20,17 +22,19 @@ LexerGenerator::LexerGenerator(bool eof_token) {
   }
 }
 
-std::shared_ptr<LexerDFA> LexerGenerator::CreateLexer(const std::string &filename, bool clear_old) {
+std::shared_ptr<LexerDFA> LexerGenerator::CreateLexer(const std::string& filename,
+                                                      bool clear_old) {
   std::ifstream fin(filename);
   if (fin.fail()) {
-    std::cout << "Failed to open file [" << filename << "].\n";
+    LOG_SEV(Error) << "Failed to open file [" << filename << "].";
     return nullptr;
   }
   // Create parser.
   return CreateLexer(fin, clear_old);
 }
 
-std::shared_ptr<LexerDFA> LexerGenerator::CreateLexer(std::istream &instream, bool clear_old) {
+std::shared_ptr<LexerDFA> LexerGenerator::CreateLexer(std::istream& instream,
+                                                      bool clear_old) {
   in_ = instream;
 
   // Lambda function for passing whitespaces.
@@ -60,7 +64,7 @@ std::shared_ptr<LexerDFA> LexerGenerator::CreateLexer(std::istream &instream, bo
         in_->get(c);
       }
     }
-    else if (c == '.') { // Command
+    else if (c == '.') {  // Command
       std::string command;
       in_->get(c);
       while (!in_->eof() && isalpha(c)) {
@@ -68,8 +72,8 @@ std::shared_ptr<LexerDFA> LexerGenerator::CreateLexer(std::istream &instream, bo
         in_->get(c);
       }
       if (command == "Lexer") {
-        in_->putback(c); // Just in case c is '.'
-        break; // Start lexing.
+        in_->putback(c);  // Just in case c is '.'
+        break;  // Start lexing.
       }
       // Not the Lexer command. Keep looking.
     }
@@ -78,7 +82,7 @@ std::shared_ptr<LexerDFA> LexerGenerator::CreateLexer(std::istream &instream, bo
     }
   }
   if (in_->eof()) {
-    std::cout << "Could not find the .Lexer indicator.\n";
+    LOG_SEV(Error) << "Could not find the '.Lexer' indicator.";
     return nullptr;
   }
 
@@ -90,8 +94,9 @@ std::shared_ptr<LexerDFA> LexerGenerator::CreateLexer(std::istream &instream, bo
       auto lexeme = getLexeme();
 
       // Make sure this is not a repeat lexeme. If not, store it.
-      if (std::find(all_lexemes_.begin(), all_lexemes_.end(), lexeme) != all_lexemes_.end()) {
-        std::cout << "WARNING: This lexeme ('@" << lexeme << "') already exists.\n";
+      if (std::find(all_lexemes_.begin(), all_lexemes_.end(), lexeme)
+          != all_lexemes_.end()) {
+        LOG_SEV(Warning) << "The lexeme ('@" << lexeme << "') already exists.";
       }
       else {
         all_lexemes_.push_back(lexeme);
@@ -116,30 +121,33 @@ std::shared_ptr<LexerDFA> LexerGenerator::CreateLexer(std::istream &instream, bo
       // Get the lexeme definition.
       auto [start_id, end_id] = getSequence('`');
       // Set recent_id node to be accepting.
-      lexer_dfa_.AddAcceptance(end_id, static_cast<int>(all_lexemes_.size()) - 1, 1 /* Precedence */);
+      lexer_dfa_.AddAcceptance(
+          end_id, static_cast<int>(all_lexemes_.size()) - 1, 1 /* Precedence */);
       // Lambda transition from head node to start_id node.
       lexer_dfa_.AddTransition(head_id_, start_id);
 
       // Consume spaces until a newline or EOF.
       in_->get(c);
       while (!in_->eof()) {
-        if (c == ' ' || c == '\t');
+        if (c == ' ' || c == '\t')
+          ;
         else if (c == '\n') {
           break;
         }
         else {
+          LOG_SEV(Error) << "Unexpected character '" << c << "'.";
           MANTA_FAIL("unexpected characters");
         }
         in_->get(c);
       }
     }
-      // Full line comments.
+    // Full line comments.
     else if (c == '#') {
       while (!in_->eof() && c != '\n') {
         in_->get(c);
       }
     }
-      // Command.
+    // Command.
     else if (c == '.') {
       pass_white_space();
       std::string command;
@@ -160,7 +168,7 @@ std::shared_ptr<LexerDFA> LexerGenerator::CreateLexer(std::istream &instream, bo
         skip_lexemes_.push_back(LexemeID(skip));
       }
       else {
-        std::cout << "Unrecognized command: " << command << "\n";
+        LOG_SEV(Warning) << "Unrecognized command '" << command << "'.'";
       }
     }
     // Get next character.
@@ -174,18 +182,14 @@ std::shared_ptr<LexerDFA> LexerGenerator::CreateLexer() {
   // Reduce the NFA to a DFA.
   lexer_dfa_ = lexer_dfa_.NFAToDFA();
   return std::shared_ptr<LexerDFA>(
-      new LexerDFA(
-          lexer_dfa_,
-          all_lexemes_,
-          reserved_tokens_,
-          skip_lexemes_));
+      new LexerDFA(lexer_dfa_, all_lexemes_, reserved_tokens_, skip_lexemes_));
 }
 
 const std::map<std::string, std::string>& LexerGenerator::GetDefiningExpressions() const {
   return defining_expressions_;
 }
 
-int LexerGenerator::Accepts(const std::string &word) const {
+int LexerGenerator::Accepts(const std::string& word) const {
   auto acceptance = lexer_dfa_.Accepts(word);
   if (acceptance.empty()) {
     return -1;
@@ -213,11 +217,11 @@ std::string LexerGenerator::getLexeme() const {
   return lexeme;
 }
 
-std::string LexerGenerator::escapeLiteral(const std::string &literal) {
+std::string LexerGenerator::escapeLiteral(const std::string& literal) {
   std::string output;
   output.reserve(literal.size());
 
-  for (auto c: literal) {
+  for (auto c : literal) {
     switch (c) {
       case '\\':
         output += "\\\\";
@@ -237,7 +241,8 @@ std::string LexerGenerator::escapeLiteral(const std::string &literal) {
       case ']':
         output += "\\]";
         break;
-      default:output.push_back(c);
+      default:
+        output.push_back(c);
         break;
     }
   }
@@ -245,14 +250,14 @@ std::string LexerGenerator::escapeLiteral(const std::string &literal) {
   return output;
 }
 
-const std::string &LexerGenerator::LexemeName(int index) const {
+const std::string& LexerGenerator::LexemeName(int index) const {
   if (index < 0 || all_lexemes_.size() <= index) {
     throw InvalidIndex();
   }
   return all_lexemes_[index];
 }
 
-int LexerGenerator::LexemeID(const std::string &name) const {
+int LexerGenerator::LexemeID(const std::string& name) const {
   auto it = std::find(all_lexemes_.begin(), all_lexemes_.end(), name);
   if (it == all_lexemes_.end()) {
     return -1;
@@ -262,10 +267,10 @@ int LexerGenerator::LexemeID(const std::string &name) const {
   }
 }
 
-int LexerGenerator::ReservedIndex(const std::string &keyword) const {
+int LexerGenerator::ReservedIndex(const std::string& keyword) const {
   auto it = std::find_if(reserved_tokens_.begin(),
                          reserved_tokens_.end(),
-                         [&keyword](const auto &pr) { return keyword == pr.first; });
+                         [&keyword](const auto& pr) { return keyword == pr.first; });
   if (it == reserved_tokens_.end()) {
     return -1;
   }
@@ -274,25 +279,28 @@ int LexerGenerator::ReservedIndex(const std::string &keyword) const {
   }
 }
 
-int LexerGenerator::AddReserved(const std::string &keyword, int precedence) {
+int LexerGenerator::AddReserved(const std::string& keyword, int precedence) {
   // The call to escapeLiteral escapes characters, if necessary.
   return AddLexeme("RES:" + keyword, escapeLiteral(keyword), precedence);
 }
 
-void LexerGenerator::AddSkip(const std::string &keyword) {
+void LexerGenerator::AddSkip(const std::string& keyword) {
   auto it = std::find(all_lexemes_.begin(), all_lexemes_.end(), keyword);
   if (it == all_lexemes_.end()) {
-    throw InvalidIndex{};
+    throw InvalidIndex {};
   }
 
   auto index = static_cast<int>(std::distance(all_lexemes_.begin(), it));
   // Make sure the lexeme was not already added as a skip lexeme.
-  if (std::find(skip_lexemes_.begin(), skip_lexemes_.end(), index) == skip_lexemes_.end()) {
+  if (std::find(skip_lexemes_.begin(), skip_lexemes_.end(), index) == skip_lexemes_.end())
+  {
     skip_lexemes_.push_back(index);
   }
 }
 
-int LexerGenerator::AddLexeme(const std::string &lexeme, const std::string &regex, int precedence) {
+int LexerGenerator::AddLexeme(const std::string& lexeme,
+                              const std::string& regex,
+                              int precedence) {
   // Check if the lexeme already exists
   auto it = std::find(all_lexemes_.begin(), all_lexemes_.end(), lexeme);
   if (it != all_lexemes_.end()) {
@@ -307,7 +315,7 @@ int LexerGenerator::AddLexeme(const std::string &lexeme, const std::string &rege
   std::stringstream stream;
   stream << regex;
   in_ = stream;
-  auto[start_id, end_id] = getSequence('\0', false);
+  auto [start_id, end_id] = getSequence('\0', false);
   // Set recent_id node to be accepting.
   lexer_dfa_.AddAcceptance(end_id, lexeme_number, precedence);
   // Lambda transition from head node to start_id node.
@@ -333,7 +341,7 @@ std::pair<int, int> LexerGenerator::getSequence(char terminator, bool useTermina
   int recent_id = start_id;
   std::pair<int, int> ends(start_id, end_id);
 
-  char c{}; // Initialize to 0
+  char c {};  // Initialize to 0
   in_->get(c);
   do {
     // Terminator character.
@@ -343,60 +351,79 @@ std::pair<int, int> LexerGenerator::getSequence(char terminator, bool useTermina
       return ends;
     }
     // Pass spaces and tabs
-    else if (c == ' ' || c == '\t');
-      // Start of grouping.
+    else if (c == ' ' || c == '\t')
+      ;
+    // Start of grouping.
     else if (c == '(') {
-      auto[start, end] = getSequence(')');
-      lexer_dfa_.AddTransition(recent_id, start); // Link up with an epsilon transition.
+      auto [start, end] = getSequence(')');
+      lexer_dfa_.AddTransition(recent_id, start);  // Link up with an epsilon transition.
 
       // Peek if a modifiers modifies the grouping.
       in_->get(c);
       if (!in_->eof()) {
-        if (c == '*') makeStar(start, end, recent_id);
-        else if (c == '?') makeQues(start, end, recent_id);
-        else if (c == '+') makePlus(start, end, recent_id);
-        else in_->putback(c);
+        if (c == '*') {
+          makeStar(start, end, recent_id);
+        }
+        else if (c == '?') {
+          makeQues(start, end, recent_id);
+        }
+        else if (c == '+') {
+          makePlus(start, end, recent_id);
+        }
+        else {
+          in_->putback(c);
+        }
       }
       recent_id = end;
     }
-      // Escape character
+    // Escape character
     else if (c == '\\') {
-      in_->get(c); // Get next letter.
+      in_->get(c);  // Get next letter.
       specialCharacters(c, recent_id);
     }
-      // OR
+    // OR
     else if (c == '|') {
-      // Link recent_id node with end_id node via a epsilon transition, set up to get the next bin in the OR statement
+      // Link recent_id node with end_id node via a epsilon transition, set up to get the
+      // next bin in the OR statement
       lexer_dfa_.AddTransition(recent_id, end_id);
       recent_id = start_id;
     }
-      // Character class.
+    // Character class.
     else if (c == '[') {
-      // Character classes can accept single characters based on whether they fall into a range, do not fall into a range,
-      // or do not match a certain string.
+      // Character classes can accept single characters based on whether they fall into a
+      // range, do not fall into a range, or do not match a certain string.
       //
-      // Fall into range: [a-z] ==> Accept the char if it is in the range a-z, inclusively.
-      // Don't fall into range: [^a-z] ==> Accept char if it is not in the range a-z, inclusively.
-      // Dont match string: [~*/] ==> Accept char if the next two chars are not "*/"
+      // Fall into range: [a-z] ==> Accept the char if it is in the range a-z,
+      // inclusively. Don't fall into range: [^a-z] ==> Accept char if it is not in the
+      // range a-z, inclusively. Dont match string: [~*/] ==> Accept char if the next two
+      // chars are not "*/"
 
       auto [start, end] = getCharacterClass();
-      lexer_dfa_.AddTransition(recent_id, start); // Link up with an epsilon transition.
+      lexer_dfa_.AddTransition(recent_id, start);  // Link up with an epsilon transition.
 
       // Peek if a modifiers modifies the grouping.
       in_->get(c);
       if (!in_->eof()) {
-        if (c == '*') makeStar(start, end, recent_id);
-        else if (c == '?') makeQues(start, end, recent_id);
-        else if (c == '+') makePlus(start, end, recent_id);
-        else in_->putback(c);
+        if (c == '*') {
+          makeStar(start, end, recent_id);
+        }
+        else if (c == '?') {
+          makeQues(start, end, recent_id);
+        }
+        else if (c == '+') {
+          makePlus(start, end, recent_id);
+        }
+        else {
+          in_->putback(c);
+        }
       }
       recent_id = end;
     }
-      // Newline - we should only encounter this if terminator == '\n'
+    // Newline - we should only encounter this if terminator == '\n'
     else if (c == '\n') {
       throw UnexpectedNewLine();
     }
-      // General character. Could be the start of a char range.
+    // General character. Could be the start of a char range.
     else {
       addChar(c, recent_id);
     }
@@ -404,23 +431,24 @@ std::pair<int, int> LexerGenerator::getSequence(char terminator, bool useTermina
     in_->get(c);
   } while (!in_->eof());
   // In case of eof.
-  lexer_dfa_.AddTransition(recent_id, end_id); // For completeness.
+  lexer_dfa_.AddTransition(recent_id, end_id);  // For completeness.
   return ends;
 }
 
 std::pair<int, int> LexerGenerator::getCharacterClass() {
   MANTA_REQUIRE(!in_->eof(), "cannot encounter EOF in the middle of a character class")
   char c = in_->peek();
-  // Check if this is a normal character class, complement character class, or string complement.
-  if (c == '^') { // Complement character class.
-    in_->get(c); // Consume.
+  // Check if this is a normal character class, complement character class, or string
+  // complement.
+  if (c == '^') {  // Complement character class.
+    in_->get(c);  // Consume.
     return characterClass(true);
   }
-  else if (c == '~') { // String complement.
-    in_->get(c); // Consume.
+  else if (c == '~') {  // String complement.
+    in_->get(c);  // Consume.
     return stringComplement();
   }
-  else { // Normal character class.
+  else {  // Normal character class.
     return characterClass();
   }
 }
@@ -434,15 +462,16 @@ std::pair<int, int> LexerGenerator::stringComplement() {
   std::string str;
   while (!in_->eof()) {
     MANTA_ASSERT(c != '\n', "cannot have a newline in the middle of a string complement");
-    if (c == '\\') { // Escaped character
+    if (c == '\\') {  // Escaped character
       MANTA_ASSERT(!in_->eof(), "cannot encounter EOF in string complement");
       in_->get(c);
       str.push_back(escapedCharacter(c));
     }
-    else if (c == ']') { // End of character class.
+    else if (c == ']') {  // End of character class.
       break;
     }
-    else if (c == ' '); // Skip space.
+    else if (c == ' ')
+      ;  // Skip space.
     else {
       str.push_back(c);
     }
@@ -478,7 +507,7 @@ std::pair<int, int> LexerGenerator::stringComplement() {
     recent_id = next_id;
   }
 
-  return { start_id, end_id };
+  return {start_id, end_id};
 }
 
 std::pair<int, int> LexerGenerator::characterClass(bool make_complement) {
@@ -487,7 +516,7 @@ std::pair<int, int> LexerGenerator::characterClass(bool make_complement) {
   std::vector<std::pair<char, char>> ranges;
   std::vector<char> characters;
 
-  char c;
+  char c {};
   in_->get(c);
 
   do {
@@ -495,13 +524,14 @@ std::pair<int, int> LexerGenerator::characterClass(bool make_complement) {
     if (c == ']') {
       break;
     }
-    else if (std::isspace(c)); // Bypass whitespace.
+    else if (std::isspace(c))
+      ;  // Bypass whitespace.
     // Other character.
     else {
       // Check if this a character range.
       char d = static_cast<char>(in_->peek());
       if (d == '-') {
-        in_->get(d); // Consume.
+        in_->get(d);  // Consume.
 
         in_->get(d);
         // If the character is ']', the '-' is just another character.
@@ -523,7 +553,6 @@ std::pair<int, int> LexerGenerator::characterClass(bool make_complement) {
         else {
           ranges.emplace_back(c, d);
         }
-
       }
       // Not a character range.
       else {
@@ -540,25 +569,26 @@ std::pair<int, int> LexerGenerator::characterClass(bool make_complement) {
   if (make_complement) {
     MANTA_FAIL("complement range not implemented");
   }
-  else { // Normal ranges and selections.
-    // NOTE: This is not the absolute best thing to do, since you could have overlapping ranges
-    // and chars within other ranges. However, it is probably pretty good, since most people
-    // aren't going to write things like [a-z c-z] or [abcdef...z]
-    for (auto& [s, e] : ranges) {
-      lexer_dfa_.AddTransition(start_id, end_id, s, e);
+  else {  // Normal ranges and selections.
+    // NOTE: This is not the absolute best thing to do, since you could have overlapping
+    // ranges and chars within other ranges. However, it is probably pretty good, since
+    // most people aren't going to write things like [a-z c-z] or [abcdef...z]
+    for (auto& [start_range, end_range] : ranges) {
+      lexer_dfa_.AddTransition(start_id, end_id, start_range, end_range);
     }
     for (auto ch : characters) {
-      lexer_dfa_.AddTransition(start_id, end_id, c);
+      lexer_dfa_.AddTransition(start_id, end_id, ch);
     }
   }
 
-  return { start_id, end_id };
+  return {start_id, end_id};
 }
 
-void LexerGenerator::specialCharacters(char c, int &recent_id) {
+void LexerGenerator::specialCharacters(char c, int& recent_id) {
   // Backslashes must be escaped.
   if (in_->eof()) {
-    MANTA_FAIL("found single backslash (\\) right before EOF, backslashes must be escaped");
+    MANTA_FAIL(
+        "found single backslash ('\\') right before EOF, backslashes must be escaped");
   }
 
   // Any letter. Need to add two transitions.
@@ -589,27 +619,35 @@ void LexerGenerator::specialCharacters(char c, int &recent_id) {
   }
 }
 
-void LexerGenerator::makeStar(int idi, int idf, int &recent_id) {
+void LexerGenerator::makeStar(int idi, int idf, int& recent_id) {
   lexer_dfa_.AddTransition(idi, idf);
   lexer_dfa_.AddTransition(idf, idi);
 }
 
-void LexerGenerator::makePlus(int idi, int idf, int &recent_id) {
+void LexerGenerator::makePlus(int idi, int idf, int& recent_id) {
   lexer_dfa_.AddTransition(idf, idi);
 }
 
-void LexerGenerator::makeQues(int idi, int idf, int &recent_id) {
+void LexerGenerator::makeQues(int idi, int idf, int& recent_id) {
   lexer_dfa_.AddTransition(idi, idf);
 }
 
 // Add (if needed) a modifier to a sequence of nodes.
-void LexerGenerator::checkModifier(int idi, int idf, int &recent_id) {
+void LexerGenerator::checkModifier(int idi, int idf, int& recent_id) {
   char d = in_->peek();
   bool get_next = true;
-  if (d == '+') makePlus(idi, idf, recent_id);
-  else if (d == '*') makeStar(idi, idf, recent_id);
-  else if (d == '?') makeQues(idi, idf, recent_id);
-  else get_next = false;
+  if (d == '+') {
+    makePlus(idi, idf, recent_id);
+  }
+  else if (d == '*') {
+    makeStar(idi, idf, recent_id);
+  }
+  else if (d == '?') {
+    makeQues(idi, idf, recent_id);
+  }
+  else {
+    get_next = false;
+  }
   // If necessary, get the next character.
   if (get_next) {
     in_->get(d);
@@ -617,7 +655,7 @@ void LexerGenerator::checkModifier(int idi, int idf, int &recent_id) {
 }
 
 // Lambda function that adds another node in the line.
-void LexerGenerator::addNode(char ci, char cf, int &recent_id) {
+void LexerGenerator::addNode(char ci, char cf, int& recent_id) {
   int id = lexer_dfa_.AddNode();
   lexer_dfa_.AddTransition(recent_id, id, ci, cf);
   checkModifier(recent_id, id, recent_id);
@@ -625,8 +663,9 @@ void LexerGenerator::addNode(char ci, char cf, int &recent_id) {
   recent_id = id;
 }
 
-// Lambda function for adding a character node. Checks whether a */+/? comes after the char.
-void LexerGenerator::addChar(char c, int &recent_id) {
+// Lambda function for adding a character node. Checks whether a */+/? comes after the
+// char.
+void LexerGenerator::addChar(char c, int& recent_id) {
   int id = lexer_dfa_.AddNode();
   // Add the normal character transition.
   lexer_dfa_.AddTransition(recent_id, id, c);
@@ -636,28 +675,29 @@ void LexerGenerator::addChar(char c, int &recent_id) {
 }
 
 inline bool LexerGenerator::isSkip(int lexeme_id) {
-  return std::find(skip_lexemes_.begin(), skip_lexemes_.end(), lexeme_id) != skip_lexemes_.end();
+  return std::find(skip_lexemes_.begin(), skip_lexemes_.end(), lexeme_id)
+      != skip_lexemes_.end();
 }
 
 char LexerGenerator::escapedCharacter(char c) {
-  if (c == '\\') return '\\';
-  else if (c == 'n') return '\n';
-  else if (c == 'r') return '\r';
-  else if (c == 't') return '\t';
-  else if (c == 's') return ' ';
-  else if (c == '(') return '(';
-  else if (c == '[') return '[';
-  else if (c == '{') return '{';
-  else if (c == ')') return ')';
-  else if (c == ']') return ']';
-  else if (c == '}') return '}';
-  else if (c == '|') return '|';
-  else if (c == '+') return '+';
-  else if (c == '-') return '-';
-  else if (c == '*') return '*';
-  else if (c == '?') return '?';
-  else if (c == '~') return '~';
-  else if (c == '0') return static_cast<char>(0);
-  // Otherwise, the return the input character, it is not a special escaped char.
-  return c;
+  switch (c) {
+    // "Normal" escaped characters.
+    case '\\':
+      return '\\';
+    case 'n':
+      return '\n';
+    case 'r':
+      return '\r';
+    case 't':
+      return '\t';
+    // Atypical escaped characters.
+    case 's':
+      return ' ';
+    case '0':
+      // Represents EOF.
+      return char(0);
+    default:
+      // Otherwise, the return the input character, it is not a special escaped char.
+      return c;
+  }
 }
