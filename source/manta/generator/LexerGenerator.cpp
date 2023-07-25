@@ -333,7 +333,7 @@ std::pair<int, int> LexerGenerator::getSequence(char terminator, bool useTermina
   int recent_id = start_id;
   std::pair<int, int> ends(start_id, end_id);
 
-  char c;
+  char c{}; // Initialize to 0
   in_->get(c);
   do {
     // Terminator character.
