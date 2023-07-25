@@ -1,8 +1,10 @@
 #include "manta/lexer/LexerDFA.hpp"
+// Other files.
+#include <Lightning/Lightning.h>
 
 using namespace manta;
 
-bool LexerDFA::SetFileToLex(const std::string &fileName) {
+bool LexerDFA::SetFileToLex(const std::string& fileName) {
   std::ifstream fin(fileName);
   if (!fin.fail()) {
     auto instream = IStreamContainer::OpenFile(fileName);
@@ -12,7 +14,7 @@ bool LexerDFA::SetFileToLex(const std::string &fileName) {
   return false;
 }
 
-void LexerDFA::SetStringToLex(const std::string &sentence) {
+void LexerDFA::SetStringToLex(const std::string& sentence) {
   auto instream = IStreamContainer::StreamString(sentence);
   lexer_dfa_.SetStream(instream);
 }
@@ -26,12 +28,15 @@ std::optional<LexResult> LexerDFA::LexNext() {
   do {
     result = lexer_dfa_.LexNext();
     // Check status
-    if (CheckStatus() != FAStatus::Valid && CheckStatus() != FAStatus::AcceptedEOF || !result /* Failed to get anything */) {
+    if (CheckStatus() != FAStatus::Valid && CheckStatus() != FAStatus::AcceptedEOF
+        || !result /* Failed to get anything */)
+    {
       return {};
     }
-    // If all accepted states of the token (note that there are generally just one accepted state) are skip, then skip the token.
+    // If all accepted states of the token (note that there are generally just one
+    // accepted state) are skip, then skip the token.
     bool is_skip = false;
-    for (auto& [lexeme_id, _]: result->accepted_lexemes) {
+    for (auto& [lexeme_id, _] : result->accepted_lexemes) {
       if (isSkip(lexeme_id)) {
         is_skip = true;
         break;
@@ -79,7 +84,7 @@ FAStatus LexerDFA::CheckStatus() const {
 
 std::string LexerDFA::LexemeName(int index) const {
   if (index < 0 || all_lexemes_.size() <= index) {
-    //throw InvalidIndex();
+    // throw InvalidIndex();
     return "";
   }
   return all_lexemes_[index];
@@ -98,5 +103,6 @@ void LexerDFA::SetRepeatEOF(bool flag) {
 }
 
 bool LexerDFA::isSkip(int lexeme_id) const {
-  return std::find(skip_lexemes_.begin(), skip_lexemes_.end(), lexeme_id) != skip_lexemes_.end();
+  return std::find(skip_lexemes_.begin(), skip_lexemes_.end(), lexeme_id)
+      != skip_lexemes_.end();
 }

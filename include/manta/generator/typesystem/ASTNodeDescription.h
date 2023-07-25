@@ -3,10 +3,8 @@
 #include "manta/generator/typesystem/CodeGen.h"
 
 namespace manta {
-using NonterminalID = int;
-}
 
-namespace manta {
+using NonterminalID = int;
 
 //! \brief Class that keeps track of and owns the data for all types.
 //!
@@ -14,7 +12,7 @@ namespace manta {
 //! be left as just an IR of all the nodes, and separate classes could do the actual codegen into a target language.
 //!
 class ASTNodeManager {
- public:
+public:
   struct NonterminalTypes {
     //! \brief The base type for all nodes associated with this non-terminal.
     TypeDescriptionStructure* base_type;
@@ -91,7 +89,7 @@ class ASTNodeManager {
 
   NonterminalTypes& GetNonterminalTypes(NonterminalID id);
 
- private:
+private:
 
   TypeSystem type_system_;
 
@@ -106,7 +104,6 @@ class ASTNodeManager {
 
   // Map from non-terminal to the set of node types that productions for this node can product.
   std::map<NonterminalID, NonterminalTypes> node_types_for_nonterminal_{};
-
 };
 
 } // namespace manta

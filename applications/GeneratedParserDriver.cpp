@@ -6,9 +6,9 @@
 
 auto main() -> int {
 
-  Parser parser;
-
-  parser.ParseInput();
+//  Parser parser;
+//
+//  parser.ParseInput();
 
   return 0;
 }

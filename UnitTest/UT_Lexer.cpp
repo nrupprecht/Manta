@@ -373,7 +373,7 @@ TEST(Lexer, SkipLexemes) {
       "Punctuation",
       "EOF",
   };
-  for (std::size_t i = 0; i < 7; ++i) {
+  for (std::size_t i = 0; i < lexemes.size(); ++i) {
     EXPECT_EQ(lexer->LexemeName(lexemes[i].type), expected_names[i]) << "Disagreement for i = " << i;
   }
   // We expect to end in state 3 (ended after encountering EOF).

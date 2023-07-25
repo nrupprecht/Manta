@@ -70,19 +70,19 @@ class LexerDFA {
   NO_DISCARD bool isSkip(int lexeme_id) const;
 
   //! \brief A vector of lexemes.
-  std::vector<std::string> all_lexemes_;
+  std::vector<std::string> all_lexemes_{};
 
   //! \brief Keep track of the reserved tokens.
   //!
   //! Maps from the reserved literal to its lexeme number.
   //! Each reserved token must be acceptable as some lexeme type.
-  std::vector<std::pair<std::string, int>> reserved_tokens_;
+  std::vector<std::pair<std::string, int>> reserved_tokens_{};
 
   //! \brief A list of lexemes to skip.
-  std::vector<int> skip_lexemes_;
+  std::vector<int> skip_lexemes_{};
 
   //! \brief The underlying deterministic finite automaton used to do the parsing.
-  FiniteAutomaton lexer_dfa_;
+  FiniteAutomaton lexer_dfa_{};
 };
 
 //! \brief Lex everything the lexer points at, and return a string representation

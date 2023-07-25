@@ -9,14 +9,15 @@
 
 namespace manta {
 
-//! \brief Object that contains the definition of a lexer and the productions that make up a grammar.
+//! \brief Object that contains the definition of a lexer and the productions that make up
+//! a grammar.
 //!
 struct ProductionRulesData {
-  ProductionRulesData() 
-  : lexer_generator(std::make_shared<LexerGenerator>()) {}
+  ProductionRulesData()
+      : lexer_generator(std::make_shared<LexerGenerator>()) {}
 
   //! \brief A lexer_generator generator.
-  std::shared_ptr<LexerGenerator> lexer_generator{};
+  std::shared_ptr<LexerGenerator> lexer_generator {};
 
   //! \brief Maps non-terminal names to non-terminal numbers.
   std::map<std::string, int> nonterminal_map;
@@ -24,7 +25,8 @@ struct ProductionRulesData {
   //! \brief Maps non-terminal numbers to non-terminal names.
   std::map<int, std::string> inverse_nonterminal_map;
 
-  //! \brief The productions for each non-terminal. A State (here) is essentially a set of production rules.
+  //! \brief The productions for each non-terminal. A State (here) is essentially a set of
+  //! production rules.
   std::map<int, State> productions_for;
 
   //! \brief All the productions, for all non-terminals.
@@ -42,8 +44,8 @@ struct ProductionRulesData {
   //! \brief The name of the start non-terminal. By default, this is "start."
   std::string start_nonterminal_name = "start";
 
-  //! \brief The total number of lexer ids (terminals) plus non-terminal symbols. This is the number
-  //! of columns in the parse_table_.
+  //! \brief The total number of lexer ids (terminals) plus non-terminal symbols. This is
+  //! the number of columns in the parse_table_.
   int total_symbols = 0;
 
   // ============================================================================
@@ -73,56 +75,55 @@ struct ProductionRulesData {
     return lexer_generator->GetNumLexemes() <= id;
   }
 
-  NO_DISCARD bool IsTerminal(int id) const {
-    return !IsNonTerminal(id);
-  }
+  NO_DISCARD bool IsTerminal(int id) const { return !IsNonTerminal(id); }
 };
-
 
 //! \brief Class that can parse the description of a lexer and a parser from a stream.
 //!
 //! Note that this is, itself, a specific type of parser.
 //!
 class DescriptionParser {
- public:
-  //! \brief Parse the description of a parser from a stream, creating the ProductionRulesData that can be used to
-  //! to make the parser.
-  std::shared_ptr<ProductionRulesData> ParseDescription(std::istream &stream);
+public:
+  //! \brief Parse the description of a parser from a stream, creating the
+  //! ProductionRulesData that can be used to to make the parser.
+  std::shared_ptr<ProductionRulesData> ParseDescription(std::istream& stream);
 
-  //! \brief An exception class that represents encountering an unexpected character type or state while parsing.
+  //! \brief An exception class that represents encountering an unexpected character type
+  //! or state while parsing.
   EXCEPTION_MESSAGE_CTOR(UnexpectedInput);
 
-  //! \brief An exception class the signals that a lexeme type (@...) was not recognized by the lexer generator.
+  //! \brief An exception class the signals that a lexeme type (@...) was not recognized
+  //! by the lexer generator.
   EXCEPTION_MESSAGE_CTOR(UnrecognizedLexerItem);
 
- private:
+private:
   // ============================================================================
   //  Private functions.
   // ============================================================================
 
   //! \brief Get a production from it's representation in a stream.
-  void getProductions(std::istream &in, int production_id);
+  void getProductions(std::istream& in, int production_id);
 
   //! \brief Find the conflict resolution info for a production.
-  static void findResInfo(std::istream &in, ResolutionInfo &res_info);
+  static void findResInfo(std::istream& in, ResolutionInfo& res_info);
 
   //! \brief Get the instruction for a production.
-  static inline std::shared_ptr<ParseNode> getInstructions(std::istream &fin, int pid);
+  static inline std::shared_ptr<ParseNode> getInstructions(std::istream& fin, int pid);
 
-  //! \brief Get all alphabetical characters and put them into a word. Returns true if the word was *not* terminated
-  //! by the EOF. Does not Clear word at any point.
-  static bool getWord(std::istream &in, std::string &word);
+  //! \brief Get all alphabetical characters and put them into a word. Returns true if the
+  //! word was *not* terminated by the EOF. Does not Clear word at any point.
+  static bool getWord(std::istream& in, std::string& word);
 
-  //! Get all numeric characters and put them into a word. Returns true if the word was *not* terminated
-  //! by the EOF. Does not Clear word at any point.
-  static bool getInteger(std::istream &in, std::string &word);
+  //! Get all numeric characters and put them into a word. Returns true if the word was
+  //! *not* terminated by the EOF. Does not Clear word at any point.
+  static bool getInteger(std::istream& in, std::string& word);
 
-  //! \brief Get the production number associated with a production name, registering it if it has not
-  //! already been registered.
-  int registerProduction(const std::string &production);
+  //! \brief Get the production number associated with a production name, registering it
+  //! if it has not already been registered.
+  int registerProduction(const std::string& production);
 
-  //! \brief Shifts the production numbers from being negative to being positive numbers after the last lexer
-  //! token number.
+  //! \brief Shifts the production numbers from being negative to being positive numbers
+  //! after the last lexer token number.
   void shiftProductionNumbers();
 
   // ============================================================================
@@ -130,7 +131,7 @@ class DescriptionParser {
   // ============================================================================
 
   //! \brief The description of the lexer and parser to create.
-  std::shared_ptr<ProductionRulesData> production_rules_data_{};
+  std::shared_ptr<ProductionRulesData> production_rules_data_ {};
 
   //! \brief The number to assign to the next production.
   //!
@@ -141,5 +142,4 @@ class DescriptionParser {
   std::stringstream parser_generation_trace_;
 };
 
-
-} // namespace manta
+}  // namespace manta
