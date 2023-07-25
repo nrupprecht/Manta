@@ -124,22 +124,22 @@ void CppCodeGen::WriteDefinition(std::ostream& out,
 std::string CppCodeGen::WriteName(const TypeDescription* type) const {
   MANTA_REQUIRE(type, "cannot write the name of a null type description pointer");
   switch (type->general_type) {
-    case ASTGeneralType::Vector: {
+    case TSGeneralType::Vector: {
       auto vtype = dynamic_cast<const TypeDescriptionVector*>(type);
       return "std::vector<" + WriteName(vtype->element_type) + ">";
     }
-    case ASTGeneralType::SharedPointer: {
+    case TSGeneralType::SharedPointer: {
       auto ptype = dynamic_cast<const TypeDescriptionSharedPointer*>(type);
       return "std::shared_ptr<" + WriteName(ptype->pointed_type) + ">";
     }
-    case ASTGeneralType::String: {
+    case TSGeneralType::String: {
       return "std::string";
     }
-    case ASTGeneralType::Structure: {
+    case TSGeneralType::Structure: {
       auto stype = dynamic_cast<const TypeDescriptionStructure*>(type);
       return stype->type_name;
     }
-    case ASTGeneralType::Enumeration: {
+    case TSGeneralType::Enumeration: {
       auto etype = dynamic_cast<const TypeDescriptionEnum*>(type);
       return etype->GetName();
     }

@@ -314,7 +314,7 @@ TypeDeduction ParserDataToTypeManager::DeduceTypes() {
           auto type = ty->second;
 
           if (rel.check_type == CheckType::Append) {
-            MANTA_ASSERT(type->general_type == ASTGeneralType::Vector,
+            MANTA_ASSERT(type->general_type == TSGeneralType::Vector,
                          "for append, the target field must be a vector type");
           }
           else if (rel.check_type == CheckType::Field) {
@@ -695,7 +695,7 @@ const TypeDescription* ParserDataToTypeManager::makeType(
     return node_manager().MakeVector(source_type);
   }
   else if (check_type == CheckType::Append) {
-    MANTA_ASSERT(source_type->general_type == ASTGeneralType::Vector,
+    MANTA_ASSERT(source_type->general_type == TSGeneralType::Vector,
                  "cannot append a non-vector to a vector");
     return source_type;
   }

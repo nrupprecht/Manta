@@ -11,7 +11,8 @@
 
 namespace manta {
 
-enum class ASTGeneralType
+//! \brief The general Type System category enum.
+enum class TSGeneralType
 {
   Vector,
   String,
@@ -20,34 +21,19 @@ enum class ASTGeneralType
   Enumeration
 };
 
-inline std::string to_string(ASTGeneralType type) {
-  switch (type) {
-    case ASTGeneralType::Vector:
-      return "Vector";
-    case ASTGeneralType::String:
-      return "String";
-    case ASTGeneralType::SharedPointer:
-      return "SharedPointer";
-    case ASTGeneralType::Structure:
-      return "Structure";
-    case ASTGeneralType::Enumeration:
-      return "Enumeration";
-    default:
-      MANTA_FAIL("unrecogmized ASTGeneralType");
-  }
-}
+//! \brief Function to serialize a TSGeneralType enum to a string.
+std::string to_string(TSGeneralType type);
 
 //! \brief Base class for the possible types of member variables in an AST node.
 struct TypeDescription {
-  explicit TypeDescription(ASTGeneralType type)
+  explicit TypeDescription(TSGeneralType type)
       : general_type(type) {}
 
   //! \brief The general type, whether this is a structure, or one of the built in types.
-  ASTGeneralType general_type;
+  TSGeneralType general_type;
 
   //! \brief  Write a description of the type. Note that this is independent of code
-  //! generation,
-  //!         this is for reporting, error, and debugging purposes.
+  //! generation, this is for reporting, error, and debugging purposes.
   NO_DISCARD virtual std::string Write() const {
     // Default implementation, so we can still instantiate TypeDescription(enum) to get
     // the base hash.
@@ -68,28 +54,28 @@ struct TypeDescription {
   }
 };
 
-//! \brief  Type description for a "basic" type. Basic types will be mapped to types in
-//! target programming languages
-//!         in a language dependent way.
+//! \brief Type description for a "basic" type. Basic types will be mapped to types in
+//! target programming languages in a language dependent way.
 //!
 struct BasicTypeDescription : public TypeDescription {
-  explicit BasicTypeDescription(ASTGeneralType type)
+  explicit BasicTypeDescription(TSGeneralType type)
       : TypeDescription(type) {}
 };
 
+// Forward declare
 class TypeDescriptionStructure;
 
-//! \brief  Helper structure that defines a simple constructor for a
+//! \brief Helper structure that defines a simple constructor for a
 //! TypeDescriptionStructure.
 //!
 struct StructureConstructor {
   using ArgName = std::string;
   using FieldName = std::string;
 
-  //! \brief  Represents an argument value.
+  //! \brief Represents an argument value.
   //!
-  //!         NOTE: This breaks the separation between abstract structure and codegen
-  //!         (e.g. by using C++ style syntax for enums), but I am allowing it for now.
+  //! NOTE: This breaks the separation between abstract structure and codegen (e.g. by
+  //! using C++ style syntax for enums), but I am allowing it for now.
   struct Value {
     std::string literal;
   };
@@ -112,81 +98,46 @@ struct StructureConstructor {
   //! \brief  Additional fields, values to initialize in addition to the arguments.
   //!
   std::vector<std::pair<FieldName, Value>> additional_initializations {};
+
+  // =====================================================================================
+  //  Builder functions
+  // =====================================================================================
+
+  StructureConstructor& WithArguments(
+      std::vector<std::pair<const TypeDescription*, ArgName>> args);
+
+  StructureConstructor& WithParentConstuctor(
+      std::vector<std::pair<const TypeDescriptionStructure*,
+                            std::vector<std::variant<ArgName, Value>>>> constructors);
+
+  StructureConstructor& WithListInitializedArgs(
+      std::vector<std::tuple<ArgName, FieldName>> list_init_args);
+
+  StructureConstructor& WithAdditionalInitializations(
+      std::vector<std::pair<FieldName, Value>> inits);
 };
 
 //! \brief  Type description for a structure, or compound type.
 //!
+//! This is the most complex type, as I also allow it to have constructors which can do
+//! different types of initializations.
 struct TypeDescriptionStructure : public TypeDescription {
-  explicit TypeDescriptionStructure(std::string name)
-      : type_name(std::move(name))
-      , TypeDescription(ASTGeneralType::Structure) {}
+  explicit TypeDescriptionStructure(std::string name);
 
-  void AddField(const std::string& field_name, const TypeDescription* field_type) {
-    if (auto it = fields.find(field_name); it == fields.end()) {
-      // New field.
-      fields[field_name] = field_type;
-    }
-    else {
-      // Preexisting field. Make sure types match.
-      MANTA_ASSERT(
-          field_type->HashID() == it->second->HashID(),
-          "field " << type_name << "::" << field_name
-                   << " specified multiple times, but types do not match. Type was "
-                   << field_type->Write() << ", new type is " << it->second->Write());
-      // Nothing to add, since it already exists.
-    }
-  }
+  void AddField(const std::string& field_name, const TypeDescription* field_type);
 
-  void AddParent(const TypeDescriptionStructure* parent) {
-    parent_classes.insert(parent);
-  }
+  void AddParent(const TypeDescriptionStructure* parent);
 
-  void AddConstructor(const StructureConstructor& constructor) {
-    // Make sure that all referenced fields are actually fields of the structure.
-    std::set<std::string> arg_names;
-    for (auto& [_, arg_name] : constructor.arguments) {
-      arg_names.insert(arg_name);
-    }
+  void AddConstructor(const StructureConstructor& constructor);
 
-    // TODO: The rest of the validation of the constructor.
+  NO_DISCARD std::string Write() const override;
 
-    for (auto& [field, _] : constructor.additional_initializations) {
-      MANTA_REQUIRE(fields.contains(field),
-                    "field '" << field << "' is not a field of " << Write());
-    }
-    constructors.push_back(constructor);
-  }
+  static std::size_t PotentialHashID(const std::string& type_name);
 
-  NO_DISCARD std::string Write() const override {
-    // Default implementation, so we can still instantiate TypeDescription(enum) to get
-    // the base hash.
-    return "Structure:" + type_name;
-  }
-
-  static std::size_t PotentialHashID(const std::string& type_name) {
-    auto hash = TypeDescription(ASTGeneralType::Vector).HashID();
-    HashCombine(hash, type_name);
-    return hash;
-  }
-
-  NO_DISCARD std::size_t HashStructure() const override {
-    auto hash = TypeDescription::HashStructure();
-    for (auto& parent : parent_classes) {
-      HashCombine(hash, parent->HashStructure());
-    }
-    for (auto& [name, type] : fields) {
-      HashCombine(hash, name);
-      HashCombine(hash, type->HashStructure());
-    }
-    return hash;
-  }
+  NO_DISCARD std::size_t HashStructure() const override;
 
   //! \brief Nodes are classes, so their ID is just their name.
-  NO_DISCARD std::size_t HashID() const override {
-    auto hash = TypeDescription::HashID();
-    HashCombine(hash, type_name);
-    return hash;
-  }
+  NO_DISCARD std::size_t HashID() const override;
 
   //! \brief The name of the type.
   const std::string type_name;
@@ -201,100 +152,53 @@ struct TypeDescriptionStructure : public TypeDescription {
   std::vector<StructureConstructor> constructors;
 };
 
-//! \brief Represents a vector or ordered collection of objects.
+//! \brief Represents a vector or ordered collection of objects of some other type..
 struct TypeDescriptionVector : public BasicTypeDescription {
-  explicit TypeDescriptionVector(const TypeDescription* element_type)
-      : BasicTypeDescription(ASTGeneralType::Vector)
-      , element_type(element_type) {}
+  explicit TypeDescriptionVector(const TypeDescription* element_type);
+
+  NO_DISCARD std::string Write() const override;
+
+  NO_DISCARD std::size_t HashStructure() const override;
+
+  NO_DISCARD std::size_t HashID() const override;
+
+  static std::size_t PotentialHashID(const TypeDescription* vector_type);
 
   const TypeDescription* element_type {};
-
-  NO_DISCARD std::string Write() const override {
-    return to_string(general_type) + "<" + element_type->Write() + ">";
-  }
-
-  NO_DISCARD std::size_t HashStructure() const override {
-    auto hash = TypeDescription::HashStructure();
-    HashCombine(hash, element_type->HashStructure());
-    return hash;
-  }
-
-  NO_DISCARD std::size_t HashID() const override {
-    auto hash = TypeDescription::HashID();
-    HashCombine(hash, element_type->HashID());
-    return hash;
-  }
-
-  static std::size_t PotentialHashID(const TypeDescription* vector_type) {
-    auto hash = TypeDescription(ASTGeneralType::Vector).HashID();
-    HashCombine(hash, vector_type->HashID());
-    return hash;
-  }
 };
 
-//! \brief Represents a shared pointer of some type.
+//! \brief Represents a shared pointer to an object of some other type.
 struct TypeDescriptionSharedPointer : public BasicTypeDescription {
-  explicit TypeDescriptionSharedPointer(const TypeDescription* type)
-      : BasicTypeDescription(ASTGeneralType::SharedPointer)
-      , pointed_type(type) {}
+  explicit TypeDescriptionSharedPointer(const TypeDescription* type);
+
+  NO_DISCARD std::string Write() const override;
+
+  NO_DISCARD std::size_t HashStructure() const override;
+
+  NO_DISCARD std::size_t HashID() const override;
+
+  static std::size_t PotentialHashID(const TypeDescription* pointed_type);
 
   const TypeDescription* pointed_type {};
-
-  NO_DISCARD std::string Write() const override {
-    return "SharedPointer<" + pointed_type->Write() + ">";
-  }
-
-  NO_DISCARD std::size_t HashStructure() const override {
-    auto hash = TypeDescription::HashStructure();
-    // If a type has a pointer to its own type and we use Hash instead of HashID,
-    // then Hash() goes into an infinite recursion. Pointers are 'structurally different'
-    // if they point to different types.
-    HashCombine(hash, pointed_type->HashID());
-    return hash;
-  }
-
-  NO_DISCARD std::size_t HashID() const override {
-    auto hash = TypeDescription::HashID();
-    HashCombine(hash, pointed_type->HashID());
-    return hash;
-  }
-
-  static std::size_t PotentialHashID(const TypeDescription* pointed_type) {
-    auto hash = TypeDescription(ASTGeneralType::SharedPointer).HashID();
-    HashCombine(hash, pointed_type->HashID());
-    return hash;
-  }
 };
 
 //! \brief Represents an enumeration type.
 struct TypeDescriptionEnum : public BasicTypeDescription {
-  explicit TypeDescriptionEnum(const std::string& enum_name)
-      : BasicTypeDescription(ASTGeneralType::Enumeration)
-      , enum_name_(enum_name) {
-    MANTA_REQUIRE(!enum_name.empty(), "enumeration must have a name");
-  }
+  explicit TypeDescriptionEnum(const std::string& enum_name);
 
-  NO_DISCARD std::string Write() const override { return "Enum:" + enum_name_; }
+  NO_DISCARD std::string Write() const override;
 
-  NO_DISCARD std::size_t HashStructure() const override {
-    auto hash = TypeDescription::HashStructure();
-    HashCombine(hash, enum_name_);
-    return hash;
-  }
+  NO_DISCARD std::size_t HashStructure() const override;
 
-  NO_DISCARD std::size_t HashID() const override { return PotentialHashID(enum_name_); }
+  NO_DISCARD std::size_t HashID() const override;
 
-  static std::size_t PotentialHashID(const std::string& name) {
-    auto hash = TypeDescription(ASTGeneralType::Enumeration).HashID();
-    HashCombine(hash, name);
-    return hash;
-  }
+  static std::size_t PotentialHashID(const std::string& name);
 
-  NO_DISCARD const std::string& GetName() const { return enum_name_; }
+  NO_DISCARD const std::string& GetName() const;
+  void AddOption(const std::string& enum_option);
 
-  void AddOption(const std::string& enum_option) { options_.insert(enum_option); }
-
-  NO_DISCARD const std::set<std::string>& GetOptions() const { return options_; }
+  //! \brief Get the set of Enum options (what the potential values of the enum can be).
+  NO_DISCARD const std::set<std::string>& GetOptions() const;
 
 private:
   //! \brief The name of the enumeration.
@@ -307,56 +211,28 @@ private:
 //! \brief Represents a string field.
 struct TypeDescriptionString : public TypeDescription {
   TypeDescriptionString()
-      : TypeDescription(ASTGeneralType::String) {}
+      : TypeDescription(TSGeneralType::String) {}
 };
 
+//! \brief A class that manages a universe of type. Allows for the creation of types,
+//! generally by composing other types from the TypeSystem into new types, like vectors of
+//! types, pointers to types, structures with other types as fields, etc.
 class TypeSystem {
 public:
   //! \brief Get the string type.
   NO_DISCARD const TypeDescriptionString* String() const { return &string_type_; }
 
-  TypeDescriptionEnum* Enum(const std::string& enum_name) {
-    auto hash = TypeDescriptionEnum::PotentialHashID(enum_name);
-    if (auto it = types_.find(hash); it != types_.end()) {
-      return dynamic_cast<TypeDescriptionEnum*>(it->second.get());
-    }
-    auto ptr = std::make_shared<TypeDescriptionEnum>(enum_name);
-    auto [it, _] = types_.emplace(hash, std::move(ptr));
-    return dynamic_cast<TypeDescriptionEnum*>(it->second.get());
-  }
+  //! \brief Get an enumeration type by name.
+  TypeDescriptionEnum* Enum(const std::string& enum_name);
 
   //! \brief Get a shared pointer type.
-  const TypeDescriptionSharedPointer* SharedPointer(const TypeDescription* pointed_type) {
-    auto hash = TypeDescriptionSharedPointer::PotentialHashID(pointed_type);
-    if (auto it = types_.find(hash); it != types_.end()) {
-      return dynamic_cast<const TypeDescriptionSharedPointer*>(it->second.get());
-    }
-    auto ptr = std::make_shared<TypeDescriptionSharedPointer>(pointed_type);
-    auto [it, _] = types_.emplace(hash, std::move(ptr));
-    return dynamic_cast<const TypeDescriptionSharedPointer*>(it->second.get());
-  }
+  const TypeDescriptionSharedPointer* SharedPointer(const TypeDescription* pointed_type);
 
   //! \brief Get a vector type.
-  const TypeDescriptionVector* Vector(const TypeDescription* element_type) {
-    auto hash = TypeDescriptionVector::PotentialHashID(element_type);
-    if (auto it = types_.find(hash); it != types_.end()) {
-      return dynamic_cast<const TypeDescriptionVector*>(it->second.get());
-    }
-    auto ptr = std::make_shared<TypeDescriptionVector>(element_type);
-    auto [it, _] = types_.emplace(hash, std::move(ptr));
-    return dynamic_cast<const TypeDescriptionVector*>(it->second.get());
-  }
+  const TypeDescriptionVector* Vector(const TypeDescription* element_type);
 
   //! \brief Get a structure type.
-  TypeDescriptionStructure* Structure(const std::string& type_name) {
-    auto hash = TypeDescriptionStructure::PotentialHashID(type_name);
-    if (auto it = types_.find(hash); it != types_.end()) {
-      return dynamic_cast<TypeDescriptionStructure*>(it->second.get());
-    }
-    auto ptr = std::make_shared<TypeDescriptionStructure>(type_name);
-    auto [it, _] = types_.emplace(hash, std::move(ptr));
-    return dynamic_cast<TypeDescriptionStructure*>(it->second.get());
-  }
+  TypeDescriptionStructure* Structure(const std::string& type_name);
 
 private:
   //! \brief The string type.
