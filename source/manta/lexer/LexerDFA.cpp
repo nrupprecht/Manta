@@ -7,7 +7,7 @@ using namespace manta;
 bool LexerDFA::SetFileToLex(const std::string& fileName) {
   std::ifstream fin(fileName);
   if (!fin.fail()) {
-    auto instream = IStreamContainer::OpenFile(fileName);
+    auto instream = utility::IStreamContainer::OpenFile(fileName);
     lexer_dfa_.SetStream(instream);
     return true;
   }
@@ -15,7 +15,7 @@ bool LexerDFA::SetFileToLex(const std::string& fileName) {
 }
 
 void LexerDFA::SetStringToLex(const std::string& sentence) {
-  auto instream = IStreamContainer::StreamString(sentence);
+  auto instream = utility::IStreamContainer::StreamString(sentence);
   lexer_dfa_.SetStream(instream);
 }
 

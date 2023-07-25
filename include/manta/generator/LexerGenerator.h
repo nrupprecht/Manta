@@ -118,7 +118,7 @@ class LexerGenerator {
   // ================================================
 
   //! \brief An istream container that holds the data to be parsed.
-  IStreamContainer in_;
+  utility::IStreamContainer in_;
 
   //! \brief The head ID of the NDFA.
   int head_id_;

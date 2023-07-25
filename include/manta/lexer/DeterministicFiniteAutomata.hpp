@@ -147,7 +147,7 @@ class FiniteAutomaton {
 public:
   //! \brief Set the istream.
   void SetStream(std::istream& stream);
-  void SetStream(IStreamContainer& stream);
+  void SetStream(utility::IStreamContainer& stream);
 
   //! \brief Lex the next part of the input.
   std::optional<LexResult> LexNext();
@@ -247,7 +247,7 @@ private:
       std::vector<std::tuple<std::set<int>, char, char>>& all_transition_sets);
 
   //! \brief Pointer to an istream. Could be a stringstream or an ifstream.
-  IStreamContainer instream_;
+  utility::IStreamContainer instream_;
 
   //! \brief The current state of the FiniteAutomaton.
   unsigned state_pointer_ = 0;

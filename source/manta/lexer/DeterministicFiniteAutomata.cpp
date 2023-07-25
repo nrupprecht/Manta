@@ -40,7 +40,7 @@ void FiniteAutomaton::SetStream(std::istream& stream) {
   instream_ = stream;
 }
 
-void FiniteAutomaton::SetStream(IStreamContainer& stream) {
+void FiniteAutomaton::SetStream(utility::IStreamContainer& stream) {
   ResetStatus();
   instream_ = stream;
 }
