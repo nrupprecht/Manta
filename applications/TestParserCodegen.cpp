@@ -21,7 +21,7 @@ int main(int argc, char** argv) {
   // std::ifstream fin("../../config/full_rules_codegen.txt");
   std::ifstream fin("../../config/simple-rules.txt");
   if (fin.fail()) {
-    std::cout << "Error opening file to read parser description.";
+    LOG_SEV(Fatal) << "Error opening file to read parser description.";
     return 0;
   }
 

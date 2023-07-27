@@ -20,6 +20,9 @@ struct ParserTypeData {
   std::map<unsigned, std::string> node_types_for_item;
 };
 
+//! \brief Object that processes parser data (describing how the parser should work) and
+//! creating all the types needed for creating a programmatic parser.
+//!
 class ParserDataToTypeManager {
 public:
   ParserDataToTypeManager(bool tag_generated_field_names,

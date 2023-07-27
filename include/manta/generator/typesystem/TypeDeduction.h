@@ -55,7 +55,9 @@ public:
                   const TypeDescription* field_type = nullptr) {
       all_fields.insert(field_name);
       fields_for_type[type_name].insert(field_name);
-      field_type_descriptions[field_name] = field_type;
+      if (auto& ptr =  field_type_descriptions[field_name]) {
+        ptr = field_type;
+      }
     }
 
     NO_DISCARD const std::set<std::string>& GetFields(

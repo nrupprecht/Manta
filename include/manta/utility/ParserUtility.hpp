@@ -118,7 +118,7 @@ struct Item : public ProductionRule {
   friend bool operator<(const Item& a, const Item& b);
   friend bool operator==(const Item& a, const Item& b);
   friend std::ostream& operator<<(std::ostream& out, const Item& item);
-  friend std::string toString(const Item&);
+  friend std::string to_string(const Item&, bool);
 
   // --- Data items ---
 
@@ -134,7 +134,7 @@ struct Item : public ProductionRule {
 bool operator<(const Item& a, const Item& b);
 bool operator==(const Item& a, const Item& b);
 std::ostream& operator<<(std::ostream& out, const Item& item);
-std::string toString(const Item&);
+std::string to_string(const Item& item, bool print_marker = true);
 
 
 //! \brief Define a state to be a set of Items, with some extra features for convenience.

@@ -8,8 +8,9 @@ using NonterminalID = int;
 
 //! \brief Class that keeps track of and owns the data for all types.
 //!
-//! This class also knows how to generate C++ code representing the nodes, but you can imagine that this class could
-//! be left as just an IR of all the nodes, and separate classes could do the actual codegen into a target language.
+//! This class also knows how to generate C++ code representing the nodes, but you can
+//! imagine that this class could be left as just an IR of all the nodes, and separate
+//! classes could do the actual codegen into a target language.
 //!
 class ASTNodeManager {
 public:
@@ -20,6 +21,8 @@ public:
     std::map<std::string, TypeDescriptionStructure*> child_types;
   };
 
+  //! \brief Initialize the node manager's type system with an enum for node types, a
+  //! base class for AST nodes, and a node type for string
   ASTNodeManager();
 
   NO_DISCARD const TypeDescriptionStructure* GetASTNodeBase() const;
@@ -28,7 +31,8 @@ public:
 
   NO_DISCARD TypeDescriptionEnum* GetASTNodeType() const;
 
-  TypeDescriptionStructure* GetNodeDescription(const std::string& type_name, NonterminalID nonterminal_id);
+  TypeDescriptionStructure* GetNodeDescription(const std::string& type_name,
+                                               NonterminalID nonterminal_id);
 
   NO_DISCARD TypeDescriptionStructure* GetNodeDescription(const std::string& type_name);
 
@@ -41,7 +45,8 @@ public:
 
   const TypeDescription* MakeVector(const TypeDescription* vector_type);
 
-  void writeNodeTypeDeclaration(std::ostream& out, const TypeDescriptionStructure* description) const {
+  void writeNodeTypeDeclaration(std::ostream& out,
+                                const TypeDescriptionStructure* description) const {
     out << "struct " << description->type_name << " : ";
 
     // Parent classes
@@ -50,7 +55,7 @@ public:
     }
     else {
       auto count = 0u;
-      for (auto& parent: description->parent_classes) {
+      for (auto& parent : description->parent_classes) {
         if (count != 0) {
           out << ", ";
         }
@@ -61,7 +66,8 @@ public:
     out << " {\n";
 
     // Initialize with the correct enum.
-    out << "  //! \\brief Default constructor for " << description->type_name << ".\n  //!\n";
+    out << "  //! \\brief Default constructor for " << description->type_name
+        << ".\n  //!\n";
     out << "  " << description->type_name << "()\n";
     if (description->parent_classes.empty()) {
       out << "    : ASTNodeBase(ASTNodeType::" << description->type_name << ") {}\n\n";
@@ -72,13 +78,15 @@ public:
       out << "    : ASTNodeBase(subtype) {}\n\n";
     }
     else {
-      // This is not general. I am assuming that there is one parent node, and it has the correct constructor.
+      // This is not general. I am assuming that there is one parent node, and it has the
+      // correct constructor.
       // TODO: Introduce enum subtypes for the node subtypes?
-      out << "    : " << (*description->parent_classes.begin())->type_name << "(ASTNodeType::" << description->type_name << ") {}\n\n";
+      out << "    : " << (*description->parent_classes.begin())->type_name
+          << "(ASTNodeType::" << description->type_name << ") {}\n\n";
     }
 
     // Define all fields.
-    for (auto[field_name, field_description]: description->fields) {
+    for (auto [field_name, field_description] : description->fields) {
       // Write type.
       out << "  ";
       out << field_description->Write();
@@ -90,7 +98,6 @@ public:
   NonterminalTypes& GetNonterminalTypes(NonterminalID id);
 
 private:
-
   TypeSystem type_system_;
 
   //! \brief The type for enums for the nodes.
@@ -102,8 +109,9 @@ private:
   //! \brief type type for lexemes.
   TypeDescriptionStructure* lexeme_node_;
 
-  // Map from non-terminal to the set of node types that productions for this node can product.
-  std::map<NonterminalID, NonterminalTypes> node_types_for_nonterminal_{};
+  // Map from non-terminal to the set of node types that productions for this node can
+  // product.
+  std::map<NonterminalID, NonterminalTypes> node_types_for_nonterminal_ {};
 };
 
-} // namespace manta
+}  // namespace manta

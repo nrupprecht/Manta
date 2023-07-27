@@ -96,7 +96,7 @@ std::shared_ptr<NodeBase_t> ParserDriverBase<NodeBase_t, Parent_t>::parse() {
         // This lexeme does not follow the previous lexemes.
 //        parse_trace_ += "ERROR: No valid transitions could be found for input. Accepted lexeme(s) (for literal \"" + result->literal + "\") were: ";
 //        for (auto& [lexeme_id, _] : result->accepted_lexemes) {
-//          parse_trace_ += "[" + toString(lexeme_id) + "] ";
+//          parse_trace_ += "[" + to_string(lexeme_id) + "] ";
 //        }
 //        parse_trace_ += "\n";
 //        printFatalParseError(state);
@@ -110,7 +110,7 @@ std::shared_ptr<NodeBase_t> ParserDriverBase<NodeBase_t, Parent_t>::parse() {
 //      if (literal == "\n") {
 //        literal = "\\n";
 //      }
-//      parse_trace_ += "Getting token: [" + toString(tok.type) + "], Literal: [" + literal + "]\n";
+//      parse_trace_ += "Getting token: [" + to_string(tok.type) + "], Literal: [" + literal + "]\n";
       /// <===
     }
 
@@ -130,10 +130,10 @@ std::shared_ptr<NodeBase_t> ParserDriverBase<NodeBase_t, Parent_t>::parse() {
 
     /// For Debugging: Print the state of the stack.
 //    for (auto &ty: working_stack_types) {
-//      parse_trace_ += "[" + toString(ty) + "] ";
+//      parse_trace_ += "[" + to_string(ty) + "] ";
 //    }
 //    parse_trace_ += " <-->  ["; // Separate stack incoming deque.
-//    parse_trace_ += toString(incoming_deque.front().type) + "]\n";
+//    parse_trace_ += to_string(incoming_deque.front().type) + "]\n";
     /// <=====
 
     // Get action from the parse table.
@@ -186,7 +186,7 @@ std::shared_ptr<NodeBase_t> ParserDriverBase<NodeBase_t, Parent_t>::parse() {
       incoming_parse_deque.push_front(production_node);
 
       // Record the reduction occurring.
-//      parse_trace_ += "Reduce by " + std::to_string(size) + ". Reduce to a " + toString(production)
+//      parse_trace_ += "Reduce by " + std::to_string(size) + ". Reduce to a " + to_string(production)
 //          + " via:\n\t" + entryToString(action) + "\n";
     }
     else if (action.IsAccept()) {

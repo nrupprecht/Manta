@@ -9,6 +9,32 @@
 using namespace manta;
 using namespace manta::typesystem;
 
+namespace {
+
+template<typename T>
+auto CLBB(const T& data) {
+  return lightning::AnsiColor8Bit(data,
+                                  lightning::formatting::AnsiForegroundColor::BrightBlue);
+}
+
+template<typename T>
+auto CLBG(const T& data) {
+  return lightning::AnsiColor8Bit(
+      data, lightning::formatting::AnsiForegroundColor::BrightGreen);
+}
+
+}  // namespace
+
+namespace manta::typesystem {
+
+void format_logstream(const TypeDescription& type_description,
+                      lightning::RefBundle& handler) {
+  handler << lightning::AnsiColor8Bit(
+      type_description.Write(), lightning::formatting::AnsiForegroundColor::BrightBlue);
+}
+
+}  // namespace manta::typesystem
+
 void ParserCodegen::GenerateParserCode(
     std::ostream& code_out, const std::shared_ptr<const ParserData>& parser_data) const {
   ParserDataToTypeManager manager(false, true);
@@ -17,29 +43,33 @@ void ParserCodegen::GenerateParserCode(
       manager.CreateRelationships(parser_data);
   auto deduced_types = manager.DeduceTypes();
 
-  LOG_SEV(Info) << "Done deducing types. Filling in type descriptions.";
+  LOG_SEV(Info)
+      << "Done deducing types. Filling in type descriptions for all nonterminals' types.";
 
   // Fill in all type descriptions from the deduced types.
   for (const auto& [nonterminal_id, nonterminals_types] : deduced_types.GetTypesData()) {
+    LOG_SEV(Debug) << "  * Filling type descriptions for "
+                   << nonterminals_types.NumSubTypes() << " types for non-terminal "
+                   << nonterminal_id;
     for (const auto& [type_name, description] : nonterminals_types.sub_types) {
-      LOG_SEV(Info) << "Filling in type description for " << type_name
-                    << ", getting fields for type '" << type_name << "'.";
+      LOG_SEV(Debug) << "    >> Filling in type description for " << type_name
+                     << ", getting fields for type '" << type_name << "'.";
       const auto& field_names = nonterminals_types.GetFields(type_name);
-      LOG_SEV(Debug) << "There are " << field_names.size() << " fields for '" << type_name
-                     << "'.";
+      LOG_SEV(Debug) << "    >> There are " << field_names.size() << " fields for '"
+                     << type_name << "'.";
       for (const auto& field_name : field_names) {
-        LOG_SEV(Debug) << "Looking for type of field '" << field_name << "'.";
+        LOG_SEV(Debug) << "     - Looking for type of field '" << field_name << "'.";
         const auto* type = nonterminals_types.GetFieldType(field_name);
 
         MANTA_ASSERT(type,
                      "could not deduce the type of '" << type_name << "::" << field_name);
         description->fields[field_name] = type;
-        LOG_SEV(Debug) << "  * Got type of " << type_name << "::" << field_name << ": "
-                       << type->Write() << ".";
+        LOG_SEV(Debug) << "     - Field " << type_name << "::" << field_name
+                       << " has type " << *type << ".";
       }
     }
   }
-  LOG_SEV(Info) << "Done filling in all type descriptions.";
+  LOG_SEV(Info) << "Done filling in all type descriptions. Generating code.";
 
   // Write the guard and includes.
   code_out << "#pragma once\n\n#include <vector>\n#include <string>\n\n";
@@ -95,6 +125,8 @@ void ParserCodegen::GenerateParserCode(
     code_out << "  std::shared_ptr<" << node_type_name << ">\n";
     code_out << "  ReduceTo_" + node_type_name << "_ViaItem_" << item_number << "(";
     auto i = 0;
+    LOG_SEV(Debug) << "Writing declaration for item " << item_number << ": "
+                   << CLBG(to_string(item, false));
     for (auto id : item.rhs) {
       if (i != 0)
         code_out << ",";

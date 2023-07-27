@@ -8,6 +8,7 @@
 
 #include "manta/utility/Exceptions.h"
 #include "manta/utility/utility.hpp"
+#include <Lightning/Lightning.h>
 
 namespace manta {
 
@@ -53,6 +54,12 @@ struct TypeDescription {
     return static_cast<std::size_t>(general_type);
   }
 };
+
+//! \brief To-string function for a type description. Allows a TypeDescription to be
+//! streamed into a logger.
+inline std::string to_string(const TypeDescription& description) {
+  return description.Write();
+}
 
 //! \brief Type description for a "basic" type. Basic types will be mapped to types in
 //! target programming languages in a language dependent way.
@@ -241,5 +248,14 @@ private:
   //! \brief All types managed by the typesystem.
   std::map<std::size_t, std::shared_ptr<TypeDescription>> types_;
 };
+
+
+//! \brief Add a little color formatter for TypeDescriptions.
+inline void format_logstream(const TypeDescription& type_description,
+                      lightning::RefBundle& handler) {
+  handler << lightning::AnsiColor8Bit(
+      type_description.Write(), lightning::formatting::AnsiForegroundColor::BrightBlue);
+}
+
 
 }  // namespace manta
