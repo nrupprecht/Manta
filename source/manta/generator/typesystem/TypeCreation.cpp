@@ -144,8 +144,12 @@ ParserTypeData& ParserDataToTypeManager::CreateRelationships(
         LOG_SEV(Debug) << "Why am I here?";
 
         // Update this so we determine the node name beforehand.
-        createGeneralNode(
-            type_name, nonterminal_id, nonterminal_name, item, nonterminals_for_type());
+        createGeneralNode(type_name,
+                          nonterminal_id,
+                          nonterminal_name,
+                          item,
+                          nonterminals_for_type(),
+                          item_number);
       }
     }
     // There are no instructions. Default to including every non-literal in the node
@@ -161,8 +165,12 @@ ParserTypeData& ParserDataToTypeManager::CreateRelationships(
                      << " (production: " << item << ") creating node type named '"
                      << type_name << "'.";
 
-      createGeneralNode(
-          type_name, nonterminal_id, nonterminal_name, item, nonterminals_for_type());
+      createGeneralNode(type_name,
+                        nonterminal_id,
+                        nonterminal_name,
+                        item,
+                        nonterminals_for_type(),
+                        item_number);
     }
 
     ++item_number;
@@ -401,8 +409,9 @@ TypeDeduction ParserDataToTypeManager::DeduceTypes() {
             }
           }
           else {
-            LOG_SEV(Debug) << "    >> Source field has NOT been typed yet, delaying typing "
-                              "until all base types have been deduced.";
+            LOG_SEV(Debug)
+                << "    >> Source field has NOT been typed yet, delaying typing "
+                   "until all base types have been deduced.";
             field_type_relationships.push_back(rel);
           }
         }
@@ -555,7 +564,8 @@ void ParserDataToTypeManager::createGeneralNode(
     NonterminalID nonterminal_id,
     const std::string& nonterminal_name,
     const Item& item,
-    std::map<std::string, NonterminalID>& nonterminals_for_type) {
+    std::map<std::string, NonterminalID>& nonterminals_for_type,
+    unsigned item_number) {
   // There are no instructions. Add everything that isn't a "literal" as a field.
   auto node_type_description =
       node_manager().GetNodeDescription(type_name, nonterminal_id);
@@ -596,14 +606,14 @@ void ParserDataToTypeManager::createGeneralNode(
 
     LOG_SEV(Debug) << "    >> Target field will be named '" << target_field_name << "'.";
 
-    TypeRelationship relationship {
-        static_cast<NonterminalID>(referenced_type),
-        production_rules_data_->IsNonTerminal(referenced_type),
-        {},  // No field access.
-        node_type_description->type_name,
-        target_field_name,
-        CheckType::Field,
-    };
+    TypeRelationship relationship {static_cast<NonterminalID>(referenced_type),
+                                   production_rules_data_->IsNonTerminal(referenced_type),
+                                   {},  // No field access.
+                                   node_type_description->type_name,
+                                   target_field_name,
+                                   CheckType::Field,
+                                   0,
+                                   item_number};
     relationships()[node_type_description->type_name].push_back(relationship);
 
     ++count;
@@ -685,6 +695,7 @@ void ParserDataToTypeManager::processFieldCommand(
       target_field_name,
       CheckType::Field,
       position,
+      item_number,
   };
   relationships()[node_type_description->type_name].push_back(relationship);
 }
@@ -726,6 +737,7 @@ void ParserDataToTypeManager::processAppendCommand(
       get_arg(1),
       CheckType::Append,
       position,
+      item_number,
   };
   relationships()[node_type_description->type_name].push_back(relationship);
 }
@@ -733,7 +745,7 @@ void ParserDataToTypeManager::processAppendCommand(
 void ParserDataToTypeManager::processPushCommand(
     const std::vector<std::shared_ptr<ParseNode>>& arguments,
     const Item& item,
-    unsigned,  // item_number
+    unsigned item_number,  // item_number
     TypeDescriptionStructure* node_type_description) {
   auto nonterminal_id = item.production;
   auto& instructions = item.instructions;
@@ -762,6 +774,7 @@ void ParserDataToTypeManager::processPushCommand(
       get_arg(1),
       CheckType::Push,
       position,
+      item_number,
   };
   relationships()[node_type_description->type_name].push_back(relationship);
 }

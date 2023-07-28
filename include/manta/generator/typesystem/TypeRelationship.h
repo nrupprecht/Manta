@@ -70,6 +70,9 @@ struct TypeRelationship {
   //! \brief What position is the target in the RHS of the item that created this
   //! relationship.
   int position {};
+
+  //! \brief What item this relationships is from.
+  unsigned item_number;
 };
 
 }  // namespace manta::typesystem

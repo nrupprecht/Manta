@@ -93,7 +93,8 @@ private:
                          NonterminalID nonterminal_id,
                          const std::string& nonterminal_name,
                          const Item& item,
-                         std::map<std::string, NonterminalID>& nonterminals_for_type);
+                         std::map<std::string, NonterminalID>& nonterminals_for_type,
+                         unsigned item_number);
 
   void processFieldCommand(const std::vector<std::shared_ptr<ParseNode>>& arguments,
                            const Item& item,
