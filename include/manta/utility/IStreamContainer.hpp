@@ -58,6 +58,7 @@ public:
 
   static IStreamContainer StreamString(const std::string& sentence) {
     std::shared_ptr<std::stringstream> sstrm = std::make_shared<std::stringstream>();
+    (*sstrm) << sentence;
     return IStreamContainer(std::make_shared<container_ptr>(sstrm));
   }
 
