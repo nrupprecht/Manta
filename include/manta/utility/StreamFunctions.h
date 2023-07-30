@@ -2,7 +2,12 @@
 // Created by Nathaniel Rupprecht on 7/30/23.
 //
 
-#ifndef MANTA_INCLUDE_MANTA_UTILITY_STREAMFUNCTIONS_H_
-#define MANTA_INCLUDE_MANTA_UTILITY_STREAMFUNCTIONS_H_
+#pragma once
 
-#endif //MANTA_INCLUDE_MANTA_UTILITY_STREAMFUNCTIONS_H_
+#include "manta/utility/IStreamContainer.hpp"
+
+namespace manta::utility {
+
+std::string GetUntil(IStreamContainer& stream_container, char terminator);
+
+}  // namespace manta::utility
