@@ -5,8 +5,8 @@
 #pragma once
 
 #include <utility>
-
-#include "utility.hpp"
+#include "manta/utility/utility.hpp"
+#include "manta/utility/Exceptions.h"
 
 namespace manta::utility {
 
@@ -44,7 +44,7 @@ private:
   //! IStreamContainer, and allows for different 'backends' for interacting with streams.
   std::shared_ptr<container> stream_container_;
 
-  explicit IStreamContainer(std::shared_ptr<container>& ptr)
+  explicit IStreamContainer(std::shared_ptr<container> ptr)
       : stream_container_(std::move(ptr)) {};
 
 public:
@@ -53,16 +53,16 @@ public:
 
   static IStreamContainer OpenFile(const std::string& filename) {
     std::shared_ptr<std::istream> strm = std::make_shared<std::ifstream>(filename);
-    std::shared_ptr<container> con = std::make_shared<container_ptr>(strm);
-    return IStreamContainer(con);
+    return IStreamContainer(std::make_shared<container_ptr>(strm));
   }
 
   static IStreamContainer StreamString(const std::string& sentence) {
     std::shared_ptr<std::stringstream> sstrm = std::make_shared<std::stringstream>();
-    (*sstrm) << sentence;
-    std::shared_ptr<std::istream> strm = sstrm;
-    std::shared_ptr<container> con = std::make_shared<container_ptr>(strm);
-    return IStreamContainer(con);
+    return IStreamContainer(std::make_shared<container_ptr>(sstrm));
+  }
+
+  static IStreamContainer FromStream(std::istream& stream) {
+    return IStreamContainer(std::make_shared<container_ref>(stream));
   }
 
   NO_DISCARD bool IsGood() const {
