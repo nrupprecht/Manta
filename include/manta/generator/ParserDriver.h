@@ -71,6 +71,17 @@ protected:
     return output;
   }
 
+  std::string escape(const std::string& input) {
+    std::string output;
+    output.reserve(input.size());
+    std::for_each(input.begin(), input.end(), [&](char c) {
+      if (c == '\n') output += "\\n";
+      else if (c == '\t') output += "\\t";
+      else output += c;
+    });
+    return output;
+  }
+
   //! \brief A lexer.
   std::shared_ptr<LexerDFA> lexer_;
 
@@ -147,7 +158,7 @@ ParserDriverBase<NodeBase_t, LexemeNode_t, Parent_t>::parse() {
       }
 
       if (auto handler = logger_.Log(Severity::Debug)) {
-        handler << "Lexed the literal \"" << CLBG(result->literal) << "\". Matched "
+        handler << "Lexed the literal \"" << CLBG(escape(result->literal)) << "\". Matched "
                 << result->accepted_lexemes.size() << " lexeme(s):";
         int i = 0;
         for (auto& [id, _] : result->accepted_lexemes) {
@@ -212,7 +223,7 @@ ParserDriverBase<NodeBase_t, LexemeNode_t, Parent_t>::parse() {
       handler << " <-->  ";
       // Incoming deque.
       for (auto& d : incoming_deque) {
-        handler << "[" << d.type << "]";
+        handler << "[" << d.type << "] ";
       }
     }
 
@@ -259,6 +270,9 @@ ParserDriverBase<NodeBase_t, LexemeNode_t, Parent_t>::parse() {
       // TODO: Get reduction ID.
       auto reduction_id = action.GetRule().item_number;
       MANTA_ASSERT(reduction_id, "reduction did not have its item number set");
+      LOG_SEV_TO(logger_, Debug)
+          << "Reducing " << collect.size() << " collected nodes using item "
+          << *reduction_id << ".";
 
       auto production_node = static_cast<Parent_t*>(this)->reduce(*reduction_id, collect);
 
