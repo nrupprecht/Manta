@@ -24,12 +24,17 @@ std::string GetUntil(IStreamContainer& stream_container, char terminator) {
       return output;
     }
 
-    output.push_back(c);
     if (c == '\\') {
       // Get the next character, even if it is a terminator.
       MANTA_REQUIRE(!stream_container->eof(), "cannot escape an EOF");
-      output.push_back(c);
       stream_container->get(c);
+      if (c != terminator) {
+        // Keep any characters that were not the EOF escaped.
+        output.push_back('\\');
+      }
+      output.push_back(c);
+    }
+    else {
       output.push_back(c);
     }
   } while (true);

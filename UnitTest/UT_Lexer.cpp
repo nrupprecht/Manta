@@ -19,7 +19,7 @@ TEST(Lexer, LexEOF) {
   lexer->SetStringToLex("");
   auto lexemes = lexer->LexAll();
 
-  EXPECT_EQ(lexemes.size(), 1);
+  ASSERT_EQ(lexemes.size(), 1);
 }
 
 TEST(Lexer, String) {
@@ -30,7 +30,7 @@ TEST(Lexer, String) {
   lexer->SetStringToLex("Hello");
   auto lexemes = lexer->LexAll();
 
-  EXPECT_EQ(lexemes.size(), 1);
+  ASSERT_EQ(lexemes.size(), 1);
 }
 
 TEST(Lexer, CharClassSimple) {
@@ -45,7 +45,7 @@ TEST(Lexer, CharClassSimple) {
   lexer->SetStringToLex("Hello worLDs");
   auto lexemes = lexer->LexAll();
 
-  EXPECT_EQ(lexemes.size(), 5);
+  ASSERT_EQ(lexemes.size(), 5);
 
   std::vector<std::string> expected_names{"upper", "lower", "lower", "upper", "lower"};
 
@@ -67,7 +67,7 @@ TEST(Lexer, CharClassComplex) {
   lexer->SetStringToLex("talents tAlEnts TaLeNTS");
   auto lexemes = lexer->LexAll();
 
-  EXPECT_EQ(lexemes.size(), 7);
+  ASSERT_EQ(lexemes.size(), 7);
 
   std::vector<std::string> expected_names{"B", "A", "B", "A", "B", "B", "A"};
 
@@ -93,7 +93,7 @@ TEST(Lexer, StringComplement) {
   lexer->SetStringToLex("word /* more words inside */and continue");
   auto lexemes = lexer->LexAll();
 
-  EXPECT_EQ(lexemes.size(), 4);
+  ASSERT_EQ(lexemes.size(), 4);
 
   std::vector<std::string> expected_names{"word", "comment", "word", "word"};
 
@@ -114,7 +114,7 @@ TEST(Lexer, StringComplement_Example_String) {
   lexer->SetStringToLex(R"("hi there" "he said \"hi there\", you know" "goodbye")");
   auto lexemes = lexer->LexAll();
 
-  EXPECT_EQ(lexemes.size(), 3);
+  ASSERT_EQ(lexemes.size(), 3);
   if (lexemes.size() == 3) {
     EXPECT_EQ(lexemes[0].literal, R"("hi there")");
     EXPECT_EQ(lexemes[1].literal, R"("he said \"hi there\", you know")");
@@ -136,7 +136,7 @@ TEST(Lexer, StringComplement_Example_Comment) {
   lexer->SetStringToLex("hi # and goodbye \n");
   auto lexemes = lexer->LexAll();
 
-  EXPECT_EQ(lexemes.size(), 2);
+  ASSERT_EQ(lexemes.size(), 2);
   if (lexemes.size() == 2) {
     EXPECT_EQ(lexemes[0].literal, "hi");
     EXPECT_EQ(lexemes[1].literal, "# and goodbye \n");
@@ -158,7 +158,7 @@ TEST(Lexer, Basic) {
   lexer->SetStringToLex("Hello WorlD friendS");
   auto lexemes = lexer->LexAll();
 
-  EXPECT_EQ(lexemes.size(), 3);
+  ASSERT_EQ(lexemes.size(), 3);
   EXPECT_EQ(lexer->CheckStatus(), FAStatus::EndedNonAccepting);
   EXPECT_EQ(lexer->LexemeName(lexemes[0].type), "Pattern1");
   EXPECT_EQ(lexer->LexemeName(lexemes[1].type), "Pattern2");
@@ -175,7 +175,7 @@ TEST(Lexer, OR_1) {
   lexer->SetStringToLex("HeldiwK OpodO");
   auto lexemes = lexer->LexAll();
 
-  EXPECT_EQ(lexemes.size(), 2);
+  ASSERT_EQ(lexemes.size(), 2);
 }
 
 TEST(Lexer, OR_2) {
@@ -188,7 +188,7 @@ TEST(Lexer, OR_2) {
   lexer->SetStringToLex("HeldiwK OpodO");
   auto lexemes = lexer->LexAll();
 
-  EXPECT_EQ(lexemes.size(), 2);
+  ASSERT_EQ(lexemes.size(), 2);
 }
 
 TEST(Lexer, Precedence_I) {
@@ -204,7 +204,7 @@ TEST(Lexer, Precedence_I) {
   lexer->SetStringToLex("hello WORLD myFriend");
   auto lexemes = lexer->LexAll();
 
-  EXPECT_EQ(lexemes.size(), 3);
+  ASSERT_EQ(lexemes.size(), 3);
   EXPECT_EQ(lexer->LexemeName(lexemes[0].type), "LowerString");
   EXPECT_EQ(lexer->LexemeName(lexemes[1].type), "UpperString");
   EXPECT_EQ(lexer->LexemeName(lexemes[2].type), "MixedString");
@@ -225,7 +225,7 @@ TEST(Lexer, Cases) {
   lexer->SetStringToLex("snake_case Cap_Snake_Case Not_snake_case word_on_the_move ");
   auto lexemes = lexer->LexAll();
 
-  EXPECT_EQ(lexemes.size(), 4);
+  ASSERT_EQ(lexemes.size(), 4);
   EXPECT_EQ(lexer->LexemeName(lexemes[0].type), "SnakeCase");
   EXPECT_EQ(lexer->LexemeName(lexemes[1].type), "CapSnakeCase");
   EXPECT_EQ(lexer->LexemeName(lexemes[2].type), "OtherWord");
@@ -248,7 +248,7 @@ TEST(Lexer, Reserved) {
   lexer->SetStringToLex("hello world");
   auto lexemes = lexer->LexAll();
 
-  EXPECT_EQ(lexemes.size(), 4);
+  ASSERT_EQ(lexemes.size(), 4);
   std::vector<std::string> expected_names = {
       "RES:hello",
       "Whitespaces",
@@ -282,7 +282,7 @@ TEST(Lexer, LargeTest) {
   auto lexemes = lexer->LexAll();
 
   // We expect 21 lexemes.
-  EXPECT_EQ(lexemes.size(), 21);
+  ASSERT_EQ(lexemes.size(), 21);
   // Record the expected lexeme types.
   //  Note: We do this instead of using the integer representations of the states, since we do
   //  not care if the implementation / bookkeeping details of state representation change.
@@ -328,7 +328,7 @@ TEST(Lexer, Words) {
   lexer->SetStringToLex("Hello Anything Everything Goodbye");
   auto lexemes = lexer->LexAll();
 
-  EXPECT_EQ(lexemes.size(), 8);
+  ASSERT_EQ(lexemes.size(), 8);
 
   std::vector<std::string> expected_names = {
       "Hello",
@@ -363,7 +363,7 @@ TEST(Lexer, SkipLexemes) {
   auto lexemes = lexer->LexAll();
 
   // We expect 21 lexemes.
-  EXPECT_EQ(lexemes.size(), 7);
+  ASSERT_EQ(lexemes.size(), 7);
   std::vector<std::string> expected_names = {
       "String",
       "String",
@@ -395,7 +395,7 @@ TEST(Lexer, WithUnderscores) {
 
   auto lexemes = lexer->LexAll();
 
-  EXPECT_EQ(lexemes.size(), 5);
+  ASSERT_EQ(lexemes.size(), 5);
   std::vector<std::string> expected_names = {
       "identifier", "identifier", "identifier", "identifier", "EOF"
   };
@@ -422,7 +422,7 @@ TEST(Lexer, LexemeWithQuotes) {
   // lexer->SetStringToLex("\"A\\@+A\"");
   auto lexemes = lexer->LexAll();
 
-  EXPECT_EQ(lexemes.size(), 2);
+  ASSERT_EQ(lexemes.size(), 2);
   std::vector<std::string> expected_names = {
       "regex",
       "eof",
@@ -466,7 +466,7 @@ TEST(Lexer, LexTheLexer) {
   );
   auto lexemes = lexer->LexAll();
 
-  EXPECT_EQ(lexemes.size(), 37);
+  ASSERT_EQ(lexemes.size(), 37);
   std::vector<std::string> expected_names = {
       "special_symbol",
       "newlines",

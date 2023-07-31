@@ -60,7 +60,7 @@ private:
   //  Private member variables.
   // ==================================================================================================
 
-  std::function<std::string(const std::string&)> field_name_sanitizer_ {};
+  std::function<std::string(std::string)> field_name_sanitizer_ {};
 
   bool tag_generated_field_names_ = false;
   bool generated_nodes_have_node_in_name_ = true;

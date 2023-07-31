@@ -15,7 +15,6 @@ TEST(Utility, GetUntil_1) {
   std::stringstream stream;
   stream << "HelloXWorldX";
   auto container = IStreamContainer::FromStream(stream);
-
   EXPECT_EQ(GetUntil(container, 'X'), "Hello");
   EXPECT_EQ(GetUntil(container, 'X'), "World");
 }
@@ -24,14 +23,19 @@ TEST(Utility, GetUntil_2) {
   std::stringstream stream;
   stream << "HelloXWorldX";
   auto container = IStreamContainer::FromStream(stream);
-
   EXPECT_EQ(GetUntil(container, '\0'), "HelloXWorldX");
+}
+
+TEST(Utility, EscapedChars) {
+  std::stringstream stream;
+  stream << "\\A\\BCB";
+  auto container = IStreamContainer::FromStream(stream);
+  EXPECT_EQ(GetUntil(container, 'B'), "\\ABC");
 }
 
 TEST(Utility, Exceptions) {
   std::stringstream stream;
   stream << "Hello";
-
   auto container = IStreamContainer::FromStream(stream);
   EXPECT_ANY_THROW(GetUntil(container, 'X'));
 }

@@ -34,7 +34,116 @@ ParserDataToTypeManager::ParserDataToTypeManager(
     bool tag_generated_field_names, bool generated_nodes_have_node_in_name) noexcept
     : tag_generated_field_names_(tag_generated_field_names)
     , generated_nodes_have_node_in_name_(generated_nodes_have_node_in_name) {
-  field_name_sanitizer_ = [](const std::string& name) -> std::string { return name; };
+  std::set<std::string> reserved_words {"alignas",
+                                        "alignof",
+                                        "and",
+                                        "and_eq",
+                                        "asm",
+                                        "atomic_cancel",
+                                        "atomic_commit",
+                                        "atomic_noexcept",
+                                        "auto",
+                                        "bitand",
+                                        "bitor",
+                                        "bool",
+                                        "break",
+                                        "case",
+                                        "catch",
+                                        "char",
+                                        "char16_t",
+                                        "char32_t",
+                                        "class",
+                                        "compl",
+                                        "concept",
+                                        "const",
+                                        "constexpr",
+                                        "const_cast",
+                                        "continue",
+                                        "co_await",
+                                        "co_return",
+                                        "co_yield",
+                                        "decltype",
+                                        "default",
+                                        "delete",
+                                        "do",
+                                        "double",
+                                        "dynamic_cast",
+                                        "else",
+                                        "enum",
+                                        "explicit",
+                                        "export",
+                                        "extern",
+                                        "false",
+                                        "float",
+                                        "for",
+                                        "friend",
+                                        "goto",
+                                        "if",
+                                        "import",
+                                        "inline",
+                                        "int",
+                                        "long",
+                                        "modules",
+                                        "mutable",
+                                        "namespace",
+                                        "new",
+                                        "noexcept",
+                                        "not",
+                                        "not_eq",
+                                        "nullptr",
+                                        "operator",
+                                        "or",
+                                        "or_eq",
+                                        "private",
+                                        "protected",
+                                        "public",
+                                        "register",
+                                        "reinterpret_cast",
+                                        "requires",
+                                        "return",
+                                        "short",
+                                        "signed",
+                                        "sizeof",
+                                        "static",
+                                        "static_assert",
+                                        "static_cast",
+                                        "struct",
+                                        "switch",
+                                        "thread_local",
+                                        "throw",
+                                        "true",
+                                        "try",
+                                        "typedef",
+                                        "typeid",
+                                        "typename",
+                                        "union",
+                                        "unsigned",
+                                        "using",
+                                        "virtual",
+                                        "void",
+                                        "volatile",
+                                        "wchar_t",
+                                        "while",
+                                        "xor",
+                                        "xor_eq"};
+
+  field_name_sanitizer_ = [reserved_words](std::string name) -> std::string {
+    MANTA_REQUIRE(!name.empty(), "cannot sanitize an empty name");
+
+    if (reserved_words.contains(name)) {
+      return name + "_";
+    }
+    // Replace any bad characters.
+    std::replace_if(
+        name.begin(),
+        name.end(),
+        [](char c) { return !isalpha(c) || isdigit(c) || c == '_'; },
+        '_');
+    if (std::isdigit(name[0])) {
+      name = "_" + name;
+    }
+    return name;
+  };
 }
 
 ParserTypeData& ParserDataToTypeManager::CreateRelationships(
@@ -555,7 +664,7 @@ ParserDataToTypeManager::getSourceData(const std::string& argument_string,
     return {position, referenced_type, {} /* No field name */};
   }
   else {  // Specifies field name.
-    return {position, referenced_type, segments[1]};
+    return {position, referenced_type, field_name_sanitizer_(segments[1])};
   }
 }
 
@@ -578,14 +687,12 @@ void ParserDataToTypeManager::createGeneralNode(
   for (auto referenced_type : item.rhs) {
     auto& name = production_rules_data_->GetName(referenced_type);
 
-    // TODO: Change lexer generator so there is a better way of tagging which lexemes are
-    // literals.
-    if (name.substr(0, 4) == "RES:") {
+    if (production_rules_data_->lexer_generator->IsReserved(name)) {
       LOG_SEV(Debug) << "    >> Not creating a field for '" << name
                      << "' since it is a literal.";
       continue;  // Literal
     }
-    auto target_field_name = name;
+    auto target_field_name = field_name_sanitizer_(name);
     if (tag_generated_field_names_) {
       target_field_name += "_" + std::to_string(count);
     }

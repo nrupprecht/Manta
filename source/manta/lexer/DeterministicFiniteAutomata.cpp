@@ -40,7 +40,7 @@ void FiniteAutomaton::SetStream(std::istream& stream) {
   instream_ = stream;
 }
 
-void FiniteAutomaton::SetStream(utility::IStreamContainer& stream) {
+void FiniteAutomaton::SetContainer(utility::IStreamContainer& stream) {
   ResetStatus();
   instream_ = stream;
 }
@@ -78,7 +78,7 @@ std::optional<LexResult> FiniteAutomaton::LexNext() {
 
   // Store the literal string
   std::string literal;
-  char c;
+  char c{};
   bool put_back_eof = true;
   auto get_char = [&]() {
     if (instream_->eof()) {

@@ -5,6 +5,8 @@
     @whitespaces: r`\s+`
     @newlines: r`\n+`
 
+.Skip whitespaces
+
 .End
 
 # Definition of the Parser

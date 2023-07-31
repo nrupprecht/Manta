@@ -8,7 +8,7 @@ bool LexerDFA::SetFileToLex(const std::string& fileName) {
   std::ifstream fin(fileName);
   if (!fin.fail()) {
     auto instream = utility::IStreamContainer::OpenFile(fileName);
-    lexer_dfa_.SetStream(instream);
+    lexer_dfa_.SetContainer(instream);
     return true;
   }
   return false;
@@ -16,7 +16,11 @@ bool LexerDFA::SetFileToLex(const std::string& fileName) {
 
 void LexerDFA::SetStringToLex(const std::string& sentence) {
   auto instream = utility::IStreamContainer::StreamString(sentence);
-  lexer_dfa_.SetStream(instream);
+  lexer_dfa_.SetContainer(instream);
+}
+
+void LexerDFA::SetContainer(utility::IStreamContainer container) {
+  lexer_dfa_.SetContainer(container);
 }
 
 bool LexerDFA::CheckAnyRemaining() const {
@@ -102,7 +106,10 @@ void LexerDFA::SetRepeatEOF(bool flag) {
   lexer_dfa_.SetRepeatEOF(flag);
 }
 
+bool LexerDFA::IsGood() const {
+  return lexer_dfa_.IsGood();
+}
+
 bool LexerDFA::isSkip(int lexeme_id) const {
-  return std::find(skip_lexemes_.begin(), skip_lexemes_.end(), lexeme_id)
-      != skip_lexemes_.end();
+  return skip_lexemes_.contains(lexeme_id);
 }

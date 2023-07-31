@@ -6,6 +6,7 @@ using namespace lightning;
 using namespace lightning::time;
 
 int main(int argc, char** argv) {
+  // Set up the global core to an OstreamSink.
   lightning::Global::GetCore()->AddSink(std::make_shared<OstreamSink>());
 
   ParserCodegen generator;

@@ -10,7 +10,12 @@ using ActionID = int;
 using StateID = int;
 
 //! \brief Enum for the associativity of an operator/production rule.
-enum class Associativity { Left, Right, None };
+enum class Associativity
+{
+  Left,
+  Right,
+  None
+};
 
 inline std::string ToString(Associativity assoc) {
   switch (assoc) {
@@ -33,17 +38,19 @@ struct ResolutionInfo {
   bool operator==(const ResolutionInfo& rhs) const {
     return precedence == rhs.precedence && assoc == rhs.assoc;
   }
-  bool operator!=(const ResolutionInfo& rhs) const {
-    return !(*this == rhs);
-  }
+  bool operator!=(const ResolutionInfo& rhs) const { return !(*this == rhs); }
 };
 
-constexpr ResolutionInfo NullResolutionInfo{};
+constexpr ResolutionInfo NullResolutionInfo {};
 
 //! \brief Encode a production rule, like A -> a X b, etc.
 struct ProductionRule {
-  explicit ProductionRule(ProductionID production, int label, const std::vector<int> rhs = {})
-      : production(production), production_label(label), rhs(rhs) {}
+  explicit ProductionRule(ProductionID production,
+                          int label,
+                          const std::vector<int> rhs = {})
+      : production(production)
+      , production_label(label)
+      , rhs(rhs) {}
 
   //! \brief Create an empty production rule.
   ProductionRule() = default;
@@ -65,12 +72,13 @@ struct ProductionRule {
 
   // NOTE(Nate): Check how production and production_label differ - can we consolidate?
 
-  //! \brief The nonterminal ID that this is a rule for. I.e., the left hand side of a production rule.
+  //! \brief The nonterminal ID that this is a rule for. I.e., the left hand side of a
+  //! production rule.
   // TODO: This should be referenced_id, not "production"
   ProductionID production = -1;
 
   //! \brief A number for the production, i.e. this is the n-th production.
-  int production_label{};
+  int production_label {};
 
   //! \brief The right hand side of the production.
   std::vector<int> rhs;
@@ -78,8 +86,9 @@ struct ProductionRule {
   //! \brief Instructions associated with the state.
   std::shared_ptr<class ParseNode> instructions = nullptr;
 
-  //! \brief Resolution info - this encodes the precedence and associativity of a production. This is actualized
-  //! by resolving shift/reduce conflicts such that parsing works.
+  //! \brief Resolution info - this encodes the precedence and associativity of a
+  //! production. This is actualized by resolving shift/reduce conflicts such that parsing
+  //! works.
   ResolutionInfo res_info;
 };
 
@@ -89,8 +98,14 @@ struct ProductionRule {
 //! A state is a set of state items.
 //! \TODO: Change Item to be a pointer to a production rule, plus a bookmark.
 struct Item : public ProductionRule {
-  Item(ProductionID production, int label, int bookmark = 0, const std::vector<int>& rhs = {})
-      : ProductionRule(production, label, rhs), bookmark(bookmark) {}
+  Item(ProductionID production,
+       int label,
+       int bookmark = 0,
+       const std::vector<int>& rhs = {},
+       std::optional<unsigned> item_number = {})
+      : ProductionRule(production, label, rhs)
+      , item_number(item_number)
+      , bookmark(bookmark) {}
 
   //! \brief Create an empty item.
   Item() = default;
@@ -101,18 +116,19 @@ struct Item : public ProductionRule {
   //! \brief Returns whether the bookmark is at the end position.
   bool IsBookmarkAtEnd() const;
 
-  //! \brief Create a new Item where the bookmark is at the end, the "reducible form" of this item.
+  //! \brief Create a new Item where the bookmark is at the end, the "reducible form" of
+  //! this item.
   Item MakeReducibleForm() const;
 
-  //! \brief Create a new Item where the bookmark has advanced by one. If the bookmark is at
-  //! the end already, returns nullopt.
+  //! \brief Create a new Item where the bookmark has advanced by one. If the bookmark is
+  //! at the end already, returns nullopt.
   std::optional<Item> AdvanceDot() const;
 
   //! \brief Make a new identical Item without any instructions or resolution info
   Item WithoutInstructions() const;
 
-  //! \brief If the bookmark is at the end, returns {}, otherwise, returns the terminal or nonterminal
-  //! immediately following the bookmark.
+  //! \brief If the bookmark is at the end, returns {}, otherwise, returns the terminal or
+  //! nonterminal immediately following the bookmark.
   std::optional<int> GetElementFollowingBookmark() const;
 
   friend bool operator<(const Item& a, const Item& b);
@@ -120,22 +136,26 @@ struct Item : public ProductionRule {
   friend std::ostream& operator<<(std::ostream& out, const Item& item);
   friend std::string to_string(const Item&, bool);
 
-  // --- Data items ---
+  // =====================================================================================
+  //  Data
+  // =====================================================================================
+
+  //! \brief What the item number for this item is. Used e.g. to find the correct item
+  //! reduction function.
+  std::optional<unsigned> item_number {};
 
   //! \brief The location of the bookmark.
   //!
   //! Bookmark is in the place *before* bookmark, so e.g. "A -> a * X b" has bookmark=1.
-  //! A -1 means no bookmark, this is used when an item is being used to encode a pure production,
-  //! not a state item.
+  //! A -1 means no bookmark, this is used when an item is being used to encode a pure
+  //! production, not a state item.
   mutable int bookmark = 0;
 };
-
 
 bool operator<(const Item& a, const Item& b);
 bool operator==(const Item& a, const Item& b);
 std::ostream& operator<<(std::ostream& out, const Item& item);
 std::string to_string(const Item& item, bool print_marker = true);
-
 
 //! \brief Define a state to be a set of Items, with some extra features for convenience.
 struct State {
@@ -169,16 +189,27 @@ struct State {
 };
 
 //! \brief Table entry action types.
-enum class Action { Error, Shift, Reduce, Accept };
+enum class Action
+{
+  Error,
+  Shift,
+  Reduce,
+  Accept
+};
 
 //! \brief Write an action as a string.
 inline std::string ToString(Action action) {
   switch (action) {
-    case Action::Error:return "Error";
-    case Action::Shift:return "Shift";
-    case Action::Reduce:return "Reduce";
-    case Action::Accept:return "Accept";
-    default:throw std::exception();
+    case Action::Error:
+      return "Error";
+    case Action::Shift:
+      return "Shift";
+    case Action::Reduce:
+      return "Reduce";
+    case Action::Accept:
+      return "Accept";
+    default:
+      throw std::exception();
   }
 }
 
@@ -193,7 +224,7 @@ struct Entry {
   //! Create entry as an error
   Entry();
   //! Create entry as a shift.
-  explicit Entry(int s, const ResolutionInfo& res_info = ResolutionInfo{});
+  explicit Entry(int s, const ResolutionInfo& res_info = ResolutionInfo {});
   //! Create entry as a reduce.
   explicit Entry(Item r);
   //! \brief Create entry as an accept.
@@ -217,7 +248,7 @@ struct Entry {
 
   bool operator==(const Entry& rhs) const;
 
- private:
+private:
   //! \brief The action.
   Action action = Action::Error;
 
@@ -228,4 +259,4 @@ struct Entry {
   Item rule;
 };
 
-} // namespace manta
+}  // namespace manta

@@ -5,28 +5,23 @@
 #include <Lightning/Lightning.h>
 
 #include "manta/generator/typesystem/TypeCreation.h"
+#include "manta/utility/Formatting.h"
 
 using namespace manta;
+using namespace manta::formatting;
 using namespace manta::typesystem;
 
 namespace {
 
-template<typename T>
-auto CLBB(const T& data) {
-  return lightning::AnsiColor8Bit(data,
-                                  lightning::formatting::AnsiForegroundColor::BrightBlue);
-}
-
-template<typename T>
-auto CLBG(const T& data) {
-  return lightning::AnsiColor8Bit(
-      data, lightning::formatting::AnsiForegroundColor::BrightGreen);
-}
-
-template<typename T>
-auto CLY(const T& data) {
-  return lightning::AnsiColor8Bit(
-      data, lightning::formatting::AnsiForegroundColor::Yellow);
+std::string escape(const std::string& input) {
+  std::string output;
+  output.reserve(input.size());
+  std::for_each(input.begin(), input.end(), [&output](auto c) {
+    if (c == '\\')
+      output.push_back('\\');
+    output.push_back(c);
+  });
+  return output;
 }
 
 }  // namespace
@@ -80,7 +75,8 @@ void ParserCodegen::GenerateParserCode(
   // Write the guard and includes.
   code_out << "#pragma once\n\n#include <vector>\n#include <string>\n\n";
   code_out << "// Include the support for the parser.\n";
-  code_out << "#include \"manta/generator/ParserDriver.h\"\n\n";
+  code_out << "#include \"manta/generator/ParserDriver.h\"\n";
+  code_out << "#include \"manta/generator/LexerGenerator.h\"\n\n";
 
   // Create the node class definitions.
   LOG_SEV(Info) << "Generating code for all AST node definitions.";
@@ -108,7 +104,7 @@ void ParserCodegen::GenerateParserCode(
   code_out << "  //! \\brief Constructor, initializes the parser.\n  //!\n";
   code_out << "  Parser();\n\n";
   code_out << "  //! \\brief Function to parse the input.\n  //!\n";
-  code_out << "  void ParseInput();\n\n";
+  code_out << "  std::shared_ptr<ASTNodeBase> ParseInput();\n\n";
   code_out << "protected:\n";
   code_out << "  //! \\brief Function that sets up the lexer.\n  //!\n";
   code_out << "  void createLexer();\n\n";
@@ -116,44 +112,50 @@ void ParserCodegen::GenerateParserCode(
               "call the reduction functions.\n";
   code_out << "  std::shared_ptr<ASTNodeBase> reduce(unsigned reduction_id, const "
               "std::vector<std::shared_ptr<ASTNodeBase>>& collected_nodes);\n\n";
-  code_out << "  //! \\brief The parser table.\n  //!\n";
-  code_out << "  std::vector<std::vector<manta::Entry>> parse_table_;\n";
 
-  LOG_SEV(Info) << "Generating declarations of all reduce functions.";
-  auto item_number = 0u;
-  for (auto& item : parser_data->production_rules_data->all_productions) {
-    // TODO: Sanitize names.
+  {
+    LOG_SEV(Info) << "Generating declarations of all reduce functions.";
+    auto item_number = 0u;
+    for (auto& item : parser_data->production_rules_data->all_productions) {
+      LOG_SEV(Debug) << "Looking for node type name for item " << item_number << ".";
+      auto& node_type_name = node_types_for_item.at(item_number);
+      LOG_SEV(Debug) << "Node type name for item " << item_number << " is "
+                     << node_type_name;
 
-    LOG_SEV(Debug) << "Looking for node type name for item " << item_number << ".";
-    auto& node_type_name = node_types_for_item.at(item_number);
-    LOG_SEV(Debug) << "Node type name for item " << item_number << " is "
-                   << node_type_name;
-
-    code_out << "  std::shared_ptr<" << node_type_name << ">\n";
-    code_out << "  ReduceTo_" + node_type_name << "_ViaItem_" << item_number << "(";
-    auto i = 0;
-    LOG_SEV(Debug) << "Writing declaration for item " << item_number << ": "
-                   << CLBG(to_string(item, false));
-    for (auto id : item.rhs) {
-      if (i != 0)
-        code_out << ",";
-      if (parser_data->production_rules_data->IsNonTerminal(id)) {
-        // Get the base type for this non-terminal.
-        auto& base_type = deduced_types.GetBaseTypeName(id);
-        code_out << "\n      const std::shared_ptr<" << base_type << ">& argument_" << i;
+      code_out << "  std::shared_ptr<" << node_type_name << ">\n";
+      code_out << "  ReduceTo_" + node_type_name << "_ViaItem_" << item_number << "(";
+      auto i = 0;
+      LOG_SEV(Debug) << "Writing declaration for item " << item_number << ": "
+                     << CLBG(to_string(item, false));
+      for (auto id : item.rhs) {
+        if (i != 0)
+          code_out << ",";
+        if (parser_data->production_rules_data->IsNonTerminal(id)) {
+          // Get the base type for this non-terminal.
+          auto& base_type = deduced_types.GetBaseTypeName(id);
+          code_out << "\n      const std::shared_ptr<" << base_type << ">& argument_"
+                   << i;
+        }
+        else {
+          code_out << "\n      const std::string& argument_" << i;
+        }
+        ++i;
       }
-      else {
-        code_out << "\n      const std::string& argument_" << i;
-      }
-      ++i;
+      code_out << ");\n\n";
+
+      ++item_number;
     }
-    code_out << ");\n\n";
-
-    ++item_number;
+    code_out << "};\n\n";
   }
-  code_out << "};\n\n";
 
   LOG_SEV(Info) << "Generating definitions of Parser's functions.";
+
+  // Create item numbers.
+
+  std::map<Item, unsigned> item_numbers;
+  for (auto& item : parser_data->production_rules_data->all_productions) {
+    item_numbers.emplace(item, item_numbers.size());
+  }
 
   code_out << "Parser::Parser() {\n";
   code_out << "  using namespace manta;\n\n";
@@ -174,6 +176,10 @@ void ParserCodegen::GenerateParserCode(
         code_out << "  parse_table_[" << row_it << "][" << col_it << "] = ";
         if (entry.IsReduce()) {
           auto& item = entry.GetRule();
+
+          // Look up the item number.
+          auto item_number = item_numbers.at(item);
+
           code_out << "Entry(Item(" << item.production << ", " << item.production_label
                    << ", 0, {";
           for (auto i = 0u; i < item.rhs.size(); ++i) {
@@ -181,7 +187,7 @@ void ParserCodegen::GenerateParserCode(
               code_out << ", ";
             code_out << item.rhs[i];
           }
-          code_out << "}));  // Reduce\n";
+          code_out << "}, " << item_number << "));  // Reduce\n";
         }
         else if (entry.IsShift()) {
           code_out << "Entry(" << entry.GetState() << ");  // Shift\n";
@@ -193,156 +199,209 @@ void ParserCodegen::GenerateParserCode(
     }
     ++row_it;
   }
+  code_out << "\n";
+
+  // Create the all states vector.
+  // parser_data->all_states;
+
+  // Create the inverse production map.
+  code_out << "  // Create inverse non-terminal map.\n";
+  for (auto& [id, name] : parser_data->production_rules_data->inverse_nonterminal_map) {
+    code_out << "  inverse_nonterminal_map_.emplace(" << id << ", \"" << name << "\");\n";
+  }
+  code_out << "\n";
 
   code_out << "  createLexer();\n";
   code_out << "}\n\n";
 
-  code_out << "void Parser::ParseInput() {\n  parse();\n}\n\n";
+  code_out
+      << "std::shared_ptr<ASTNodeBase> Parser::ParseInput() {\n  return parse();\n}\n\n";
 
   // Generate the code to create the lexer.
   code_out << "void Parser::createLexer() {\n";
-  // TODO: Create lexer.
+  auto& lex_gen = parser_data->lexer_generator;
+  code_out << "  auto lexer_generator = std::make_shared<manta::LexerGenerator>();\n\n";
+
+  auto&& defining_expressions = lex_gen->GetDefiningExpressions();
+  auto&& ordered_definitions = lex_gen->GetOrderedLexemeDefinitions();
+  for (auto& [lexeme_name, regex, prec] : ordered_definitions) {
+    if (lex_gen->IsReserved(lexeme_name)) {
+      continue;
+    }
+
+    code_out << "  lexer_generator->AddLexeme(\"" << lexeme_name << "\", \""
+             << escape(regex) << "\", " << prec << ");\n";
+  }
+  code_out << "\n";
+
+  // Add all reserved keywords.
+  auto reserved_names = lex_gen->GetReservedLexemeNames();
+  for (auto& reserved_name : reserved_names) {
+    auto& [def, prec] = defining_expressions.at(reserved_name);
+    code_out << "  lexer_generator->AddReserved(\"" << escape(def) << "\", " << prec
+             << ");\n";
+  }
+
+  // Add all skip lexemes.
+  auto skip_lexemes = lex_gen->GetSkipLexemeNames();
+  for (auto& skip_lexeme_name : skip_lexemes) {
+    code_out << "  lexer_generator->AddSkip(\"" << skip_lexeme_name << "\");\n";
+  }
+  code_out << "\n";
+
+  code_out << "  lexer_ = lexer_generator->CreateLexer();\n";
   code_out << "}\n\n";
 
   code_out << "std::shared_ptr<ASTNodeBase> Parser::reduce(unsigned "
               "reduction_id, const std::vector<std::shared_ptr<ASTNodeBase>>& "
               "collected_nodes) {\n";
 
-  item_number = 0u;
+  {
+    unsigned item_number = 0u;
 
-  code_out << "  switch (reduction_id) {\n";
-  for (auto& item : parser_data->production_rules_data->all_productions) {
-    // TODO: Sanitize names.
+    code_out << "  switch (reduction_id) {\n";
+    for (auto& item : parser_data->production_rules_data->all_productions) {
+      // TODO: Sanitize names.
 
-    auto& node_type_name = node_types_for_item.at(item_number);
-    code_out << "    case " << item_number << ": {\n";
-    code_out << "      return ReduceTo_" + node_type_name << "_ViaItem_" << item_number
-             << "(";
-    auto i = 0;
-    for (auto id : item.rhs) {
-      if (i != 0)
-        code_out << ",";
-      if (parser_data->production_rules_data->IsNonTerminal(id)) {
-        // Get the base type for this non-terminal.
-        code_out << "\n          std::reinterpret_pointer_cast<";
+      auto& node_type_name = node_types_for_item.at(item_number);
+      code_out << "    case " << item_number << ": {\n";
+      // Make sure there are enough nodes in the collect vector.
+      code_out << "      MANTA_REQUIRE(" << item.rhs.size()
+               << " <= collected_nodes.size(), \"in reduction " << item_number
+               << ", not enough nodes in the collect vector, needed at least "
+               << item.rhs.size() << ", actual size was \" << collected_nodes.size());\n";
+      code_out << "      return ReduceTo_" + node_type_name << "_ViaItem_" << item_number
+               << "(";
+      auto i = 0;
+      for (auto id : item.rhs) {
+        if (i != 0)
+          code_out << ",";
+        if (parser_data->production_rules_data->IsNonTerminal(id)) {
+          // Get the base type for this non-terminal.
+          code_out << "\n          std::reinterpret_pointer_cast<";
 
-        auto& base_type = deduced_types.GetBaseTypeName(id);
-        code_out << base_type << ">(collected_nodes[" << i << "])";
+          auto& base_type = deduced_types.GetBaseTypeName(id);
+          code_out << base_type << ">(collected_nodes[" << i << "])";
+        }
+        else {
+          code_out << "\n          reinterpret_cast<ASTLexeme*>(collected_nodes[" << i
+                   << "].get())->literal";
+        }
+        ++i;
       }
-      else {
-        code_out << "\n          reinterpret_cast<ASTLexeme*>(collected_nodes[" << i
-                 << "].get())->literal";
-      }
-      ++i;
+      code_out << ");\n";
+      code_out << "    }\n";
+
+      ++item_number;
     }
-    code_out << ");\n";
+    code_out << "    default: {\n";
+    code_out << "      MANTA_FAIL(\"unrecognized production\" << reduction_id << "
+                "\", cannot reduce\");\n";
     code_out << "    }\n";
+    code_out << "  }\n";
 
-    ++item_number;
+    code_out << "}\n\n";
   }
-  code_out << "    default: {\n";
-  code_out << "      MANTA_FAIL(\"unrecognized production\" << reduction_id << "
-              "\", cannot reduce\");\n";
-  code_out << "    }\n";
-  code_out << "  }\n";
 
-  code_out << "}\n\n";
+  {
+    unsigned item_number = 0u;
+    for (auto& item : parser_data->production_rules_data->all_productions) {
+      // TODO: Sanitize names.
 
-  item_number = 0u;
-  for (auto& item : parser_data->production_rules_data->all_productions) {
-    // TODO: Sanitize names.
+      auto& node_type_name = node_types_for_item.at(item_number);
 
-    auto& node_type_name = node_types_for_item.at(item_number);
+      code_out << "std::shared_ptr<" << node_type_name << ">\n";
+      auto function_name = parser_class_name + "::ReduceTo_" + node_type_name
+          + "_ViaItem_" + std::to_string(item_number);
+      code_out << function_name;
+      code_out << "(";
 
-    code_out << "std::shared_ptr<" << node_type_name << ">\n";
-    auto function_name = parser_class_name + "::ReduceTo_" + node_type_name + "_ViaItem_"
-        + std::to_string(item_number);
-    code_out << function_name;
-    code_out << "(";
+      LOG_SEV(Info) << "Creating reduction function '" << CLY(function_name)
+                    << "' for item " << item_number << ". Node type name is '"
+                    << node_type_name << "'.";
 
-    LOG_SEV(Info) << "Creating reduction function '" << CLY(function_name) << "' for item "
-                  << item_number << ". Node type name is '" << node_type_name << "'.";
+      // Arguments.
+      // std::map<int, int> count_duplicates;
+      auto i = 0;
+      LOG_SEV(Debug) << "Creating function arguments.";
+      for (auto id : item.rhs) {
+        // auto count = count_duplicates[id]++;
+        if (i != 0) {
+          code_out << ",";
+        }
+        if (parser_data->production_rules_data->IsNonTerminal(id)) {
+          // Get the base type for this non-terminal.
+          auto& base_type = deduced_types.GetBaseTypeName(id);
+          code_out << "\n    const std::shared_ptr<" << base_type
+                   << ">& "
+                   // parser_data->production_rules_data->GetName(id)
+                   << "argument_" << i;
 
-    // Arguments.
-    // std::map<int, int> count_duplicates;
-    auto i = 0;
-    LOG_SEV(Debug) << "Creating function arguments.";
-    for (auto id : item.rhs) {
-      // auto count = count_duplicates[id]++;
-      if (i != 0) {
-        code_out << ",";
+          LOG_SEV(Debug) << "  * Argument " << i
+                         << " is a non-terminal. Base type is named '" << base_type
+                         << "'.";
+        }
+        else {
+          LOG_SEV(Debug) << "  * Argument " << i
+                         << " is a terminal. Parameter will be a std::string.";
+          code_out << "\n    const std::string& argument_" << i;
+        }
+        ++i;
       }
-      if (parser_data->production_rules_data->IsNonTerminal(id)) {
-        // Get the base type for this non-terminal.
-        auto& base_type = deduced_types.GetBaseTypeName(id);
-        code_out << "\n    const std::shared_ptr<" << base_type
-                 << ">& "
-                 // parser_data->production_rules_data->GetName(id)
-                 << "argument_" << i;
+      code_out << ") {\n";
+      code_out << "  auto new_node = std::make_shared<" << node_type_name << ">();\n\n";
+      code_out << "  // Set fields in the new node.\n";
 
-        LOG_SEV(Debug) << "  * Argument " << i
-                       << " is a non-terminal. Base type is named '" << base_type << "'.";
+      // Get relationships for this node. We only keep the ones for this item number.
+      auto& relationships_for_node = relationships.at(node_type_name);
+      std::sort(relationships_for_node.end(),
+                relationships_for_node.end(),
+                [](auto& l, auto& r) { return l.position < r.position; });
+      LOG_SEV(Debug) << "Node '" << node_type_name << "' has "
+                     << relationships_for_node.size()
+                     << " relationships, creating function body.";
+      for (auto& rel : relationships_for_node) {
+        if (rel.item_number != item_number) {
+          continue;
+        }
+        auto&& field_name = rel.target_field_name;
+        switch (rel.check_type) {
+          case CheckType::Push: {
+            LOG_SEV(Debug) << "  * PUSH relationship for arg " << rel.position
+                           << " into field named '" << field_name << "'.";
+            code_out << "  new_node->" << field_name << ".push_back(argument_"
+                     << rel.position << ");\n";
+            break;
+          }
+          case CheckType::Append: {
+            const std::string arg_name = "argument_" + std::to_string(rel.position);
+
+            LOG_SEV(Debug) << "  * APPEND relationship for arg " << rel.position
+                           << " into field named '" << field_name << "'.";
+
+            code_out << "  new_node->" << field_name << ".insert("
+                     << "new_node->" << field_name << ".end(), " << arg_name << "->"
+                     << *rel.source_field_name << ".cbegin(), " << arg_name << "->"
+                     << *rel.source_field_name << ".cend());\n";
+            break;
+          }
+          case CheckType::Field: {
+            LOG_SEV(Debug) << "  * FIELD relationship for arg " << rel.position
+                           << " into field named '" << field_name << "'.";
+
+            code_out << "  new_node->" << field_name << " = argument_" << rel.position
+                     << ";\n";
+            break;
+          }
+        }
       }
-      else {
-        LOG_SEV(Debug) << "  * Argument " << i
-                       << " is a terminal. Parameter will be a std::string.";
-        code_out << "\n    const std::string& argument_" << i;
-      }
-      ++i;
+      code_out << "\n";
+      code_out << "  return new_node;\n";
+      code_out << "}\n" << std::endl;
+
+      LOG_SEV(Info) << "Done writing code for reduction of item " << item_number << ".";
+      ++item_number;
     }
-    code_out << ") {\n";
-    code_out << "  auto new_node = std::make_shared<" << node_type_name << ">();\n\n";
-    code_out << "  // Set fields in the new node.\n";
-
-    // Get relationships for this node. We only keep the ones for this item number.
-    auto& relationships_for_node = relationships.at(node_type_name);
-    std::sort(relationships_for_node.end(),
-              relationships_for_node.end(),
-              [](auto& l, auto& r) { return l.position < r.position; });
-    LOG_SEV(Debug) << "Node '" << node_type_name << "' has "
-                   << relationships_for_node.size()
-                   << " relationships, creating function body.";
-    for (auto& rel : relationships_for_node) {
-      if (rel.item_number != item_number) {
-        continue;
-      }
-      auto&& field_name = rel.target_field_name;
-      switch (rel.check_type) {
-        case CheckType::Push: {
-          LOG_SEV(Debug) << "  * PUSH relationship for arg " << rel.position
-                         << " into field named '" << field_name << "'.";
-          code_out << "  new_node->" << field_name << ".push_back(argument_"
-                   << rel.position << ");\n";
-          break;
-        }
-        case CheckType::Append: {
-          const std::string arg_name = "argument_" + std::to_string(rel.position);
-
-          LOG_SEV(Debug) << "  * APPEND relationship for arg " << rel.position
-                         << " into field named '" << field_name << "'.";
-
-          code_out << "  new_node->" << field_name << ".insert("
-                   << "new_node->" << field_name << ".end(), " << arg_name << "->"
-                   << *rel.source_field_name << ".cbegin(), " << arg_name << "->"
-                   << *rel.source_field_name << ".cend());\n";
-          break;
-        }
-        case CheckType::Field: {
-          LOG_SEV(Debug) << "  * FIELD relationship for arg " << rel.position
-                         << " into field named '" << field_name << "'.";
-
-          code_out << "  new_node->" << field_name << " = argument_" << rel.position
-                   << ";\n";
-          break;
-        }
-      }
-    }
-    code_out << "\n";
-    code_out << "  return new_node;\n";
-    code_out << "}\n" << std::endl;
-
-    LOG_SEV(Info) << "Done writing code for reduction of item " << item_number << ".";
-    ++item_number;
   }
 }
 

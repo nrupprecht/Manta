@@ -1,19 +1,22 @@
 #pragma once
 
+#include <exception>
+
 #include "manta/lexer/DeterministicFiniteAutomata.hpp"
 #include "manta/utility/IStreamContainer.hpp"
-#include <exception>
 
 namespace manta {
 
-
 class LexerDFA {
- public:
+public:
   //! \brief Set up the lexer to parse a file. Takes the filename.
-  bool SetFileToLex(const std::string &fileName);
+  bool SetFileToLex(const std::string& fileName);
 
   //! \brief Set up the lexer to parse a string. Takes the string.
-  void SetStringToLex(const std::string &sentence);
+  void SetStringToLex(const std::string& sentence);
+
+  //! \brief Set the input stream container.
+  void SetContainer(utility::IStreamContainer container);
 
   // =====================================================================================
   //  Helper functions.
@@ -52,48 +55,53 @@ class LexerDFA {
   //! \brief Set the repeat eof flag.
   void SetRepeatEOF(bool flag);
 
- private:
+  bool IsGood() const;
+
+private:
   // Lexer generator is a class so it can construct Lexers via the private constructor.
   friend class LexerGenerator;
 
   //! \brief Private constructor.
-  LexerDFA(FiniteAutomaton &dfa,
+  LexerDFA(FiniteAutomaton& dfa,
            std::vector<std::string> lexemes,
-           std::vector<std::pair<std::string, int>> reserved,
-           std::vector<int> skips) :
-      lexer_dfa_(dfa),
-      all_lexemes_(std::move(lexemes)),
-      skip_lexemes_(std::move(skips)),
-      reserved_tokens_(std::move(reserved)) {};
+           std::map<std::string, int> reserved,
+           std::set<int> skips)
+      : lexer_dfa_(dfa)
+      , all_lexemes_(std::move(lexemes))
+      , skip_lexemes_(std::move(skips))
+      , reserved_tokens_(std::move(reserved)) {};
 
   //! \brief Check if a token should be skipped.
   NO_DISCARD bool isSkip(int lexeme_id) const;
 
   //! \brief A vector of lexemes.
-  std::vector<std::string> all_lexemes_{};
+  std::vector<std::string> all_lexemes_ {};
 
   //! \brief Keep track of the reserved tokens.
   //!
   //! Maps from the reserved literal to its lexeme number.
+  //!
   //! Each reserved token must be acceptable as some lexeme type.
-  std::vector<std::pair<std::string, int>> reserved_tokens_{};
+  //! TODO(Nate): Check if this is still true, and if so, find a way to relax it.
+  std::map<std::string, int> reserved_tokens_ {};
 
   //! \brief A list of lexemes to skip.
-  std::vector<int> skip_lexemes_{};
+  std::set<int> skip_lexemes_ {};
 
   //! \brief The underlying deterministic finite automaton used to do the parsing.
-  FiniteAutomaton lexer_dfa_{};
+  FiniteAutomaton lexer_dfa_ {};
 };
 
 //! \brief Lex everything the lexer points at, and return a string representation
 //!     of the lex. Used in testing.
-inline std::string lexAllToString(const std::shared_ptr<LexerDFA> &lexer) {
+inline std::string LexAllToString(const std::shared_ptr<LexerDFA>& lexer) {
   std::stringstream stream;
   auto all_tokens = lexer->LexAll();
-  for (const auto &token: all_tokens) {
-    stream << "(" << lexer->LexemeName(token.type) << " | \"" << clean(token.literal) << "\") ";
+  for (const auto& token : all_tokens) {
+    stream << "(" << lexer->LexemeName(token.type) << " | \"" << clean(token.literal)
+           << "\") ";
   }
   return stream.str();
 }
 
-} // namespace manta
+}  // namespace manta

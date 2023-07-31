@@ -27,7 +27,7 @@ void testParser(const std::string &rules_filepath, const std::string &code_filep
     parser = generator.CreateParserFromFile(rules_filepath);
   }
   catch (const std::exception& ex) {
-    LOG_SEV(Error) << "Exception parsing rules: " << ex.what();
+    LOG_SEV(Error) << "Exception parsing rules:" << lightning::NewLineIndent << ex.what();
     return;
   }
 
@@ -75,11 +75,11 @@ int main(int argc, char **argv) {
 
   // compareParsers("../config/simpler_rules.txt");
 
-  //testParser("../../config/simple-rules.txt", "../../examples/code-ex.txt");
+  testParser("../../config/simple-rules.txt", "../../examples/test.txt");
 
   // testParser("../../config/op_prec.txt", "../../examples/code-ex.txt");
 
-  testParser("../../config/full_rules.txt", "../../examples/basic_parser_and_lexer.txt");
+  // testParser("../../config/full_rules.txt", "../../examples/basic_parser_and_lexer.txt");
 
   // testParser("../../config/manta.txt", "../../examples/manta_code.txt");
 

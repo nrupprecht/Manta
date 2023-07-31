@@ -7,18 +7,16 @@
 #include <Lightning/Lightning.h>
 
 #include "manta/lexer/LexerDFA.hpp"
+#include "manta/utility/Formatting.h"
+#include "manta/utility/StreamFunctions.h"
 
 using namespace manta;
+using namespace manta::formatting;
 
 LexerGenerator::LexerGenerator(bool eof_token) {
   head_id_ = lexer_dfa_.AddNode();
   if (eof_token) {
-    // Add @eof as a node.
-    all_lexemes_.emplace_back("eof");
-    auto eof_node = lexer_dfa_.AddNode();
-    // Add a transition from the head node to an EOF accepting state.
-    lexer_dfa_.AddTransition(head_id_, eof_node, '\0');
-    lexer_dfa_.AddAcceptance(eof_node, 0 /* "EOD" ID == 0 */, 1);
+    AddLexeme("eof", "\0", 2);
   }
 }
 
@@ -91,15 +89,16 @@ std::shared_ptr<LexerDFA> LexerGenerator::CreateLexer(std::istream& instream,
   while (!in_->eof()) {
     // Start of a lexeme definition.
     if (c == '@') {
-      auto lexeme = getLexeme();
+      auto lexeme_name = getLexemeName();
+      LOG_SEV(Debug) << "Got lexeme name " << CLBG(lexeme_name) << ".";
 
-      // Make sure this is not a repeat lexeme. If not, store it.
-      if (std::find(all_lexemes_.begin(), all_lexemes_.end(), lexeme)
-          != all_lexemes_.end()) {
-        LOG_SEV(Warning) << "The lexeme ('@" << lexeme << "') already exists.";
-      }
-      else {
-        all_lexemes_.push_back(lexeme);
+      // Make sure this is not a repeat lexeme_name. If not, store it.
+      if (std::find(all_lexemes_.begin(), all_lexemes_.end(), lexeme_name)
+          != all_lexemes_.end())
+      {
+        LOG_SEV(Warning) << "The lexeme_name ('@" << CLBG(lexeme_name)
+                         << "') already exists. The new definition will not overwrite "
+                            "the old definition";
       }
 
       pass_white_space();
@@ -107,24 +106,25 @@ std::shared_ptr<LexerDFA> LexerGenerator::CreateLexer(std::istream& instream,
       // Get the 'r'
       in_->get(c);
       MANTA_ASSERT(c == 'r', "did not find 'r' in regex definition");
-      MANTA_ASSERT(!in_->eof(), "reached EOF while getting lexeme definition");
+      MANTA_ASSERT(!in_->eof(), "reached EOF while getting lexeme_name definition");
 
       // Get the '`'
       in_->get(c);
       MANTA_ASSERT(c == '`', "did not find opening \" in regex definition");
-      MANTA_ASSERT(!in_->eof(), "reached EOF while getting lexeme definition");
+      MANTA_ASSERT(!in_->eof(), "reached EOF while getting lexeme_name definition");
 
       // ========================================
       // Get the string that defines the regex.
       // ========================================
 
-      // Get the lexeme definition.
-      auto [start_id, end_id] = getSequence('`');
-      // Set recent_id node to be accepting.
-      lexer_dfa_.AddAcceptance(
-          end_id, static_cast<int>(all_lexemes_.size()) - 1, 1 /* Precedence */);
-      // Lambda transition from head node to start_id node.
-      lexer_dfa_.AddTransition(head_id_, start_id);
+      // Get the regex expression defining the lexeme_name.
+
+      auto regex_pattern = utility::GetUntil(in_, '`');
+      LOG_SEV(Debug) << "Extracted regex pattern " << CLBB(regex_pattern)
+                     << " for lexeme " << CLBG(lexeme_name) << ".";
+
+      // Add the lexeme_name.
+      AddLexeme(lexeme_name, regex_pattern, 1);
 
       // Consume spaces until a newline or EOF.
       in_->get(c);
@@ -143,12 +143,14 @@ std::shared_ptr<LexerDFA> LexerGenerator::CreateLexer(std::istream& instream,
     }
     // Full line comments.
     else if (c == '#') {
+      LOG_SEV(Debug) << "Passing over full-line comment.";
       while (!in_->eof() && c != '\n') {
         in_->get(c);
       }
     }
     // Command.
     else if (c == '.') {
+      LOG_SEV(Debug) << "Extracting command.";
       pass_white_space();
       std::string command;
       in_->get(c);
@@ -157,6 +159,8 @@ std::shared_ptr<LexerDFA> LexerGenerator::CreateLexer(std::istream& instream,
         command.push_back(c);
         in_->get(c);
       }
+      LOG_SEV(Debug) << "Command is " << CLY(command) << ".";
+
       // End parsing.
       if (command == "End" || command == "Parser") {
         break;
@@ -164,11 +168,12 @@ std::shared_ptr<LexerDFA> LexerGenerator::CreateLexer(std::istream& instream,
       // Designate a skip lexeme
       if (command == "Skip") {
         // Get the lexeme to skip.
-        auto skip = getLexeme();
-        skip_lexemes_.push_back(LexemeID(skip));
+        auto skip = getLexemeName();
+        LOG_SEV(Debug) << "Adding skip lexeme " << CLBG(skip) << ".";
+        AddSkip(skip);
       }
       else {
-        LOG_SEV(Warning) << "Unrecognized command '" << command << "'.'";
+        LOG_SEV(Warning) << "Unrecognized command " << CLY(command) << ". Bypassing.";
       }
     }
     // Get next character.
@@ -185,7 +190,8 @@ std::shared_ptr<LexerDFA> LexerGenerator::CreateLexer() {
       new LexerDFA(lexer_dfa_, all_lexemes_, reserved_tokens_, skip_lexemes_));
 }
 
-const std::map<std::string, std::string>& LexerGenerator::GetDefiningExpressions() const {
+const std::map<std::string, std::pair<std::string, int>>&
+LexerGenerator::GetDefiningExpressions() const {
   return defining_expressions_;
 }
 
@@ -201,9 +207,9 @@ char LexerGenerator::peek() const {
   return lexer_dfa_.Peek();
 }
 
-std::string LexerGenerator::getLexeme() const {
+std::string LexerGenerator::getLexemeName() const {
   std::string lexeme;
-  char c;
+  char c {};
   in_->get(c);
   while (!in_->eof() && isalpha(c) || isdigit(c) || c == '_') {
     // Check for errors.
@@ -268,9 +274,7 @@ int LexerGenerator::LexemeID(const std::string& name) const {
 }
 
 int LexerGenerator::ReservedIndex(const std::string& keyword) const {
-  auto it = std::find_if(reserved_tokens_.begin(),
-                         reserved_tokens_.end(),
-                         [&keyword](const auto& pr) { return keyword == pr.first; });
+  auto it = reserved_tokens_.find(keyword);
   if (it == reserved_tokens_.end()) {
     return -1;
   }
@@ -281,7 +285,10 @@ int LexerGenerator::ReservedIndex(const std::string& keyword) const {
 
 int LexerGenerator::AddReserved(const std::string& keyword, int precedence) {
   // The call to escapeLiteral escapes characters, if necessary.
-  return AddLexeme("RES:" + keyword, escapeLiteral(keyword), precedence);
+  auto reserved_name = "RES:" + keyword;
+  auto index = AddLexeme(reserved_name, escapeLiteral(keyword), precedence);
+  reserved_tokens_.emplace(reserved_name, index);
+  return index;
 }
 
 void LexerGenerator::AddSkip(const std::string& keyword) {
@@ -292,47 +299,77 @@ void LexerGenerator::AddSkip(const std::string& keyword) {
 
   auto index = static_cast<int>(std::distance(all_lexemes_.begin(), it));
   // Make sure the lexeme was not already added as a skip lexeme.
-  if (std::find(skip_lexemes_.begin(), skip_lexemes_.end(), index) == skip_lexemes_.end())
-  {
-    skip_lexemes_.push_back(index);
+  if (!skip_lexemes_.contains(index)) {
+    skip_lexemes_.insert(index);
   }
 }
 
-int LexerGenerator::AddLexeme(const std::string& lexeme,
+int LexerGenerator::AddLexeme(const std::string& lexeme_name,
                               const std::string& regex,
                               int precedence) {
   // Check if the lexeme already exists
-  auto it = std::find(all_lexemes_.begin(), all_lexemes_.end(), lexeme);
+  auto it = std::find(all_lexemes_.begin(), all_lexemes_.end(), lexeme_name);
   if (it != all_lexemes_.end()) {
     return static_cast<int>(std::distance(all_lexemes_.begin(), it));
   }
 
   // Lexeme does not exist, add it.
-  all_lexemes_.push_back(lexeme);
+  all_lexemes_.push_back(lexeme_name);
   int lexeme_number = static_cast<int>(all_lexemes_.size()) - 1;
 
   // Get the lexeme definition as part of a NDFA.
-  std::stringstream stream;
-  stream << regex;
-  in_ = stream;
-  auto [start_id, end_id] = getSequence('\0', false);
+  auto container = utility::IStreamContainer::StreamString(regex);
+  auto [start_id, end_id] = getSequence(container, '\0', false);
   // Set recent_id node to be accepting.
   lexer_dfa_.AddAcceptance(end_id, lexeme_number, precedence);
   // Lambda transition from head node to start_id node.
   lexer_dfa_.AddTransition(head_id_, start_id);
 
   // Store the defining expression for lexemes.
-  defining_expressions_[lexeme] = regex;
+  defining_expressions_[lexeme_name] = {regex, precedence};
 
   return lexeme_number;
+}
+
+std::vector<std::tuple<std::string, std::string, int>>
+LexerGenerator::GetOrderedLexemeDefinitions() const {
+  auto N = all_lexemes_.size();
+  std::vector<std::tuple<std::string, std::string, int>> output;
+  output.reserve(N);
+  for (auto& name : all_lexemes_) {
+    auto& [regex_pattern, prec] = defining_expressions_.at(name);
+    output.emplace_back(name, regex_pattern, prec);
+  }
+  return output;
+}
+
+std::vector<std::string> LexerGenerator::GetSkipLexemeNames() const {
+  std::vector<std::string> output;
+  for (auto id : skip_lexemes_) {
+    output.emplace_back(LexemeName(id));
+  }
+  return output;
+}
+
+std::vector<std::string> LexerGenerator::GetReservedLexemeNames() const {
+  std::vector<std::string> output;
+  for (auto& [name, _] : reserved_tokens_) {
+    output.emplace_back(name);
+  }
+  return output;
 }
 
 std::size_t LexerGenerator::GetNumLexemes() const {
   return all_lexemes_.size();
 }
 
-std::pair<int, int> LexerGenerator::getSequence(char terminator, bool useTerminator) {
-  if (in_->eof()) {
+bool LexerGenerator::IsReserved(const std::string& lexeme_name) const {
+  return reserved_tokens_.contains(lexeme_name);
+}
+
+std::pair<int, int> LexerGenerator::getSequence(
+    utility::IStreamContainer& stream_container, char terminator, bool useTerminator) {
+  if (stream_container->eof()) {
     return std::make_pair(-1, -1);
   }
 
@@ -342,7 +379,7 @@ std::pair<int, int> LexerGenerator::getSequence(char terminator, bool useTermina
   std::pair<int, int> ends(start_id, end_id);
 
   char c {};  // Initialize to 0
-  in_->get(c);
+  stream_container->get(c);
   do {
     // Terminator character.
     if (useTerminator && c == terminator) {
@@ -355,12 +392,12 @@ std::pair<int, int> LexerGenerator::getSequence(char terminator, bool useTermina
       ;
     // Start of grouping.
     else if (c == '(') {
-      auto [start, end] = getSequence(')');
+      auto [start, end] = getSequence(stream_container, ')');
       lexer_dfa_.AddTransition(recent_id, start);  // Link up with an epsilon transition.
 
       // Peek if a modifiers modifies the grouping.
-      in_->get(c);
-      if (!in_->eof()) {
+      stream_container->get(c);
+      if (!stream_container->eof()) {
         if (c == '*') {
           makeStar(start, end, recent_id);
         }
@@ -371,15 +408,15 @@ std::pair<int, int> LexerGenerator::getSequence(char terminator, bool useTermina
           makePlus(start, end, recent_id);
         }
         else {
-          in_->putback(c);
+          stream_container->putback(c);
         }
       }
       recent_id = end;
     }
     // Escape character
     else if (c == '\\') {
-      in_->get(c);  // Get next letter.
-      specialCharacters(c, recent_id);
+      stream_container->get(c);  // Get next letter.
+      specialCharacters(stream_container, c, recent_id);
     }
     // OR
     else if (c == '|') {
@@ -398,12 +435,12 @@ std::pair<int, int> LexerGenerator::getSequence(char terminator, bool useTermina
       // range a-z, inclusively. Dont match string: [~*/] ==> Accept char if the next two
       // chars are not "*/"
 
-      auto [start, end] = getCharacterClass();
+      auto [start, end] = getCharacterClass(stream_container);
       lexer_dfa_.AddTransition(recent_id, start);  // Link up with an epsilon transition.
 
       // Peek if a modifiers modifies the grouping.
-      in_->get(c);
-      if (!in_->eof()) {
+      stream_container->get(c);
+      if (!stream_container->eof()) {
         if (c == '*') {
           makeStar(start, end, recent_id);
         }
@@ -414,7 +451,7 @@ std::pair<int, int> LexerGenerator::getSequence(char terminator, bool useTermina
           makePlus(start, end, recent_id);
         }
         else {
-          in_->putback(c);
+          stream_container->putback(c);
         }
       }
       recent_id = end;
@@ -425,46 +462,49 @@ std::pair<int, int> LexerGenerator::getSequence(char terminator, bool useTermina
     }
     // General character. Could be the start of a char range.
     else {
-      addChar(c, recent_id);
+      addChar(stream_container, c, recent_id);
     }
     // Get next character
-    in_->get(c);
-  } while (!in_->eof());
+    stream_container->get(c);
+  } while (!stream_container->eof());
   // In case of eof.
   lexer_dfa_.AddTransition(recent_id, end_id);  // For completeness.
   return ends;
 }
 
-std::pair<int, int> LexerGenerator::getCharacterClass() {
-  MANTA_REQUIRE(!in_->eof(), "cannot encounter EOF in the middle of a character class")
-  char c = in_->peek();
+std::pair<int, int> LexerGenerator::getCharacterClass(
+    utility::IStreamContainer& stream_container) {
+  MANTA_REQUIRE(!stream_container->eof(),
+                "cannot encounter EOF in the middle of a character class")
+  char c = stream_container->peek();
   // Check if this is a normal character class, complement character class, or string
   // complement.
   if (c == '^') {  // Complement character class.
-    in_->get(c);  // Consume.
-    return characterClass(true);
+    stream_container->get(c);  // Consume.
+    return characterClass(stream_container, true);
   }
   else if (c == '~') {  // String complement.
-    in_->get(c);  // Consume.
-    return stringComplement();
+    stream_container->get(c);  // Consume.
+    return stringComplement(stream_container);
   }
   else {  // Normal character class.
-    return characterClass();
+    return characterClass(stream_container);
   }
 }
 
-std::pair<int, int> LexerGenerator::stringComplement() {
-  MANTA_REQUIRE(!in_->eof(), "cannot encounter EOF in string complement");
+std::pair<int, int> LexerGenerator::stringComplement(
+    utility::IStreamContainer& stream_container) {
+  MANTA_REQUIRE(!stream_container->eof(), "cannot encounter EOF in string complement");
 
   // Get characters until (unescaped) ]. Do not allow newlines.
   char c;
-  in_->get(c);
+  stream_container->get(c);
   std::string str;
-  while (!in_->eof()) {
+  while (!stream_container->eof()) {
     MANTA_ASSERT(c != '\n', "cannot have a newline in the middle of a string complement");
     if (c == '\\') {  // Escaped character
-      MANTA_ASSERT(!in_->eof(), "cannot encounter EOF in string complement");
-      in_->get(c);
+      MANTA_ASSERT(!stream_container->eof(), "cannot encounter EOF in string complement");
+      stream_container->get(c);
       str.push_back(escapedCharacter(c));
     }
     else if (c == ']') {  // End of character class.
@@ -475,7 +515,7 @@ std::pair<int, int> LexerGenerator::stringComplement() {
     else {
       str.push_back(c);
     }
-    in_->get(c);
+    stream_container->get(c);
   }
 
   // Construct the NFA for the complement of the string.
@@ -510,14 +550,16 @@ std::pair<int, int> LexerGenerator::stringComplement() {
   return {start_id, end_id};
 }
 
-std::pair<int, int> LexerGenerator::characterClass(bool make_complement) {
-  MANTA_REQUIRE(!in_->eof(), "cannot be at EOF when reading character class");
+std::pair<int, int> LexerGenerator::characterClass(
+    utility::IStreamContainer& stream_container, bool make_complement) {
+  MANTA_REQUIRE(!stream_container->eof(),
+                "cannot be at EOF when reading character class");
 
   std::vector<std::pair<char, char>> ranges;
   std::vector<char> characters;
 
   char c {};
-  in_->get(c);
+  stream_container->get(c);
 
   do {
     // End of the range.
@@ -529,11 +571,11 @@ std::pair<int, int> LexerGenerator::characterClass(bool make_complement) {
     // Other character.
     else {
       // Check if this a character range.
-      char d = static_cast<char>(in_->peek());
+      char d = static_cast<char>(stream_container->peek());
       if (d == '-') {
-        in_->get(d);  // Consume.
+        stream_container->get(d);  // Consume.
 
-        in_->get(d);
+        stream_container->get(d);
         // If the character is ']', the '-' is just another character.
         if (d == ']') {
           characters.push_back(c);
@@ -544,7 +586,7 @@ std::pair<int, int> LexerGenerator::characterClass(bool make_complement) {
         // Start of an escaped character.
         else if (d == '\\') {
           // Get escaped character.
-          in_->get(d);
+          stream_container->get(d);
           d = escapedCharacter(d);
 
           ranges.emplace_back(c, d);
@@ -560,8 +602,8 @@ std::pair<int, int> LexerGenerator::characterClass(bool make_complement) {
       }
     }
 
-    in_->get(c);
-  } while (!in_->eof());
+    stream_container->get(c);
+  } while (!stream_container->eof());
 
   int start_id = lexer_dfa_.AddNode();
   int end_id = lexer_dfa_.AddNode();
@@ -584,9 +626,11 @@ std::pair<int, int> LexerGenerator::characterClass(bool make_complement) {
   return {start_id, end_id};
 }
 
-void LexerGenerator::specialCharacters(char c, int& recent_id) {
+void LexerGenerator::specialCharacters(utility::IStreamContainer& stream_container,
+                                       char c,
+                                       int& recent_id) {
   // Backslashes must be escaped.
-  if (in_->eof()) {
+  if (stream_container->eof()) {
     MANTA_FAIL(
         "found single backslash ('\\') right before EOF, backslashes must be escaped");
   }
@@ -596,26 +640,26 @@ void LexerGenerator::specialCharacters(char c, int& recent_id) {
     int id = lexer_dfa_.AddNode();
     lexer_dfa_.AddTransition(recent_id, id, 'a', 'z');
     lexer_dfa_.AddTransition(recent_id, id, 'A', 'Z');
-    checkModifier(recent_id, id, recent_id);
+    checkModifier(stream_container, recent_id, id, recent_id);
     recent_id = id;
   }
   // Any lower case letter.
   else if (c == 'a') {
-    addNode('a', 'z', recent_id);
+    addNode(stream_container, 'a', 'z', recent_id);
   }
   // Any upper case letter.
   else if (c == 'A') {
-    addNode('A', 'Z', recent_id);
+    addNode(stream_container, 'A', 'Z', recent_id);
   }
   // Any number
   else if (c == 'd') {
-    addNode('0', '9', recent_id);
+    addNode(stream_container, '0', '9', recent_id);
   }
   // Other escape characters.
   else {
     char d = escapedCharacter(c);
     // Make the node.
-    addChar(d, recent_id);
+    addChar(stream_container, d, recent_id);
   }
 }
 
@@ -633,8 +677,11 @@ void LexerGenerator::makeQues(int idi, int idf, int& recent_id) {
 }
 
 // Add (if needed) a modifier to a sequence of nodes.
-void LexerGenerator::checkModifier(int idi, int idf, int& recent_id) {
-  char d = in_->peek();
+void LexerGenerator::checkModifier(utility::IStreamContainer& stream_container,
+                                   int idi,
+                                   int idf,
+                                   int& recent_id) {
+  char d = stream_container->peek();
   bool get_next = true;
   if (d == '+') {
     makePlus(idi, idf, recent_id);
@@ -650,26 +697,31 @@ void LexerGenerator::checkModifier(int idi, int idf, int& recent_id) {
   }
   // If necessary, get the next character.
   if (get_next) {
-    in_->get(d);
+    stream_container->get(d);
   }
 }
 
 // Lambda function that adds another node in the line.
-void LexerGenerator::addNode(char ci, char cf, int& recent_id) {
+void LexerGenerator::addNode(utility::IStreamContainer& stream_container,
+                             char ci,
+                             char cf,
+                             int& recent_id) {
   int id = lexer_dfa_.AddNode();
   lexer_dfa_.AddTransition(recent_id, id, ci, cf);
-  checkModifier(recent_id, id, recent_id);
+  checkModifier(stream_container, recent_id, id, recent_id);
   // Adjust pointer.
   recent_id = id;
 }
 
 // Lambda function for adding a character node. Checks whether a */+/? comes after the
 // char.
-void LexerGenerator::addChar(char c, int& recent_id) {
+void LexerGenerator::addChar(utility::IStreamContainer& stream_container,
+                             char c,
+                             int& recent_id) {
   int id = lexer_dfa_.AddNode();
   // Add the normal character transition.
   lexer_dfa_.AddTransition(recent_id, id, c);
-  checkModifier(recent_id, id, recent_id);
+  checkModifier(stream_container, recent_id, id, recent_id);
   // Adjust pointer.
   recent_id = id;
 }

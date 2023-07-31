@@ -13,7 +13,7 @@ namespace UnitTest {
 
 TEST(Lexer, LexRegex) {
   std::string definition = ".Lexer\n"
-                           "    @regex: r` r\\` ( \\\\ ` | [~`])* \\` `\n"
+                           "    @regex: r` r\\` ( \\ \\` | [~\\`])* \\` `\n"
                            ".End\n"
                            ".Parser\n"
                            "    start -> E @eof\n"

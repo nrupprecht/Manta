@@ -147,7 +147,7 @@ class FiniteAutomaton {
 public:
   //! \brief Set the istream.
   void SetStream(std::istream& stream);
-  void SetStream(utility::IStreamContainer& stream);
+  void SetContainer(utility::IStreamContainer& container);
 
   //! \brief Lex the next part of the input.
   std::optional<LexResult> LexNext();
@@ -213,6 +213,9 @@ public:
 
   //! \brief Get the column in the line that the DFA is on.
   NO_DISCARD int GetCharacter() const { return character_; }
+
+  //! \brief Check whether the DFA's istreamcontainer is good.
+  NO_DISCARD bool IsGood() const { return instream_.IsGood(); }
 
 private:
   //! \brief If the character can be accepted, advance the state pointer and returning
