@@ -17,7 +17,7 @@ std::string escape(const std::string& input) {
   std::string output;
   output.reserve(input.size());
   std::for_each(input.begin(), input.end(), [&output](auto c) {
-    if (c == '\\')
+    if (c == '\\' || c == '"')
       output.push_back('\\');
     output.push_back(c);
   });
@@ -54,10 +54,11 @@ void ParserCodegen::GenerateParserCode(
                    << nonterminal_id;
     for (const auto& [type_name, description] : nonterminals_types.sub_types) {
       LOG_SEV(Debug) << "    >> Filling in type description for " << type_name
-                     << ", getting fields for type '" << type_name << "'.";
+                     << ", getting fields for type " << CLBB(type_name)
+                     << ".";
       const auto& field_names = nonterminals_types.GetFields(type_name);
-      LOG_SEV(Debug) << "    >> There are " << field_names.size() << " fields for '"
-                     << type_name << "'.";
+      LOG_SEV(Debug) << "    >> There are " << field_names.size() << " field(s) for "
+                     << CLBB(type_name) << ".";
       for (const auto& field_name : field_names) {
         LOG_SEV(Debug) << "     - Looking for type of field '" << field_name << "'.";
         const auto* type = nonterminals_types.GetFieldType(field_name);
@@ -65,7 +66,7 @@ void ParserCodegen::GenerateParserCode(
         MANTA_ASSERT(type,
                      "could not deduce the type of '" << type_name << "::" << field_name);
         description->fields[field_name] = type;
-        LOG_SEV(Debug) << "     - Field " << type_name << "::" << field_name
+        LOG_SEV(Debug) << "     - Field " << CLBB(type_name) << "::" << field_name
                        << " has type " << *type << ".";
       }
     }
@@ -120,7 +121,7 @@ void ParserCodegen::GenerateParserCode(
       LOG_SEV(Debug) << "Looking for node type name for item " << item_number << ".";
       auto& node_type_name = node_types_for_item.at(item_number);
       LOG_SEV(Debug) << "Node type name for item " << item_number << " is "
-                     << node_type_name;
+                     << CLBB(node_type_name);
 
       code_out << "  std::shared_ptr<" << node_type_name << ">\n";
       code_out << "  ReduceTo_" + node_type_name << "_ViaItem_" << item_number << "(";
@@ -317,8 +318,8 @@ void ParserCodegen::GenerateParserCode(
       code_out << "(";
 
       LOG_SEV(Info) << "Creating reduction function '" << CLY(function_name)
-                    << "' for item " << item_number << ". Node type name is '"
-                    << node_type_name << "'.";
+                    << "' for item " << item_number << ". Node type name is "
+                    << CLBB(node_type_name) << ".";
 
       // Arguments.
       // std::map<int, int> count_duplicates;
@@ -338,8 +339,8 @@ void ParserCodegen::GenerateParserCode(
                    << "argument_" << i;
 
           LOG_SEV(Debug) << "  * Argument " << i
-                         << " is a non-terminal. Base type is named '" << base_type
-                         << "'.";
+                         << " is a non-terminal. Base type is named " << CLBB(base_type)
+                         << ".";
         }
         else {
           LOG_SEV(Debug) << "  * Argument " << i
@@ -357,7 +358,7 @@ void ParserCodegen::GenerateParserCode(
       std::sort(relationships_for_node.end(),
                 relationships_for_node.end(),
                 [](auto& l, auto& r) { return l.position < r.position; });
-      LOG_SEV(Debug) << "Node '" << node_type_name << "' has "
+      LOG_SEV(Debug) << "Node " << CLBB(node_type_name) << " has "
                      << relationships_for_node.size()
                      << " relationships, creating function body.";
       for (auto& rel : relationships_for_node) {
@@ -389,8 +390,14 @@ void ParserCodegen::GenerateParserCode(
             LOG_SEV(Debug) << "  * FIELD relationship for arg " << rel.position
                            << " into field named '" << field_name << "'.";
 
-            code_out << "  new_node->" << field_name << " = argument_" << rel.position
-                     << ";\n";
+            if (rel.source_field_name) {
+              code_out << "  new_node->" << field_name << " = argument_" << rel.position
+                       << "->" << *rel.source_field_name << ";\n";
+            }
+            else {
+              code_out << "  new_node->" << field_name << " = argument_" << rel.position
+                       << ";\n";
+            }
             break;
           }
         }

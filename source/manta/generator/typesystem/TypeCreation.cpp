@@ -4,10 +4,9 @@
 
 #include "manta/generator/typesystem/TypeCreation.h"
 // Other files.
-#include <Lightning/Lightning.h>
-
 #include "manta/generator/typesystem/TypeDeduction.h"
 #include "manta/generator/typesystem/TypeRelationship.h"
+#include "manta/utility/Formatting.h"
 
 namespace {
 
@@ -203,8 +202,8 @@ ParserTypeData& ParserDataToTypeManager::CreateRelationships(
       // name.
       node_types_for_item()[item_number] = type_name;
 
-      LOG_SEV(Info) << "Node type for item " << item_number << " will be '" << type_name
-                    << "'.";
+      LOG_SEV(Info) << "Node type for item " << item_number << " will be "
+                    << formatting::CLBB(type_name) << ".";
 
       if (auto it = nonterminals_for_type().find(type_name);
           it != nonterminals_for_type().end())
@@ -227,8 +226,9 @@ ParserTypeData& ParserDataToTypeManager::CreateRelationships(
           node_manager().GetNodeDescription(type_name, nonterminal_id);
 
       LOG_SEV(Debug)
-          << "Processing all 'field', 'append', and 'push' commands for node type named '"
-          << type_name << "' for nonterminal ID " << nonterminal_id << ".";
+          << "Processing all 'field', 'append', and 'push' commands for node type named "
+          << formatting::CLBB(type_name) << " for nonterminal ID " << nonterminal_id
+          << ".";
 
       if (!instructions_by_name["field"].empty()
           || !instructions_by_name["append"].empty()
@@ -250,7 +250,8 @@ ParserTypeData& ParserDataToTypeManager::CreateRelationships(
         }
       }
       else {
-        LOG_SEV(Debug) << "Why am I here?";
+        LOG_SEV(Debug) << "There are no FIELD, APPEND, or PUSH commands for item "
+                       << item_number << ".";
 
         // Update this so we determine the node name beforehand.
         createGeneralNode(type_name,
@@ -271,8 +272,8 @@ ParserTypeData& ParserDataToTypeManager::CreateRelationships(
       ++generated_nodes;
 
       LOG_SEV(Debug) << "No instructions for item number " << item_number
-                     << " (production: " << item << ") creating node type named '"
-                     << type_name << "'.";
+                     << " (production: " << item << ") creating node type named "
+                     << formatting::CLBB(type_name) << ".";
 
       createGeneralNode(type_name,
                         nonterminal_id,
@@ -301,15 +302,15 @@ TypeDeduction ParserDataToTypeManager::DeduceTypes() {
   LOG_SEV(Debug) << "Processing " << nonterminals_for_type().size()
                  << " non-terminals to initialize all needed types.";
   for (auto& [type_name, nonterminal_id] : nonterminals_for_type()) {
-    LOG_SEV(Debug) << "Adding type named '" << type_name << "' for non-terminal ID "
-                   << nonterminal_id << ".";
+    LOG_SEV(Debug) << "Adding type named " << formatting::CLBB(type_name)
+                   << " for non-terminal ID " << nonterminal_id << ".";
     deduction.AddType(nonterminal_id, type_name);
   }
 
   LOG_SEV(Info) << "Processing all relationships for each type.";
   for (auto& [type_name, relationships_for_type] : relationships()) {
-    LOG_SEV(Debug) << "  * Looking for type named '" << type_name
-                   << "' in the non-terminals.";
+    LOG_SEV(Debug) << "  * Looking for type named " << formatting::CLBB(type_name)
+                   << " in the non-terminals.";
 
     auto nonterminal_id = nonterminals_for_type().at(type_name);
     auto type_ptr = node_manager().GetNodeDescription(type_name);
@@ -319,8 +320,8 @@ TypeDeduction ParserDataToTypeManager::DeduceTypes() {
     for (auto& [field_name, type] : type_ptr->fields) {
       deduction.AddField(nonterminal_id, type_name, field_name, type);
       LOG_SEV(Debug) << "    >> Adding field '" << field_name << "' for type "
-                     << type_name << ", non terminal is " << nonterminal_id
-                     << ". Type already determined: " << *type << ".";
+                     << formatting::CLBB(type_name) << ", non terminal is "
+                     << nonterminal_id << ". Type already determined: " << *type << ".";
     }
 
     // Add from relationships.
@@ -331,8 +332,8 @@ TypeDeduction ParserDataToTypeManager::DeduceTypes() {
       if (!type_ptr->fields.contains(name)) {
         deduction.AddField(nonterminal_id, type_name, rel.target_field_name);
         LOG_SEV(Debug) << "    >> Adding field '" << rel.target_field_name
-                       << "' for type " << type_name << ", non terminal is "
-                       << nonterminal_id << ".";
+                       << "' for type " << formatting::CLBB(type_name)
+                       << ", non terminal is " << nonterminal_id << ".";
       }
     }
   }
@@ -366,7 +367,8 @@ TypeDeduction ParserDataToTypeManager::DeduceTypes() {
   LOG_SEV(Info) << "Deducing all field types for all node types.";
   for (const auto& type_name : deduction.all_type_names) {
     // Deduce the types of fields for this type.
-    LOG_SEV(Debug) << "  * Deducing field types for type '" << type_name << "'.";
+    LOG_SEV(Debug) << "  * Deducing field types for type " << formatting::CLBB(type_name)
+                   << ".";
 
     auto nonterminal_id = nonterminals_for_type().at(type_name);
     auto& nonterminals_types = deduction.At(nonterminal_id);
@@ -389,7 +391,8 @@ TypeDeduction ParserDataToTypeManager::DeduceTypes() {
                        node_manager().GetStringType(),
                        nonterminals_types);
         LOG_SEV(Debug) << "    >> Field '" << rel.target_field_name
-                       << "' is a terminal so it has type String.";
+                       << "' is a terminal so it has type " << formatting::CLBB("String")
+                       << ".";
         continue;
       }
 
@@ -415,7 +418,7 @@ TypeDeduction ParserDataToTypeManager::DeduceTypes() {
           LOG_SEV(Debug)
               << "    >> Relationship references another node, relation type is "
                  "'Field', field type will be "
-              << *shared_ptr_type << ".";
+              << to_string(*shared_ptr_type) << ".";
         }
         else if (rel.check_type == CheckType::Push) {
           // The type is std::vector<std::shared_ptr<T>>
@@ -479,10 +482,10 @@ TypeDeduction ParserDataToTypeManager::DeduceTypes() {
 
           LOG_SEV(Info) << "    >> Source field has already been typed, can fill in "
                            "immediately. Type for field '"
-                        << rel.target_field_name << "' is " << type << ".";
+                        << rel.target_field_name << "' is " << *type << ".";
 
           // TODO: Make sure that if the field has already been added, the types are the
-          // same.
+          //  same.
 
           node_manager().GetNodeDescription(type_name)->AddField(rel.target_field_name,
                                                                  type);
@@ -615,8 +618,9 @@ void ParserDataToTypeManager::determineBaseTypes(TypeDeduction& deduction) {
       auto& types = deduction.At(nonterminal_id);
       LOG_SEV(Info) << "  * There are " << types.sub_types.size() << " child types.";
       for (auto& [name, description] : types.sub_types) {
-        LOG_SEV(Info) << "    >> Setting parent class of '" << name << "' to be '"
-                      << base_class_description->type_name << "'.";
+        LOG_SEV(Info) << "    >> Setting the parent class of " << formatting::CLBB(name)
+                      << " to be " << formatting::CLBB(base_class_description->type_name)
+                      << ".";
         description->AddParent(base_class_description);
         description->AddConstructor(StructureConstructor {
             {},
@@ -638,8 +642,9 @@ void ParserDataToTypeManager::determineBaseTypes(TypeDeduction& deduction) {
       auto type_name = nonterminals_types.fields_for_type.begin()->first;
       nonterminals_types.base_type_name = type_name;
       auto type = node_manager().GetNodeDescription(type_name);
-      LOG_SEV(Info) << "  * Setting the parent class of type " << type_name
-                    << "' to be 'ASTNodeBase'.";
+      LOG_SEV(Info) << "  * Setting the parent class of type "
+                    << formatting::CLBB(type_name) << " to be "
+                    << formatting::CLBB("ASTNodeBase") << ".";
       type->AddParent(node_manager().GetASTNodeBase());
       type->AddConstructor(StructureConstructor {
           {},  // Arguments,
@@ -648,7 +653,8 @@ void ParserDataToTypeManager::determineBaseTypes(TypeDeduction& deduction) {
     }
 
     LOG_SEV(Info) << "  * The base type name for non-terminal " << nonterminal_id
-                  << "'s types will be " << nonterminals_types.base_type_name << ".";
+                  << "'s types will be "
+                  << formatting::CLBB(nonterminals_types.base_type_name) << ".";
   }
 }
 
@@ -681,15 +687,19 @@ void ParserDataToTypeManager::createGeneralNode(
   nonterminals_for_type[type_name] = nonterminal_id;
 
   LOG_SEV(Debug) << "  * Creating general node for non terminal ID " << nonterminal_id
-                 << ", type name '" << type_name << "'.";
+                 << ", type name " << formatting::CLBB(type_name) << ".";
 
-  auto count = 0u;
+  int count = -1;
   for (auto referenced_type : item.rhs) {
+    // Increment here so if we continue, we still always increment count.
+    ++count;
+
     auto& name = production_rules_data_->GetName(referenced_type);
 
     if (production_rules_data_->lexer_generator->IsReserved(name)) {
       LOG_SEV(Debug) << "    >> Not creating a field for '" << name
                      << "' since it is a literal.";
+
       continue;  // Literal
     }
     auto target_field_name = field_name_sanitizer_(name);
@@ -715,15 +725,13 @@ void ParserDataToTypeManager::createGeneralNode(
 
     TypeRelationship relationship {static_cast<NonterminalID>(referenced_type),
                                    production_rules_data_->IsNonTerminal(referenced_type),
-                                   {},  // No field access.
+                                   {},  // No field access needed.
                                    node_type_description->type_name,
                                    target_field_name,
                                    CheckType::Field,
-                                   0,
+                                   static_cast<int>(count),  // Position in the reduction.
                                    item_number};
     relationships()[node_type_description->type_name].push_back(relationship);
-
-    ++count;
   }
 }
 
@@ -791,7 +799,8 @@ void ParserDataToTypeManager::processFieldCommand(
     node_type_description->AddField(target_field_name, node_manager().GetStringType());
 
     LOG_SEV(Info) << "    >> Adding field referring to a terminal, '" << target_field_name
-                  << "', to type " << node_type_description->type_name << ".";
+                  << "', to type " << formatting::CLBB(node_type_description->type_name)
+                  << ".";
   }
 
   TypeRelationship relationship {
