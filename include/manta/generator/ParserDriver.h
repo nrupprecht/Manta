@@ -26,7 +26,8 @@ public:
 protected:
   std::shared_ptr<NodeBase_t> parse();
 
-  std::string lexemeIDToString(int id) const {
+  //! \brief Convert an ID to a string. The ID may either be a lexeme, or terminal.
+  std::string idToString(int id) const {
     if (id < 0) {
       return "ERROR";
     }
@@ -40,6 +41,8 @@ protected:
     return inverse_nonterminal_map_.at(id);
   }
 
+  NO_DISCARD bool isLexeme(int id) const { return id < lexer_->GetNumLexemes(); }
+
   void printFatalParseError(int state) {
     using namespace lightning;
     // Record error in parse trace.
@@ -51,8 +54,7 @@ protected:
       for (auto& entry : parse_table_[state]) {
         if (!entry.IsError()) {
           handle << NewLineIndent << "  * Valid: ["
-                 << lexemeIDToString(print_count) + "], Result: <"
-                 << entry.Write(0) + ">";
+                 << idToString(print_count) + "], Result: <" << entry.Write(0) + ">";
         }
         ++print_count;
       }
@@ -65,7 +67,7 @@ protected:
       auto rule = entry.GetRule();
       output += inverse_nonterminal_map_.at(rule.production) + " ->";
       for (const auto& r : rule.rhs) {
-        output += " " + lexemeIDToString(r);
+        output += " " + idToString(r);
       }
     }
     return output;
@@ -75,9 +77,12 @@ protected:
     std::string output;
     output.reserve(input.size());
     std::for_each(input.begin(), input.end(), [&](char c) {
-      if (c == '\n') output += "\\n";
-      else if (c == '\t') output += "\\t";
-      else output += c;
+      if (c == '\n')
+        output += "\\n";
+      else if (c == '\t')
+        output += "\\t";
+      else
+        output += c;
     });
     return output;
   }
@@ -145,6 +150,9 @@ ParserDriverBase<NodeBase_t, LexemeNode_t, Parent_t>::parse() {
     // Get the current state.
     int state = working_stack.top().state;
 
+    LOG_SEV_TO(logger_, Debug) << "Starting parser step " << num_parse_steps_
+                               << ", state is " << state << ".";
+
     // Refill incoming_deque if necessary.
     if (incoming_deque.empty()) {
       // Check, in order of precedence (this is the order in the result), if any results
@@ -158,8 +166,8 @@ ParserDriverBase<NodeBase_t, LexemeNode_t, Parent_t>::parse() {
       }
 
       if (auto handler = logger_.Log(Severity::Debug)) {
-        handler << "Lexed the literal \"" << CLBG(escape(result->literal)) << "\". Matched "
-                << result->accepted_lexemes.size() << " lexeme(s):";
+        handler << "Lexed the literal \"" << CLBG(escape(result->literal))
+                << "\". Matched " << result->accepted_lexemes.size() << " lexeme(s):";
         int i = 0;
         for (auto& [id, _] : result->accepted_lexemes) {
           if (i != 0) {
@@ -191,7 +199,7 @@ ParserDriverBase<NodeBase_t, LexemeNode_t, Parent_t>::parse() {
                  << lightning::NewLineIndent << "Accepted lexeme(s) (for literal "
                  << CLBG(result->literal) << ") were: ";
           for (auto& [lexeme_id, _] : result->accepted_lexemes) {
-            handle << lightning::NewLineIndent << CLBB(lexemeIDToString(lexeme_id));
+            handle << lightning::NewLineIndent << CLBB(idToString(lexeme_id));
           }
         }
         printFatalParseError(state);
@@ -202,28 +210,26 @@ ParserDriverBase<NodeBase_t, LexemeNode_t, Parent_t>::parse() {
     MANTA_ASSERT(!incoming_deque.empty(), "incoming deque cannot be empty");
     int incoming_symbol = incoming_deque.front().type;
 
-    //    if (incoming_symbol < 0 || total_symbols_ <= incoming_symbol) {
-    //      std::cout << "ERROR - bad symbol: " << incoming_symbol << ", Literal: ["
-    //                << incoming_deque.front().literal << "]. Exiting.\n";
-    //      break;
-    //    }
-
     // For Debugging: Record the step and state of the parser.
     LOG_SEV_TO(logger_, Debug) << "Step " << num_parse_steps_ << ", State: " << state
                                << ", lexer is at line " << lexer_->GetLine()
                                << ", column " << lexer_->GetColumn();
 
     // For Debugging: Print the state of the stack.
+    // For Debugging: Print the state of the stack.
     if (auto handler = logger_.Log(Severity::Debug)) {
       handler << "Current stack:" << NewLineIndent;
       for (auto& ty : working_stack_types) {
-        handler << "[" << ty << "] ";
+        handler << "[" << (isLexeme(ty) ? CLM(idToString(ty)) : CLB(idToString(ty)))
+                << "] ";
       }
       // Separate stack incoming deque.
       handler << " <-->  ";
       // Incoming deque.
       for (auto& d : incoming_deque) {
-        handler << "[" << d.type << "] ";
+        handler << "["
+                << (isLexeme(d.type) ? CLM(idToString(d.type)) : CLB(idToString(d.type)))
+                << "] ";
       }
     }
 
@@ -295,7 +301,6 @@ ParserDriverBase<NodeBase_t, LexemeNode_t, Parent_t>::parse() {
       accept = true;
 
       // Write the acceptance to the parse trace.
-      //      parse_trace_ += "Accept!\n";
       LOG_SEV_TO(logger_, Debug) << "ACCEPT!";
     }
     else if (action.IsError()) {
