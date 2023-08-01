@@ -19,6 +19,9 @@ void compareParsers(const std::string &rulesFilepath) {
 }
 
 void testParser(const std::string &rules_filepath, const std::string &code_filepath) {
+  lightning::Logger logger;
+  logger.GetCore()->AddSink(std::make_shared<lightning::OstreamSink>());
+
   // Parser
   ParserGenerator generator(ParserType::LALR);
   LOG_SEV(Info) << "Parsing rules from \"" << rules_filepath << "\"";
@@ -42,6 +45,9 @@ void testParser(const std::string &rules_filepath, const std::string &code_filep
   }
 
   if (parser) {
+    // Set the logger in the parser.
+    parser->SetLogger(logger);
+
     // Print out the transition table.
     std::cout << "\n";
     generator.WriteStates(std::cout);
