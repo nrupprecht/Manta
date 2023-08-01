@@ -66,7 +66,6 @@ void testParser(const std::string &rules_filepath, const std::string &code_filep
     } else {
       LOG_SEV(Warning) << "FAILURE parsing file. Printing parse trace:\n\n";
       std::cout << "=============================================================\n\n";
-      std::cout << parser->GetParseTrace() << "\n";
     }
 
   } else {
