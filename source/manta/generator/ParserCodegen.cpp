@@ -54,8 +54,7 @@ void ParserCodegen::GenerateParserCode(
                    << nonterminal_id;
     for (const auto& [type_name, description] : nonterminals_types.sub_types) {
       LOG_SEV(Debug) << "    >> Filling in type description for " << type_name
-                     << ", getting fields for type " << CLBB(type_name)
-                     << ".";
+                     << ", getting fields for type " << CLBB(type_name) << ".";
       const auto& field_names = nonterminals_types.GetFields(type_name);
       LOG_SEV(Debug) << "    >> There are " << field_names.size() << " field(s) for "
                      << CLBB(type_name) << ".";
@@ -225,25 +224,37 @@ void ParserCodegen::GenerateParserCode(
 
   auto&& defining_expressions = lex_gen->GetDefiningExpressions();
   auto&& ordered_definitions = lex_gen->GetOrderedLexemeDefinitions();
+  int count_lexemes = 0;
   for (auto& [lexeme_name, regex, prec] : ordered_definitions) {
-    if (lex_gen->IsReserved(lexeme_name)) {
-      continue;
+    if (lexeme_name == "eof") {
+      code_out << "  // Lexeme \"eof\" will be automatically added as the first (0-th) "
+                  "lexeme.\n";
+      MANTA_ASSERT(count_lexemes == 0, "'eof' is not the 0-th lexeme");
     }
-
-    code_out << "  lexer_generator->AddLexeme(\"" << lexeme_name << "\", \""
-             << escape(regex) << "\", " << prec << ");\n";
+    else if (lex_gen->IsReserved(lexeme_name)) {
+      auto escaped_regex = escape(regex);
+      LOG_SEV(Debug) << "Adding (non-reserved) lexeme names '" << lexeme_name
+                     << "' with precedence " << prec << ", (escaped) pattern is '"
+                     << CLBG(escaped_regex) << "'.";
+      code_out << "  lexer_generator->AddReserved(\"" << escaped_regex << "\", " << prec
+               << ");  // Lexeme #" << count_lexemes << "\n";
+    }
+    else {
+      auto escaped_regex = escape(regex);
+      LOG_SEV(Debug) << "Adding (non-reserved) lexeme names '" << lexeme_name
+                     << "' with precedence " << prec << ", (escaped) pattern is '"
+                     << CLBG(escaped_regex) << "'.";
+      code_out << "  lexer_generator->AddLexeme(\"" << lexeme_name << "\", \""
+               << escaped_regex << "\", " << prec << ");  // Lexeme #" << count_lexemes
+               << "\n";
+    }
+    ++count_lexemes;
   }
   code_out << "\n";
 
-  // Add all reserved keywords.
-  auto reserved_names = lex_gen->GetReservedLexemeNames();
-  for (auto& reserved_name : reserved_names) {
-    auto& [def, prec] = defining_expressions.at(reserved_name);
-    code_out << "  lexer_generator->AddReserved(\"" << escape(def) << "\", " << prec
-             << ");\n";
-  }
-
   // Add all skip lexemes.
+  code_out
+      << "  // Add the skip-lexemes (these will be lexed, but skipped, by the lexer).\n";
   auto skip_lexemes = lex_gen->GetSkipLexemeNames();
   for (auto& skip_lexeme_name : skip_lexemes) {
     code_out << "  lexer_generator->AddSkip(\"" << skip_lexeme_name << "\");\n";
