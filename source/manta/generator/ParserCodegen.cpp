@@ -24,6 +24,37 @@ std::string escape(const std::string& input) {
   return output;
 }
 
+std::string treatLiteral(const std::string& input) {
+  // When a literal was added to the Lexer, the lexer will have "escaped" it to turn it
+  // into a valid lexeme regex. For example, "(" will be turned into "\(". We need to
+  // remove these types of escapes, but keep escapes for newlines, tabs, etc., and also
+  // add escapes for quotes, since we are going to be writing the result of this to file.
+
+  static std::set<char> lexeme_escapes {'\\', '|', '(', ')', '[', ']'};
+
+  std::string output;
+  output.reserve(input.size());
+  for (auto i = 0u; i < input.size(); ++i) {
+    char c = input[i];
+    if (c != '\\') {
+      if (c == '"') {
+        output.push_back('\\');
+      }
+      output.push_back(c);
+    }
+    else {
+      MANTA_ASSERT(i + 1 < input.size(), "cannot escape the end-of-string");
+      // If the next char is in the set of lexeme escapes, drop the '\', since it will be
+      // added back by the lexer.
+      // Otherwise, we need to escape the '\'
+      if (!lexeme_escapes.contains(input[i + 1])) {
+        output += "\\\\";
+      }
+    }
+  }
+  return output;
+}
+
 }  // namespace
 
 namespace manta::typesystem {
@@ -232,10 +263,11 @@ void ParserCodegen::GenerateParserCode(
       MANTA_ASSERT(count_lexemes == 0, "'eof' is not the 0-th lexeme");
     }
     else if (lex_gen->IsReserved(lexeme_name)) {
-      auto escaped_regex = escape(regex);
+      auto escaped_regex = treatLiteral(regex);
       LOG_SEV(Debug) << "Adding (non-reserved) lexeme names '" << lexeme_name
-                     << "' with precedence " << prec << ", (escaped) pattern is '"
-                     << CLBG(escaped_regex) << "'.";
+                     << "' with precedence " << prec << ", (literal-treated) pattern is '"
+                     << CLBG(escaped_regex) << "' (non-literal-treated: '" << CLX(regex)
+                     << "')";
       code_out << "  lexer_generator->AddReserved(\"" << escaped_regex << "\", " << prec
                << ");  // Lexeme #" << count_lexemes << "\n";
     }
@@ -243,7 +275,7 @@ void ParserCodegen::GenerateParserCode(
       auto escaped_regex = escape(regex);
       LOG_SEV(Debug) << "Adding (non-reserved) lexeme names '" << lexeme_name
                      << "' with precedence " << prec << ", (escaped) pattern is '"
-                     << CLBG(escaped_regex) << "'.";
+                     << CLBG(escaped_regex) << "' (un-escaped: '" << CLX(regex) << "')";
       code_out << "  lexer_generator->AddLexeme(\"" << lexeme_name << "\", \""
                << escaped_regex << "\", " << prec << ");  // Lexeme #" << count_lexemes
                << "\n";

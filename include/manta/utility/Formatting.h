@@ -17,6 +17,11 @@ auto CLBB(const T& data) {
 }
 
 template<typename T>
+auto CLX(const T& data) {
+  return LCOL8(data, BrightBlack);
+}
+
+template<typename T>
 auto CLB(const T& data) {
   return LCOL8(data, Blue);
 }
