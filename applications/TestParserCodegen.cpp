@@ -20,7 +20,7 @@ int main(int argc, char** argv) {
   }
 
   // std::ifstream fin("../../config/full_rules_codegen.txt");
-  std::ifstream fin("../../config/simple-rules.txt");
+  std::ifstream fin("../../config/full_rules_codegen.txt");
   if (fin.fail()) {
     LOG_SEV(Fatal) << "Error opening file to read parser description.";
     return 0;
