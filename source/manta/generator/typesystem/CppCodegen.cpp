@@ -7,11 +7,8 @@
 
 namespace manta {
 
-void CppCodeGen::WriteDefinition(std::ostream& out,
-                                 const TypeDescriptionStructure* structure) const {
-  MANTA_REQUIRE(
-      structure,
-      "cannot write the declaration for a null type structure description pointer");
+void CppCodeGen::WriteDefinition(std::ostream& out, const TypeDescriptionStructure* structure) const {
+  MANTA_REQUIRE(structure, "cannot write the declaration for a null type structure description pointer");
 
   out << "struct " << structure->type_name;
   // Write any base classes.
@@ -108,12 +105,52 @@ void CppCodeGen::WriteDefinition(std::ostream& out,
   for (auto& [field, type] : structure->fields) {
     out << "  " << WriteName(type) << " " << field << ";\n";
   }
+  out << "\n";
+
+  // Write all functions.
+  for (auto& function : structure->functions) {
+    out << "  ";
+    if (function.IsVirtual()) {
+      out << "virtual ";
+    }
+    if (function.function_signature.return_type) {
+      out << WriteName(*function.function_signature.return_type);
+    }
+    else {
+      out << "void";
+    }
+    out << " " << function.function_name << "(";
+    int count = 0;
+    for (auto& arg : function.function_signature.arguments) {
+      if (count != 0) {
+        out << ", ";
+      }
+      out << WriteName(arg.arg_type) << " " << arg.argument_name;
+      ++count;
+    }
+    out << ")" ;
+    if (function.function_signature.is_const) {
+      out << " const";
+    }
+    if (function.is_override) {
+      out << " override";
+    }
+    if (function.IsVirtual()) {
+      out << " = 0;\n\n";
+    }
+    else {
+      out << " {\n";
+      // Write function body.
+      out << *function.function_body;
+      // Write closing }
+      out << "\n  }\n\n";
+    }
+  }
 
   out << "};\n";
 }
 
-void CppCodeGen::WriteDefinition(std::ostream& out,
-                                 const TypeDescriptionEnum* enumeration) const {
+void CppCodeGen::WriteDefinition(std::ostream& out, const TypeDescriptionEnum* enumeration) const {
   out << "enum class " << enumeration->GetName() << "{\n";
   for (auto& option : enumeration->GetOptions()) {
     out << "  " << option << ",\n";
@@ -147,6 +184,18 @@ std::string CppCodeGen::WriteName(const TypeDescription* type) const {
       MANTA_FAIL("unrecognized type description general type");
     }
   }
+}
+
+std::string CppCodeGen::WriteName(const ElaboratedType& type) const {
+  std::string output;
+  if (type.is_const) {
+    output = "const ";
+  }
+  output += WriteName(type.arg_type);
+  if (type.is_ref) {
+    output += "&";
+  }
+  return output;
 }
 
 }  // namespace manta

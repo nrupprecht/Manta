@@ -35,8 +35,8 @@ StructureConstructor& StructureConstructor::WithArguments(
 }
 
 StructureConstructor& StructureConstructor::WithParentConstuctor(
-    std::vector<std::pair<const TypeDescriptionStructure*,
-                          std::vector<std::variant<ArgName, Value>>>> constructors) {
+    std::vector<std::pair<const TypeDescriptionStructure*, std::vector<std::variant<ArgName, Value>>>>
+        constructors) {
   parent_constructors = std::move(constructors);
   return *this;
 }
@@ -61,19 +61,17 @@ TypeDescriptionStructure::TypeDescriptionStructure(std::string name)
     : type_name(std::move(name))
     , TypeDescription(TSGeneralType::Structure) {}
 
-void TypeDescriptionStructure::AddField(const std::string& field_name,
-                                        const TypeDescription* field_type) {
+void TypeDescriptionStructure::AddField(const std::string& field_name, const TypeDescription* field_type) {
   if (auto it = fields.find(field_name); it == fields.end()) {
     // New field.
     fields[field_name] = field_type;
   }
   else {
     // Preexisting field. Make sure types match.
-    MANTA_ASSERT(
-        field_type->HashID() == it->second->HashID(),
-        "field " << type_name << "::" << field_name
-                 << " specified multiple times, but types do not match. Type was "
-                 << field_type->Write() << ", new type is " << it->second->Write());
+    MANTA_ASSERT(field_type->HashID() == it->second->HashID(),
+                 "field " << type_name << "::" << field_name
+                          << " specified multiple times, but types do not match. Type was "
+                          << field_type->Write() << ", new type is " << it->second->Write());
     // Nothing to add, since it already exists.
   }
 }
@@ -92,10 +90,17 @@ void TypeDescriptionStructure::AddConstructor(const StructureConstructor& constr
   // TODO: The rest of the validation of the constructor.
 
   for (auto& [field, _] : constructor.additional_initializations) {
-    MANTA_REQUIRE(fields.contains(field),
-                  "field '" << field << "' is not a field of " << Write());
+    MANTA_REQUIRE(fields.contains(field), "field '" << field << "' is not a field of " << Write());
   }
   constructors.push_back(constructor);
+}
+
+void TypeDescriptionStructure::AddFunction(const StructureFunction& function) {
+  if (function.is_override) {
+    // TODO: Check that the structure has a parent that has a virtual or override function matching this
+    //  function.
+  }
+  functions.push_back(function);
 }
 
 std::string TypeDescriptionStructure::Write() const {
@@ -185,8 +190,7 @@ std::size_t TypeDescriptionSharedPointer::HashID() const {
   return hash;
 }
 
-std::size_t TypeDescriptionSharedPointer::PotentialHashID(
-    const TypeDescription* pointed_type) {
+std::size_t TypeDescriptionSharedPointer::PotentialHashID(const TypeDescription* pointed_type) {
   auto hash = TypeDescription(TSGeneralType::SharedPointer).HashID();
   HashCombine(hash, pointed_type->HashID());
   return hash;
@@ -247,8 +251,7 @@ TypeDescriptionEnum* TypeSystem::Enum(const std::string& enum_name) {
   return dynamic_cast<TypeDescriptionEnum*>(it->second.get());
 }
 
-const TypeDescriptionSharedPointer* TypeSystem::SharedPointer(
-    const TypeDescription* pointed_type) {
+const TypeDescriptionSharedPointer* TypeSystem::SharedPointer(const TypeDescription* pointed_type) {
   auto hash = TypeDescriptionSharedPointer::PotentialHashID(pointed_type);
   if (auto it = types_.find(hash); it != types_.end()) {
     return dynamic_cast<const TypeDescriptionSharedPointer*>(it->second.get());

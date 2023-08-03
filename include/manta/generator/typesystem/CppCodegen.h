@@ -14,6 +14,7 @@ public:
                        const TypeDescriptionEnum* enumeration) const override;
 
   std::string WriteName(const TypeDescription* type) const override;
+  std::string WriteName(const ElaboratedType& type) const override;
 };
 
 }  // namespace manta

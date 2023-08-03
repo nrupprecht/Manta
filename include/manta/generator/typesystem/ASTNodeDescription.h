@@ -25,14 +25,15 @@ public:
   //! base class for AST nodes, and a node type for string
   ASTNodeManager();
 
-  NO_DISCARD const TypeDescriptionStructure* GetASTNodeBase() const;
+  NO_DISCARD TypeDescriptionStructure* GetASTNodeBase() const;
 
-  NO_DISCARD const TypeDescriptionStructure* GetASTLexeme() const;
+  NO_DISCARD TypeDescriptionStructure* GetASTLexeme() const;
+
+  NO_DISCARD TypeDescriptionStructure* GetVisitorStructure() const;
 
   NO_DISCARD TypeDescriptionEnum* GetASTNodeType() const;
 
-  TypeDescriptionStructure* GetNodeDescription(const std::string& type_name,
-                                               NonterminalID nonterminal_id);
+  TypeDescriptionStructure* GetNodeDescription(const std::string& type_name, NonterminalID nonterminal_id);
 
   NO_DISCARD TypeDescriptionStructure* GetNodeDescription(const std::string& type_name);
 
@@ -45,57 +46,9 @@ public:
 
   const TypeDescription* MakeVector(const TypeDescription* vector_type);
 
-  void writeNodeTypeDeclaration(std::ostream& out,
-                                const TypeDescriptionStructure* description) const {
-    out << "struct " << description->type_name << " : ";
-
-    // Parent classes
-    if (description->parent_classes.empty()) {
-      out << "public ASTNodeBase";
-    }
-    else {
-      auto count = 0u;
-      for (auto& parent : description->parent_classes) {
-        if (count != 0) {
-          out << ", ";
-        }
-        out << "public " << parent->type_name;
-        count += 1;
-      }
-    }
-    out << " {\n";
-
-    // Initialize with the correct enum.
-    out << "  //! \\brief Default constructor for " << description->type_name
-        << ".\n  //!\n";
-    out << "  " << description->type_name << "()\n";
-    if (description->parent_classes.empty()) {
-      out << "    : ASTNodeBase(ASTNodeType::" << description->type_name << ") {}\n\n";
-
-      // Add second constructor, for passing the node subtype.
-      out << "  //! \\brief Constructor to pass a sub-node-type up to the base.\n  //!\n";
-      out << "  explicit " << description->type_name << "(ASTNodeType subtype)\n";
-      out << "    : ASTNodeBase(subtype) {}\n\n";
-    }
-    else {
-      // This is not general. I am assuming that there is one parent node, and it has the
-      // correct constructor.
-      // TODO: Introduce enum subtypes for the node subtypes?
-      out << "    : " << (*description->parent_classes.begin())->type_name
-          << "(ASTNodeType::" << description->type_name << ") {}\n\n";
-    }
-
-    // Define all fields.
-    for (auto [field_name, field_description] : description->fields) {
-      // Write type.
-      out << "  ";
-      out << field_description->Write();
-      out << " " << field_name << "{};\n";
-    }
-    out << "};\n\n";
-  }
-
   NonterminalTypes& GetNonterminalTypes(NonterminalID id);
+
+  const std::map<NonterminalID, NonterminalTypes>& GetAllNodeTypesForNonterminals() const;
 
 private:
   TypeSystem type_system_;
@@ -106,8 +59,11 @@ private:
   //! \brief The type for the ASTNodeBase.
   TypeDescriptionStructure* node_base_;
 
-  //! \brief type type for lexemes.
+  //! \brief The type for lexemes.
   TypeDescriptionStructure* lexeme_node_;
+
+  //! \brief The type for the ASTNode visitor.
+  TypeDescriptionStructure* visitor_type_;
 
   // Map from non-terminal to the set of node types that productions for this node can
   // product.

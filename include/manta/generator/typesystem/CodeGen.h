@@ -19,6 +19,8 @@ public:
 
   //! \brief  Write the name of a type.
   virtual std::string WriteName(const TypeDescription* type) const = 0;
+  //! \brief Write the name of an elaborated type.
+  virtual std::string WriteName(const ElaboratedType& type) const = 0;
 };
 
 }  // namespace manta
