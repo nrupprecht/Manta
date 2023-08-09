@@ -115,7 +115,8 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
     StructureFunction accept_function {"Accept",
                                        StructureFunction::Signature {{StructureFunction::Argument {
                                            ElaboratedType {visitor, false, true}, "visitor"}}},
-                                       "    visitor.Visit(*this);", true /* Is override */ };
+                                       "    visitor.Visit(*this);",
+                                       true /* Is override */};
 
     visitable_type->AddFunction(accept_function);
 
@@ -142,6 +143,7 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
   code_out << "// Include the support for the parser.\n";
   code_out << "#include \"manta/generator/ParserDriver.h\"\n";
   code_out << "#include \"manta/generator/LexerGenerator.h\"\n\n";
+  code_out << "#include <Lightning/Lightning.h>\n\n";
 
   // Create the node class definitions.
   LOG_SEV(Info) << "Generating code for all AST node definitions.";
@@ -339,7 +341,10 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
       code_out << "      MANTA_REQUIRE(" << item.rhs.size() << " <= collected_nodes.size(), \"in reduction "
                << item_number << ", not enough nodes in the collect vector, needed at least "
                << item.rhs.size() << ", actual size was \" << collected_nodes.size());\n";
-      code_out << "      return ReduceTo_" + node_type_name << "_ViaItem_" << item_number << "(";
+      auto function_name = "ReduceTo_" + node_type_name + "_ViaItem_" + std::to_string(item_number);
+      code_out << "      LOG_SEV_TO(logger_, Debug) << \"Calling reduce function '" << function_name
+               << "'.\";\n";
+      code_out << "      return " << function_name << "(";
       auto i = 0;
       for (auto id : item.rhs) {
         if (i != 0)
@@ -391,6 +396,7 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
       auto i = 0;
       LOG_SEV(Debug) << "Creating function arguments.";
       for (auto id : item.rhs) {
+        LOG_SEV(Debug) << "Looking at element " << i << " in the production, id = " << id << ".";
         // auto count = count_duplicates[id]++;
         if (i != 0) {
           code_out << ",";
@@ -412,54 +418,62 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
         }
         ++i;
       }
+      LOG_SEV(Debug) << "Done creating function arguments.";
       code_out << ") {\n";
       code_out << "  auto new_node = std::make_shared<" << node_type_name << ">();\n\n";
       code_out << "  // Set fields in the new node.\n";
 
       // Get relationships for this node. We only keep the ones for this item number.
-      auto& relationships_for_node = relationships.at(node_type_name);
-      std::sort(relationships_for_node.end(), relationships_for_node.end(), [](auto& l, auto& r) {
-        return l.position < r.position;
-      });
-      LOG_SEV(Debug) << "Node " << CLBB(node_type_name) << " has " << relationships_for_node.size()
-                     << " relationships, creating function body.";
-      for (auto& rel : relationships_for_node) {
-        if (rel.item_number != item_number) {
-          continue;
-        }
-        auto&& field_name = rel.target_field_name;
-        switch (rel.check_type) {
-          case CheckType::Push: {
-            LOG_SEV(Debug) << "  * PUSH relationship for arg " << rel.position << " into field named '"
-                           << field_name << "'.";
-            code_out << "  new_node->" << field_name << ".push_back(argument_" << rel.position << ");\n";
-            break;
+
+      if (auto it = relationships.find(node_type_name); it != relationships.end()) {
+        auto& relationships_for_node = it->second;
+        std::sort(relationships_for_node.end(), relationships_for_node.end(), [](auto& l, auto& r) {
+          return l.position < r.position;
+        });
+        LOG_SEV(Debug) << "Node " << CLBB(node_type_name) << " has " << relationships_for_node.size()
+                       << " relationships, creating function body.";
+        for (auto& rel : relationships_for_node) {
+          if (rel.item_number != item_number) {
+            continue;
           }
-          case CheckType::Append: {
-            const std::string arg_name = "argument_" + std::to_string(rel.position);
-
-            LOG_SEV(Debug) << "  * APPEND relationship for arg " << rel.position << " into field named '"
-                           << field_name << "'.";
-
-            code_out << "  new_node->" << field_name << ".insert("
-                     << "new_node->" << field_name << ".end(), " << arg_name << "->" << *rel.source_field_name
-                     << ".cbegin(), " << arg_name << "->" << *rel.source_field_name << ".cend());\n";
-            break;
-          }
-          case CheckType::Field: {
-            LOG_SEV(Debug) << "  * FIELD relationship for arg " << rel.position << " into field named '"
-                           << field_name << "'.";
-
-            if (rel.source_field_name) {
-              code_out << "  new_node->" << field_name << " = argument_" << rel.position << "->"
-                       << *rel.source_field_name << ";\n";
+          auto&& field_name = rel.target_field_name;
+          switch (rel.check_type) {
+            case CheckType::Push: {
+              LOG_SEV(Debug) << "  * PUSH relationship for arg " << rel.position << " into field named '"
+                             << field_name << "'.";
+              code_out << "  new_node->" << field_name << ".push_back(argument_" << rel.position << ");\n";
+              break;
             }
-            else {
-              code_out << "  new_node->" << field_name << " = argument_" << rel.position << ";\n";
+            case CheckType::Append: {
+              const std::string arg_name = "argument_" + std::to_string(rel.position);
+
+              LOG_SEV(Debug) << "  * APPEND relationship for arg " << rel.position << " into field named '"
+                             << field_name << "'.";
+
+              code_out << "  new_node->" << field_name << ".insert("
+                       << "new_node->" << field_name << ".end(), " << arg_name << "->"
+                       << *rel.source_field_name << ".cbegin(), " << arg_name << "->"
+                       << *rel.source_field_name << ".cend());\n";
+              break;
             }
-            break;
+            case CheckType::Field: {
+              LOG_SEV(Debug) << "  * FIELD relationship for arg " << rel.position << " into field named '"
+                             << field_name << "'.";
+
+              if (rel.source_field_name) {
+                code_out << "  new_node->" << field_name << " = argument_" << rel.position << "->"
+                         << *rel.source_field_name << ";\n";
+              }
+              else {
+                code_out << "  new_node->" << field_name << " = argument_" << rel.position << ";\n";
+              }
+              break;
+            }
           }
         }
+      }
+      else {
+        LOG_SEV(Info) << "Node " << CLBB(node_type_name) << " has no relationships.";
       }
       code_out << "\n";
       code_out << "  return new_node;\n";
