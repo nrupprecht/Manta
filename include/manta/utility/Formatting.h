@@ -22,6 +22,11 @@ auto CLX(const T& data) {
 }
 
 template<typename T>
+auto CLW(const T& data) {
+  return LCOL8(data, White);
+}
+
+template<typename T>
 auto CLB(const T& data) {
   return LCOL8(data, Blue);
 }

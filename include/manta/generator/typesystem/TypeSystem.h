@@ -167,7 +167,10 @@ struct TypeDescriptionStructure : public TypeDescription {
   explicit TypeDescriptionStructure(std::string name);
 
   void AddField(const std::string& field_name, const TypeDescription* field_type);
+  //! \brief Remove a field from a structure. Returns true if the field was there to be removed.
+  bool RemoveField(const std::string& field_name);
 
+  //! \brief Add a structure as a parent class of this structure.
   void AddParent(const TypeDescriptionStructure* parent);
 
   void AddConstructor(const StructureConstructor& constructor);

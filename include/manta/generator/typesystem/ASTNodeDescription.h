@@ -50,6 +50,9 @@ public:
 
   const std::map<NonterminalID, NonterminalTypes>& GetAllNodeTypesForNonterminals() const;
 
+  //! \brief Directly get the node manager's type system.
+  TypeSystem& GetTypeSystem();
+
 private:
   TypeSystem type_system_;
 

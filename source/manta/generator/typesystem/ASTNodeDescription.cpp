@@ -170,3 +170,7 @@ const std::map<NonterminalID, ASTNodeManager::NonterminalTypes>&
 ASTNodeManager::GetAllNodeTypesForNonterminals() const {
   return node_types_for_nonterminal_;
 }
+
+TypeSystem& ASTNodeManager::GetTypeSystem() {
+  return type_system_;
+}

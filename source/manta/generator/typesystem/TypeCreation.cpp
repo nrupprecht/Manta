@@ -580,12 +580,39 @@ TypeDeduction ParserDataToTypeManager::DeduceTypes() {
                      nonterminals_types);
     }
   }
+
+  // Remove fields from child nodes that are common, and should be only in the base node.
+  LOG_SEV(Info) << "Removing fields from child nodes that should only be in parent node.";
+  for (auto& [_, types] : deduction.types_data) {
+    auto& base_type = types.base_type_name;
+    for (auto& [type_name, fields] : types.fields_for_type) {
+      // Leave the common fields in the base type (only).
+      if (type_name == base_type) {
+        continue;
+      }
+
+      // Remove common fields from all other types.
+      auto type_ptr = types.sub_types.at(type_name);
+      for (auto& common_field : types.common_fields) {
+        if (type_ptr->RemoveField(common_field)) {
+          LOG_SEV(Debug) << "  * Removing the field '" << formatting::CLW(common_field) << "' from type "
+                         << formatting::CLBB(type_name) << " since it is a common field.";
+          fields.erase(common_field);
+        }
+      }
+    }
+  }
+
   return deduction;
 }
 
 void ParserDataToTypeManager::determineBaseTypes(TypeDeduction& deduction) {
   LOG_SEV(Info) << "Determining base types for all types in the TypeDeduction.";
+
   // For every non-terminal that needs it, create the base type.
+  //
+  // Right now the algorithm is that we create a base type for every non-terminal that has more than one
+  // production (item) associated with it.
   for (auto& [nonterminal_id, nonterminals_types] : deduction.types_data) {
     MANTA_ASSERT(nonterminals_types.NumSubTypes() != 0,
                  "there must be at least one type for non-terminal " << nonterminal_id);

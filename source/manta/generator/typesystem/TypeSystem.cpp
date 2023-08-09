@@ -76,6 +76,14 @@ void TypeDescriptionStructure::AddField(const std::string& field_name, const Typ
   }
 }
 
+bool TypeDescriptionStructure::RemoveField(const std::string& field_name) {
+  if (auto it = fields.find(field_name); it != fields.end()) {
+    fields.erase(it);
+    return true;
+  }
+  return false;
+}
+
 void TypeDescriptionStructure::AddParent(const TypeDescriptionStructure* parent) {
   parent_classes.insert(parent);
 }
