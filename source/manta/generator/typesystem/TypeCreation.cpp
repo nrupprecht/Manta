@@ -29,8 +29,8 @@ std::vector<std::string> split(const std::string& str, char deliminator) {
 
 using namespace manta::typesystem;
 
-ParserDataToTypeManager::ParserDataToTypeManager(
-    bool tag_generated_field_names, bool generated_nodes_have_node_in_name) noexcept
+ParserDataToTypeManager::ParserDataToTypeManager(bool tag_generated_field_names,
+                                                 bool generated_nodes_have_node_in_name) noexcept
     : tag_generated_field_names_(tag_generated_field_names)
     , generated_nodes_have_node_in_name_(generated_nodes_have_node_in_name) {
   std::set<std::string> reserved_words {"alignas",
@@ -134,10 +134,7 @@ ParserDataToTypeManager::ParserDataToTypeManager(
     }
     // Replace any bad characters.
     std::replace_if(
-        name.begin(),
-        name.end(),
-        [](char c) { return !isalpha(c) || isdigit(c) || c == '_'; },
-        '_');
+        name.begin(), name.end(), [](char c) { return !isalpha(c) || isdigit(c) || c == '_'; }, '_');
     if (std::isdigit(name[0])) {
       name = "_" + name;
     }
@@ -154,13 +151,12 @@ ParserTypeData& ParserDataToTypeManager::CreateRelationships(
   unsigned item_number = 0, generated_nodes = 0;
   auto& all_productions = parser_data->production_rules_data->all_productions;
   for (auto& item : all_productions) {
-    LOG_SEV(Info) << "Processing item number " << item_number << " (" << item_number + 1
-                  << " / " << all_productions.size() << ").";
+    LOG_SEV(Info) << "Processing item number " << item_number << " (" << item_number + 1 << " / "
+                  << all_productions.size() << ").";
     // Check for instructions upon a reduction by this rule.
     auto nonterminal_id = item.production;
     auto& instructions = item.instructions;
-    auto& nonterminal_name =
-        parser_data->production_rules_data->GetNonterminalName(nonterminal_id);
+    auto& nonterminal_name = parser_data->production_rules_data->GetNonterminalName(nonterminal_id);
 
     if (instructions) {
       // There are specific instructions on how to create the AST node from the parsed
@@ -171,12 +167,10 @@ ParserTypeData& ParserDataToTypeManager::CreateRelationships(
       // name).
       std::map<std::string, std::vector<std::shared_ptr<ParseNode>>> instructions_by_name;
       // NOTE(Nate): Keywords of the allowed instructions are hard-coded.
-      static std::set<std::string> allowed_instructions {
-          "node", "field", "append", "push"};
+      static std::set<std::string> allowed_instructions {"node", "field", "append", "push"};
       for (auto& command : instructions->children) {
         auto& fn_name = command->designator;
-        MANTA_ASSERT(allowed_instructions.contains(fn_name),
-                     "unrecognized function '" << fn_name << "'");
+        MANTA_ASSERT(allowed_instructions.contains(fn_name), "unrecognized function '" << fn_name << "'");
         instructions_by_name[fn_name].push_back(command);
       }
 
@@ -184,9 +178,7 @@ ParserTypeData& ParserDataToTypeManager::CreateRelationships(
       std::string type_name {};
 
       // Look for the node instruction.
-      if (auto node_it = instructions_by_name.find("node");
-          node_it != instructions_by_name.end())
-      {
+      if (auto node_it = instructions_by_name.find("node"); node_it != instructions_by_name.end()) {
         MANTA_ASSERT(node_it->second.size() == 1,
                      "there can be at most one 'node' instruction per production rule");
         MANTA_ASSERT(node_it->second.size() == 1, "'node' function takes one argument");
@@ -202,19 +194,16 @@ ParserTypeData& ParserDataToTypeManager::CreateRelationships(
       // name.
       node_types_for_item()[item_number] = type_name;
 
-      LOG_SEV(Info) << "Node type for item " << item_number << " will be "
-                    << formatting::CLBB(type_name) << ".";
+      LOG_SEV(Info) << "Node type for item " << item_number << " will be " << formatting::CLBB(type_name)
+                    << ".";
 
-      if (auto it = nonterminals_for_type().find(type_name);
-          it != nonterminals_for_type().end())
-      {
+      if (auto it = nonterminals_for_type().find(type_name); it != nonterminals_for_type().end()) {
         // Make sure that the non-terminal IDs match, i.e. a type only corresponds to one
         // non-terminal.
         // TODO: Relax this, it could make sense for multiple non-terminal reductions to
         // make the same type.
-        MANTA_ASSERT(
-            it->second == nonterminal_id,
-            "type '" << type_name << "' cannot belong to multiple non-terminals");
+        MANTA_ASSERT(it->second == nonterminal_id,
+                     "type '" << type_name << "' cannot belong to multiple non-terminals");
       }
       else {
         // Add for the first time.
@@ -222,16 +211,12 @@ ParserTypeData& ParserDataToTypeManager::CreateRelationships(
       }
 
       // Create the type info for this node if it does not already exist.
-      auto node_type_description =
-          node_manager().GetNodeDescription(type_name, nonterminal_id);
+      auto node_type_description = node_manager().GetNodeDescription(type_name, nonterminal_id);
 
-      LOG_SEV(Debug)
-          << "Processing all 'field', 'append', and 'push' commands for node type named "
-          << formatting::CLBB(type_name) << " for nonterminal ID " << nonterminal_id
-          << ".";
+      LOG_SEV(Debug) << "Processing all 'field', 'append', and 'push' commands for node type named "
+                     << formatting::CLBB(type_name) << " for nonterminal ID " << nonterminal_id << ".";
 
-      if (!instructions_by_name["field"].empty()
-          || !instructions_by_name["append"].empty()
+      if (!instructions_by_name["field"].empty() || !instructions_by_name["append"].empty()
           || !instructions_by_name["push"].empty())
       {
         // Process all the 'field' commands.
@@ -250,37 +235,26 @@ ParserTypeData& ParserDataToTypeManager::CreateRelationships(
         }
       }
       else {
-        LOG_SEV(Debug) << "There are no FIELD, APPEND, or PUSH commands for item "
-                       << item_number << ".";
+        LOG_SEV(Debug) << "There are no FIELD, APPEND, or PUSH commands for item " << item_number << ".";
 
         // Update this so we determine the node name beforehand.
-        createGeneralNode(type_name,
-                          nonterminal_id,
-                          nonterminal_name,
-                          item,
-                          nonterminals_for_type(),
-                          item_number);
+        createGeneralNode(
+            type_name, nonterminal_id, nonterminal_name, item, nonterminals_for_type(), item_number);
       }
     }
     // There are no instructions. Default to including every non-literal in the node
     // definition. For example P -> A "+" B would not have a field for the "+", but would
     // for A and B.
     else {
-      auto type_name =
-          "ASTNodeGeneral_" + std::to_string(generated_nodes) + "_" + nonterminal_name;
+      auto type_name = "ASTNodeGeneral_" + std::to_string(generated_nodes) + "_" + nonterminal_name;
       node_types_for_item()[item_number] = type_name;
       ++generated_nodes;
 
-      LOG_SEV(Debug) << "No instructions for item number " << item_number
-                     << " (production: " << item << ") creating node type named "
-                     << formatting::CLBB(type_name) << ".";
+      LOG_SEV(Debug) << "No instructions for item number " << item_number << " (production: " << item
+                     << ") creating node type named " << formatting::CLBB(type_name) << ".";
 
-      createGeneralNode(type_name,
-                        nonterminal_id,
-                        nonterminal_name,
-                        item,
-                        nonterminals_for_type(),
-                        item_number);
+      createGeneralNode(
+          type_name, nonterminal_id, nonterminal_name, item, nonterminals_for_type(), item_number);
     }
 
     ++item_number;
@@ -302,8 +276,8 @@ TypeDeduction ParserDataToTypeManager::DeduceTypes() {
   LOG_SEV(Debug) << "Processing " << nonterminals_for_type().size()
                  << " non-terminals to initialize all needed types.";
   for (auto& [type_name, nonterminal_id] : nonterminals_for_type()) {
-    LOG_SEV(Debug) << "Adding type named " << formatting::CLBB(type_name)
-                   << " for non-terminal ID " << nonterminal_id << ".";
+    LOG_SEV(Debug) << "Adding type named " << formatting::CLBB(type_name) << " for non-terminal ID "
+                   << nonterminal_id << ".";
     deduction.AddType(nonterminal_id, type_name);
   }
 
@@ -319,21 +293,19 @@ TypeDeduction ParserDataToTypeManager::DeduceTypes() {
     LOG_SEV(Debug) << "  * Adding all fields whose types have already been determined.";
     for (auto& [field_name, type] : type_ptr->fields) {
       deduction.AddField(nonterminal_id, type_name, field_name, type);
-      LOG_SEV(Debug) << "    >> Adding field '" << field_name << "' for type "
-                     << formatting::CLBB(type_name) << ", non terminal is "
-                     << nonterminal_id << ". Type already determined: " << *type << ".";
+      LOG_SEV(Debug) << "    >> Adding field '" << field_name << "' for type " << formatting::CLBB(type_name)
+                     << ", non terminal is " << nonterminal_id << ". Type already determined: " << *type
+                     << ".";
     }
 
     // Add from relationships.
-    LOG_SEV(Debug)
-        << "  * Adding slots for fields whose types have not been determined yet.";
+    LOG_SEV(Debug) << "  * Adding slots for fields whose types have not been determined yet.";
     for (auto& rel : relationships_for_type) {
       auto& name = rel.target_field_name;
-      if (!type_ptr->fields.contains(name)) {
+      if (!type_ptr->fields.contains(name)) {  // If the type has not been added yet...
         deduction.AddField(nonterminal_id, type_name, rel.target_field_name);
-        LOG_SEV(Debug) << "    >> Adding field '" << rel.target_field_name
-                       << "' for type " << formatting::CLBB(type_name)
-                       << ", non terminal is " << nonterminal_id << ".";
+        LOG_SEV(Debug) << "    >> Adding field '" << rel.target_field_name << "' for type "
+                       << formatting::CLBB(type_name) << ", non terminal is " << nonterminal_id << ".";
       }
     }
   }
@@ -355,28 +327,25 @@ TypeDeduction ParserDataToTypeManager::DeduceTypes() {
   // all the types we can immediately fill in.
   std::vector<TypeRelationship> field_type_relationships;
 
-  auto set_field_type = [this](const std::string& type_name,
-                               const std::string& field_name,
-                               auto* type,
-                               auto& nonterminals_types) {
-    // Make sure that if the type already exists, it is consistent.
-    this->node_manager().GetNodeDescription(type_name)->AddField(field_name, type);
-    nonterminals_types.field_type_descriptions[field_name] = type;
-  };
+  auto set_field_type =
+      [this](
+          const std::string& type_name, const std::string& field_name, auto* type, auto& nonterminals_types) {
+        // Make sure that if the type already exists, it is consistent.
+        this->node_manager().GetNodeDescription(type_name)->AddField(field_name, type);
+        nonterminals_types.field_type_descriptions[field_name] = type;
+      };
 
   LOG_SEV(Info) << "Deducing all field types for all node types.";
   for (const auto& type_name : deduction.all_type_names) {
     // Deduce the types of fields for this type.
-    LOG_SEV(Debug) << "  * Deducing field types for type " << formatting::CLBB(type_name)
-                   << ".";
+    LOG_SEV(Debug) << "  * Deducing field types for type " << formatting::CLBB(type_name) << ".";
 
     auto nonterminal_id = nonterminals_for_type().at(type_name);
     auto& nonterminals_types = deduction.At(nonterminal_id);
 
     auto it = relationships().find(type_name);
     if (it == relationships().end()) {
-      LOG_SEV(Debug) << "  * Type named '" << type_name
-                     << "' had no relationships. Skipping.";
+      LOG_SEV(Debug) << "  * Type named '" << type_name << "' had no relationships. Skipping.";
       continue;
     }
     auto& relationships_for_type = it->second;
@@ -386,13 +355,9 @@ TypeDeduction ParserDataToTypeManager::DeduceTypes() {
       // non-terminal.
       if (production_rules_data_->IsTerminal(rel.referenced_id)) {
         // Type is (right now) always string for terminals.
-        set_field_type(type_name,
-                       rel.target_field_name,
-                       node_manager().GetStringType(),
-                       nonterminals_types);
-        LOG_SEV(Debug) << "    >> Field '" << rel.target_field_name
-                       << "' is a terminal so it has type " << formatting::CLBB("String")
-                       << ".";
+        set_field_type(type_name, rel.target_field_name, node_manager().GetStringType(), nonterminals_types);
+        LOG_SEV(Debug) << "    >> Field '" << rel.target_field_name << "' is a terminal so it has type "
+                       << formatting::CLBB("String") << ".";
         continue;
       }
 
@@ -412,27 +377,22 @@ TypeDeduction ParserDataToTypeManager::DeduceTypes() {
           auto shared_ptr_type = node_manager().MakeShared(base_type);
           // Note that the AddField function in set_field_type will make sure that if the
           // field is added again, the types match.
-          set_field_type(
-              type_name, rel.target_field_name, shared_ptr_type, nonterminals_types);
+          set_field_type(type_name, rel.target_field_name, shared_ptr_type, nonterminals_types);
 
-          LOG_SEV(Debug)
-              << "    >> Relationship references another node, relation type is "
-                 "'Field', field type will be "
-              << to_string(*shared_ptr_type) << ".";
+          LOG_SEV(Debug) << "    >> Relationship references another node, relation type is "
+                            "'Field', field type will be "
+                         << to_string(*shared_ptr_type) << ".";
         }
         else if (rel.check_type == CheckType::Push) {
           // The type is std::vector<std::shared_ptr<T>>
-          auto vector_type =
-              node_manager().MakeVector(node_manager().MakeShared(base_type));
+          auto vector_type = node_manager().MakeVector(node_manager().MakeShared(base_type));
           // Note that the AddField function in set_field_type will make sure that if the
           // field is added again, the types match.
-          set_field_type(
-              type_name, rel.target_field_name, vector_type, nonterminals_types);
+          set_field_type(type_name, rel.target_field_name, vector_type, nonterminals_types);
 
-          LOG_SEV(Debug)
-              << "    >> Relationship references another node, relation type is "
-                 "'Push', field type will be "
-              << *vector_type << ".";
+          LOG_SEV(Debug) << "    >> Relationship references another node, relation type is "
+                            "'Push', field type will be "
+                         << *vector_type << ".";
         }
         else if (rel.check_type == CheckType::Append) {
           MANTA_FAIL(
@@ -447,22 +407,20 @@ TypeDeduction ParserDataToTypeManager::DeduceTypes() {
         auto referenced_nonterminal = rel.referenced_id;
 
         // Make sure the referenced field is common
-        MANTA_ASSERT(
-            deduction.IsCommonField(referenced_nonterminal, *rel.source_field_name),
-            "can only reference common fields from the types associated with "
-            "non-terminals, "
-            "the field named '"
-                << *rel.source_field_name << "' is not common. Target type is "
-                << type_name << " source type (which lacks the common field) is "
-                << deduction.GetBaseTypeName(referenced_nonterminal));
+        MANTA_ASSERT(deduction.IsCommonField(referenced_nonterminal, *rel.source_field_name),
+                     "can only reference common fields from the types associated with "
+                     "non-terminals, "
+                     "the field named '"
+                         << *rel.source_field_name << "' is not common. Target type is " << type_name
+                         << " source type (which lacks the common field) is "
+                         << deduction.GetBaseTypeName(referenced_nonterminal));
 
         // See if the type of the referenced field has already been filled in. If so, we
         // can process this relationship.
         auto& base_type_name = deduction.GetBaseTypeName(referenced_nonterminal);
         auto base_type = node_manager().GetNodeDescription(base_type_name);
         if (auto ty = base_type->fields.find(*rel.source_field_name);
-            ty != base_type->fields.end() && ty->second)
-        {
+            ty != base_type->fields.end() && ty->second) {
           // The field has already been typed and defined. We can handle this relationship
           // right now. It must be that the target type is some vector type.
           auto type = ty->second;
@@ -487,8 +445,7 @@ TypeDeduction ParserDataToTypeManager::DeduceTypes() {
           // TODO: Make sure that if the field has already been added, the types are the
           //  same.
 
-          node_manager().GetNodeDescription(type_name)->AddField(rel.target_field_name,
-                                                                 type);
+          node_manager().GetNodeDescription(type_name)->AddField(rel.target_field_name, type);
           nonterminals_types.field_type_descriptions[rel.target_field_name] = type;
         }
         else {
@@ -501,29 +458,24 @@ TypeDeduction ParserDataToTypeManager::DeduceTypes() {
           //    quickly).
           // Note that all these cases only happen when the referenced non-terminal and
           // non-terminal that the target type belongs to are the same.
-          if (referenced_nonterminal == nonterminals_for_type().at(rel.referencing_type))
-          {
+          if (referenced_nonterminal == nonterminals_for_type().at(rel.referencing_type)) {
             bool is_self_reference = rel.target_field_name == *rel.source_field_name;
             if (is_self_reference) {
-              MANTA_ASSERT(
-                  rel.check_type != CheckType::Push,
-                  "no type T is equal to vector<T>, cannot push a field into itself");
-              LOG_SEV(Debug)
-                  << "    << Found (valid) self-referential relationship, this "
-                     "is consistent, but not useful. Dropping.";
+              MANTA_ASSERT(rel.check_type != CheckType::Push,
+                           "no type T is equal to vector<T>, cannot push a field into itself");
+              LOG_SEV(Debug) << "    << Found (valid) self-referential relationship, this "
+                                "is consistent, but not useful. Dropping.";
             }
             else {
-              LOG_SEV(Debug)
-                  << "    >> Found relationship for which we cannot immediately deduce "
-                     "type, delaying type deduction for field '"
-                  << rel.target_field_name << "'.";
+              LOG_SEV(Debug) << "    >> Found relationship for which we cannot immediately deduce "
+                                "type, delaying type deduction for field '"
+                             << rel.target_field_name << "'.";
               field_type_relationships.push_back(rel);
             }
           }
           else {
-            LOG_SEV(Debug)
-                << "    >> Source field has NOT been typed yet, delaying typing "
-                   "until all base types have been deduced.";
+            LOG_SEV(Debug) << "    >> Source field has NOT been typed yet, delaying typing "
+                              "until all base types have been deduced.";
             field_type_relationships.push_back(rel);
           }
         }
@@ -568,8 +520,7 @@ TypeDeduction ParserDataToTypeManager::DeduceTypes() {
       std::set<FieldTracker> referenced_fields;  // Set for the DFS.
 
       std::pair reference(relationship.referenced_id, *relationship.source_field_name);
-      type =
-          deduceTypesDFS(reference, deduction, unsolved_relationships, referenced_fields);
+      type = deduceTypesDFS(reference, deduction, unsolved_relationships, referenced_fields);
       type = makeType(relationship.check_type, type);
 
       // TODO: Figure out the right way to handle const vs mutable types.
@@ -622,45 +573,38 @@ void ParserDataToTypeManager::determineBaseTypes(TypeDeduction& deduction) {
       // Add the new type name to the set of all type names.
       deduction.base_type_names.insert(base_name);
 
-      LOG_SEV(Info) << "  * Non-terminal " << nonterminal_id << " has "
-                    << nonterminals_types.NumSubTypes()
+      LOG_SEV(Info) << "  * Non-terminal " << nonterminal_id << " has " << nonterminals_types.NumSubTypes()
                     << " subtypes. Creating base type named '" << base_name << "'.";
 
       nonterminals_types.base_type_name = base_name;
 
       // Create a type description for the base class.
-      auto base_class_description =
-          node_manager().GetNodeDescription(base_name, nonterminal_id);
+      auto base_class_description = node_manager().GetNodeDescription(base_name, nonterminal_id);
       base_class_description->AddParent(node_manager().GetASTNodeBase());
-      base_class_description->AddConstructor(StructureConstructor {
-          {{node_manager().GetASTNodeType(), "node_type"}},  // Arguments,
-          {{node_manager().GetASTNodeBase(), {"node_type"}}}});
+      base_class_description->AddConstructor(
+          StructureConstructor {{{node_manager().GetASTNodeType(), "node_type"}},  // Arguments,
+                                {{node_manager().GetASTNodeBase(), {"node_type"}}}});
 
-      node_manager().GetNonterminalTypes(nonterminal_id).base_type =
-          base_class_description;
-      LOG_SEV(Info) << "  * Setting base type for non-terminal ID " << nonterminal_id
-                    << "(" << base_name << ").";
+      node_manager().GetNonterminalTypes(nonterminal_id).base_type = base_class_description;
+      LOG_SEV(Info) << "  * Setting base type for non-terminal ID " << nonterminal_id << "(" << base_name
+                    << ").";
 
       // Add the base class as the base class of all other classes for the non-terminal.
       auto& types = deduction.At(nonterminal_id);
       LOG_SEV(Info) << "  * There are " << types.sub_types.size() << " child types.";
       for (auto& [name, description] : types.sub_types) {
-        LOG_SEV(Info) << "    >> Setting the parent class of " << formatting::CLBB(name)
-                      << " to be " << formatting::CLBB(base_class_description->type_name)
-                      << ".";
+        LOG_SEV(Info) << "    >> Setting the parent class of " << formatting::CLBB(name) << " to be "
+                      << formatting::CLBB(base_class_description->type_name) << ".";
         description->AddParent(base_class_description);
         description->AddConstructor(StructureConstructor {
-            {},
-            {{base_class_description,
-              {StructureConstructor::Value {"ASTNodeType::Type_" + name}}}}});
+            {}, {{base_class_description, {StructureConstructor::Value {"ASTNodeType::Type_" + name}}}}});
       }
 
       // Add the type.
       types.sub_types[base_name] = base_class_description;
 
       // The fields of the base type will be the common fields.
-      types.fields_for_type[base_name].insert(types.common_fields.begin(),
-                                              types.common_fields.end());
+      types.fields_for_type[base_name].insert(types.common_fields.begin(), types.common_fields.end());
     }
     else {
       LOG_SEV(Info) << "  * Non-terminal " << nonterminal_id << " has no subtypes.";
@@ -669,25 +613,22 @@ void ParserDataToTypeManager::determineBaseTypes(TypeDeduction& deduction) {
       auto type_name = nonterminals_types.fields_for_type.begin()->first;
       nonterminals_types.base_type_name = type_name;
       auto type = node_manager().GetNodeDescription(type_name);
-      LOG_SEV(Info) << "  * Setting the parent class of type "
-                    << formatting::CLBB(type_name) << " to be "
+      LOG_SEV(Info) << "  * Setting the parent class of type " << formatting::CLBB(type_name) << " to be "
                     << formatting::CLBB("ASTNodeBase") << ".";
       type->AddParent(node_manager().GetASTNodeBase());
-      type->AddConstructor(StructureConstructor {
-          {},  // Arguments,
-          {{node_manager().GetASTNodeBase(),
-            {StructureConstructor::Value {"ASTNodeType::Type_" + type_name}}}}});
+      type->AddConstructor(
+          StructureConstructor {{},  // Arguments,
+                                {{node_manager().GetASTNodeBase(),
+                                  {StructureConstructor::Value {"ASTNodeType::Type_" + type_name}}}}});
     }
 
-    LOG_SEV(Info) << "  * The base type name for non-terminal " << nonterminal_id
-                  << "'s types will be "
+    LOG_SEV(Info) << "  * The base type name for non-terminal " << nonterminal_id << "'s types will be "
                   << formatting::CLBB(nonterminals_types.base_type_name) << ".";
   }
 }
 
-std::tuple<int, NonterminalID, std::optional<std::string>>
-ParserDataToTypeManager::getSourceData(const std::string& argument_string,
-                                       const Item& item) {
+std::tuple<int, NonterminalID, std::optional<std::string>> ParserDataToTypeManager::getSourceData(
+    const std::string& argument_string, const Item& item) {
   auto segments = split(argument_string, '.');
   MANTA_ASSERT(segments.size() == 1 || segments.size() == 2,
                "argument name must be in one of the forms '$N' or '$N.<field-name>'");
@@ -701,20 +642,18 @@ ParserDataToTypeManager::getSourceData(const std::string& argument_string,
   }
 }
 
-void ParserDataToTypeManager::createGeneralNode(
-    const std::string& type_name,
-    NonterminalID nonterminal_id,
-    const std::string& nonterminal_name,
-    const Item& item,
-    std::map<std::string, NonterminalID>& nonterminals_for_type,
-    unsigned item_number) {
+void ParserDataToTypeManager::createGeneralNode(const std::string& type_name,
+                                                NonterminalID nonterminal_id,
+                                                const std::string& nonterminal_name,
+                                                const Item& item,
+                                                std::map<std::string, NonterminalID>& nonterminals_for_type,
+                                                unsigned item_number) {
   // There are no instructions. Add everything that isn't a "literal" as a field.
-  auto node_type_description =
-      node_manager().GetNodeDescription(type_name, nonterminal_id);
+  auto node_type_description = node_manager().GetNodeDescription(type_name, nonterminal_id);
   nonterminals_for_type[type_name] = nonterminal_id;
 
-  LOG_SEV(Debug) << "  * Creating general node for non terminal ID " << nonterminal_id
-                 << ", type name " << formatting::CLBB(type_name) << ".";
+  LOG_SEV(Debug) << "  * Creating general node for non terminal ID " << nonterminal_id << ", type name "
+                 << formatting::CLBB(type_name) << ".";
 
   int count = -1;
   for (auto referenced_type : item.rhs) {
@@ -724,8 +663,7 @@ void ParserDataToTypeManager::createGeneralNode(
     auto& name = production_rules_data_->GetName(referenced_type);
 
     if (production_rules_data_->lexer_generator->IsReserved(name)) {
-      LOG_SEV(Debug) << "    >> Not creating a field for '" << name
-                     << "' since it is a literal.";
+      LOG_SEV(Debug) << "    >> Not creating a field for '" << name << "' since it is a literal.";
 
       continue;  // Literal
     }
@@ -762,29 +700,26 @@ void ParserDataToTypeManager::createGeneralNode(
   }
 }
 
-void ParserDataToTypeManager::processFieldCommand(
-    const std::vector<std::shared_ptr<ParseNode>>& arguments,
-    const Item& item,
-    unsigned item_number,
-    TypeDescriptionStructure* node_type_description) {
+void ParserDataToTypeManager::processFieldCommand(const std::vector<std::shared_ptr<ParseNode>>& arguments,
+                                                  const Item& item,
+                                                  unsigned item_number,
+                                                  TypeDescriptionStructure* node_type_description) {
   auto nonterminal_id = item.production;
   auto& instructions = item.instructions;
   auto&& nonterminal_name = production_rules_data_->GetNonterminalName(nonterminal_id);
 
-  LOG_SEV(Debug) << "  * Processing 'field' command for non-terminal '"
-                 << nonterminal_name << "'.";
+  LOG_SEV(Debug) << "  * Processing 'field' command for non-terminal '" << nonterminal_name << "'.";
 
   auto get_arg = [&](auto i) -> std::string& { return arguments[i]->designator; };
 
   auto num_args = arguments.size();
-  MANTA_ASSERT(num_args == 1 || num_args == 2,
-               "field function needs one or two arguments, not " << num_args);
+  MANTA_ASSERT(num_args == 1 || num_args == 2, "field function needs one or two arguments, not " << num_args);
 
   std::string target_field_name {};
   auto [position, referenced_type, source_field_name] = getSourceData(get_arg(0), item);
   LOG_SEV(Debug) << "    >> Extracted field command: [pos = " << position
-                 << "] [ref type = " << referenced_type << "] [src field = "
-                 << (source_field_name ? source_field_name.value() : "{}") << "]";
+                 << "] [ref type = " << referenced_type
+                 << "] [src field = " << (source_field_name ? source_field_name.value() : "{}") << "]";
 
   // Type is a non-terminal. A field name does not have to be specified.
   if (production_rules_data_->IsNonTerminal(referenced_type)) {
@@ -792,22 +727,20 @@ void ParserDataToTypeManager::processFieldCommand(
       if (source_field_name) {
         // Referenced a field of the node, $N.field_name.
         target_field_name = *source_field_name;
-        LOG_SEV(Debug)
-            << "    >> Single argument field command, target field is the field '"
-            << target_field_name << "' of target node.";
+        LOG_SEV(Debug) << "    >> Single argument field command, target field is the field '"
+                       << target_field_name << "' of target node.";
       }
       else {
         // References the node itself, $N (i.e. not a field of the other node, but the
         // entire other node).
         target_field_name = production_rules_data_->GetNonterminalName(referenced_type);
-        LOG_SEV(Debug)
-            << "    >> Single argument field command, target is the other node.";
+        LOG_SEV(Debug) << "    >> Single argument field command, target is the other node.";
       }
     }
     else {  // Two arguments: ($N[.src_field_name], target_field_name)
       target_field_name = get_arg(1);
-      LOG_SEV(Debug) << "    >> Two argument field command targets, target field name '"
-                     << target_field_name << "'.";
+      LOG_SEV(Debug) << "    >> Two argument field command targets, target field name '" << target_field_name
+                     << "'.";
     }
   }
   // Type is a terminal. Field name must be specified. Type check not required.
@@ -815,8 +748,8 @@ void ParserDataToTypeManager::processFieldCommand(
     MANTA_ASSERT(num_args == 2,
                  "field name must be specified to create a field for a terminal, "
                  "non-terminal type is '"
-                     << production_rules_data_->GetNonterminalName(nonterminal_id)
-                     << "', item number " << item_number);
+                     << production_rules_data_->GetNonterminalName(nonterminal_id) << "', item number "
+                     << item_number);
     target_field_name = get_arg(1);
 
     // Directly add the field, which is known to be a string.
@@ -825,9 +758,8 @@ void ParserDataToTypeManager::processFieldCommand(
     //  have this problem.
     node_type_description->AddField(target_field_name, node_manager().GetStringType());
 
-    LOG_SEV(Info) << "    >> Adding field referring to a terminal, '" << target_field_name
-                  << "', to type " << formatting::CLBB(node_type_description->type_name)
-                  << ".";
+    LOG_SEV(Info) << "    >> Adding field referring to a terminal, '" << target_field_name << "', to type "
+                  << formatting::CLBB(node_type_description->type_name) << ".";
   }
 
   TypeRelationship relationship {
@@ -843,24 +775,21 @@ void ParserDataToTypeManager::processFieldCommand(
   relationships()[node_type_description->type_name].push_back(relationship);
 }
 
-void ParserDataToTypeManager::processAppendCommand(
-    const std::vector<std::shared_ptr<ParseNode>>& arguments,
-    const Item& item,
-    unsigned item_number,
-    TypeDescriptionStructure* node_type_description) {
+void ParserDataToTypeManager::processAppendCommand(const std::vector<std::shared_ptr<ParseNode>>& arguments,
+                                                   const Item& item,
+                                                   unsigned item_number,
+                                                   TypeDescriptionStructure* node_type_description) {
   // Form: append($N.field_name_1, field_name_2)
 
   auto nonterminal_id = item.production;
   auto& instructions = item.instructions;
   auto&& nonterminal_name = production_rules_data_->GetNonterminalName(nonterminal_id);
 
-  LOG_SEV(Debug) << "  * Processing 'append' command for non-terminal '"
-                 << nonterminal_name << "'.";
+  LOG_SEV(Debug) << "  * Processing 'append' command for non-terminal '" << nonterminal_name << "'.";
 
   auto get_arg = [&](auto i) -> std::string& { return arguments[i]->designator; };
 
-  MANTA_ASSERT(arguments.size() == 2,
-               "append function needs two arguments, not " << arguments.size());
+  MANTA_ASSERT(arguments.size() == 2, "append function needs two arguments, not " << arguments.size());
 
   std::string target_field_name {};
   auto [position, referenced_type, source_field_name] = getSourceData(get_arg(0), item);
@@ -869,8 +798,8 @@ void ParserDataToTypeManager::processAppendCommand(
                    << item_number << " for non-terminal " << nonterminal_name);
 
   LOG_SEV(Debug) << "    >> Extracted field command: [pos = " << position
-                 << "] [ref type = " << referenced_type << "] [src field = "
-                 << (source_field_name ? source_field_name.value() : "{}") << "]";
+                 << "] [ref type = " << referenced_type
+                 << "] [src field = " << (source_field_name ? source_field_name.value() : "{}") << "]";
 
   TypeRelationship relationship {
       static_cast<NonterminalID>(referenced_type),
@@ -885,29 +814,26 @@ void ParserDataToTypeManager::processAppendCommand(
   relationships()[node_type_description->type_name].push_back(relationship);
 }
 
-void ParserDataToTypeManager::processPushCommand(
-    const std::vector<std::shared_ptr<ParseNode>>& arguments,
-    const Item& item,
-    unsigned item_number,  // item_number
-    TypeDescriptionStructure* node_type_description) {
+void ParserDataToTypeManager::processPushCommand(const std::vector<std::shared_ptr<ParseNode>>& arguments,
+                                                 const Item& item,
+                                                 unsigned item_number,  // item_number
+                                                 TypeDescriptionStructure* node_type_description) {
   auto nonterminal_id = item.production;
   auto& instructions = item.instructions;
   auto&& nonterminal_name = production_rules_data_->GetNonterminalName(nonterminal_id);
 
-  LOG_SEV(Debug) << "  * Processing 'push' command for non-terminal '" << nonterminal_name
-                 << "'.";
+  LOG_SEV(Debug) << "  * Processing 'push' command for non-terminal '" << nonterminal_name << "'.";
 
   auto get_arg = [&](auto i) -> std::string& { return arguments[i]->designator; };
 
-  MANTA_REQUIRE(arguments.size() == 2,
-                "push function needs two arguments, not " << arguments.size());
+  MANTA_REQUIRE(arguments.size() == 2, "push function needs two arguments, not " << arguments.size());
 
   std::string target_field_name {};
   auto [position, referenced_type, source_field_name] = getSourceData(get_arg(0), item);
 
   LOG_SEV(Debug) << "    >> Extracted field command: [pos = " << position
-                 << "] [ref type = " << referenced_type << "] [src field = "
-                 << (source_field_name ? source_field_name.value() : "{}") << "]";
+                 << "] [ref type = " << referenced_type
+                 << "] [src field = " << (source_field_name ? source_field_name.value() : "{}") << "]";
 
   TypeRelationship relationship {
       static_cast<NonterminalID>(referenced_type),
@@ -922,8 +848,8 @@ void ParserDataToTypeManager::processPushCommand(
   relationships()[node_type_description->type_name].push_back(relationship);
 }
 
-const TypeDescription* ParserDataToTypeManager::makeType(
-    CheckType check_type, const TypeDescription* source_type) {
+const TypeDescription* ParserDataToTypeManager::makeType(CheckType check_type,
+                                                         const TypeDescription* source_type) {
   if (check_type == CheckType::Push) {
     return node_manager().MakeVector(source_type);
   }
@@ -947,24 +873,20 @@ const TypeDescription* ParserDataToTypeManager::deduceTypesDFS(
     const std::map<FieldTracker, std::vector<TypeRelationship*>>& unsolved_relationships,
     std::set<FieldTracker>& referenced_fields) {
   // Depth first search to deduce the type needed for each remaining relationship.
-  const TypeDescription* type =
-      deduction.GetFieldType(target_field.first, target_field.second);
+  const TypeDescription* type = deduction.GetFieldType(target_field.first, target_field.second);
   if (type) {
     return type;
   }
 
   // Type not deduced yet.
-  if (auto it = unsolved_relationships.find(target_field);
-      it != unsolved_relationships.end())
-  {
+  if (auto it = unsolved_relationships.find(target_field); it != unsolved_relationships.end()) {
     // Try each relationship whose source field has not already been referenced (to
     // prevent infinite loops).
     for (auto& rel : it->second) {
       std::pair reference(rel->referenced_id, *rel->source_field_name);
       if (!referenced_fields.contains(reference)) {
         referenced_fields.insert(reference);
-        type = deduceTypesDFS(
-            reference, deduction, unsolved_relationships, referenced_fields);
+        type = deduceTypesDFS(reference, deduction, unsolved_relationships, referenced_fields);
       }
       if (type) {
         // Found the type of a field referenced by this relationship. Determine the type
@@ -975,9 +897,7 @@ const TypeDescription* ParserDataToTypeManager::deduceTypesDFS(
     }
   }
 
-  MANTA_ASSERT(type,
-               "could not deduce type for field " << target_field.first << ", "
-                                                  << target_field.second);
+  MANTA_ASSERT(type, "could not deduce type for field " << target_field.first << ", " << target_field.second);
 
   // Set the type in all the different data structures.
   auto& base_type_name = deduction.GetBaseTypeName(target_field.first);
