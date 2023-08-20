@@ -188,8 +188,10 @@ ParserTypeData& ParserDataToTypeManager::CreateRelationships(
         type_name = "ASTNode_" + node_it->second[0]->children[0]->designator;
       }
       else {
-        // Create a node type name from the production name.
-        type_name = "ASTNode_" + nonterminal_name;
+        // Create a node type name from the production name. Every item potentially needs its own node type.
+        //  TODO: Merge duplicate nodes at the end.
+        type_name = "ASTNode_" + std::to_string(generated_nodes) + "_" + nonterminal_name;
+        ++generated_nodes;
       }
       // Register that this item (production) will be represented by a node of this type
       // name.
