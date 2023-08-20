@@ -18,6 +18,8 @@ enum class TSGeneralType
 {
   Vector,
   String,
+  Integer,
+  Float,
   SharedPointer,
   Structure,
   Enumeration
@@ -60,9 +62,9 @@ inline std::string to_string(const TypeDescription& description) {
 
 //! \brief A type along with modifiers.
 struct ElaboratedType {
-  const TypeDescription* arg_type{};
-  bool is_const{};
-  bool is_ref{};
+  const TypeDescription* arg_type {};
+  bool is_const {};
+  bool is_ref {};
 };
 
 //! \brief Type description for a "basic" type. Basic types will be mapped to types in
@@ -100,8 +102,7 @@ struct StructureConstructor {
       std::pair<const TypeDescriptionStructure*, std::vector<std::variant<ArgName, Value>>>>
       parent_constructors {};
 
-  //! \brief  Triples of the argument type description, name of the constructor argument,
-  //! and what field it initializes.
+  //! \brief List initialized fields that initialize the data from constructor arguments.
   //!
   std::vector<std::tuple<ArgName, FieldName>> list_initialized_args {};
 
@@ -126,34 +127,34 @@ struct StructureConstructor {
 
 struct StructureFunction {
   struct Argument {
-    ElaboratedType arg_type{};
-    std::string argument_name{};
+    ElaboratedType arg_type {};
+    std::string argument_name {};
   };
 
   struct Signature {
     //! \brief The function's arguments.
-    std::vector<Argument> arguments{};
+    std::vector<Argument> arguments {};
 
     //! \brief The return type of the function, or nothing (for "void").
-    std::optional<ElaboratedType> return_type{};
+    std::optional<ElaboratedType> return_type {};
 
     //! \brief Whether the function is a constant function.
-    bool is_const{};
+    bool is_const {};
   };
 
   //! \brief The function's name.
-  std::string function_name{};
+  std::string function_name {};
 
   //! \brief The function signature.
-  Signature function_signature{};
+  Signature function_signature {};
 
   //! \brief Contents of the function (if not virtual). I don't have a "language independent" way of doing
   //! this right now, so I am just assuming this is literally the code that should go into the function.
   //! If nullopt, this is a virtual function.
-  std::optional<std::string> function_body{};
+  std::optional<std::string> function_body {};
 
   //! \brief Whether the function overrides another function.
-  bool is_override{};
+  bool is_override {};
 
   //! \brief Check whether the function is virtual.
   bool IsVirtual() const { return !function_body; }
@@ -264,6 +265,18 @@ struct TypeDescriptionString : public TypeDescription {
       : TypeDescription(TSGeneralType::String) {}
 };
 
+//! \brief Represents an integer field.
+struct TypeDescriptionInteger : public TypeDescription {
+  TypeDescriptionInteger()
+      : TypeDescription(TSGeneralType::Integer) {}
+};
+
+//! \brief Represents an floating point field.
+struct TypeDescriptionFloat : public TypeDescription {
+  TypeDescriptionFloat()
+      : TypeDescription(TSGeneralType::Float) {}
+};
+
 //! \brief A class that manages a universe of type. Allows for the creation of types,
 //! generally by composing other types from the TypeSystem into new types, like vectors of
 //! types, pointers to types, structures with other types as fields, etc.
@@ -271,6 +284,12 @@ class TypeSystem {
 public:
   //! \brief Get the string type.
   NO_DISCARD const TypeDescriptionString* String() const { return &string_type_; }
+
+  //! \brief Get the integer type.
+  NO_DISCARD const TypeDescriptionInteger* Integer() const { return &integer_type_; }
+
+  //! \brief Get the floating point type.
+  NO_DISCARD const TypeDescriptionFloat* Float() const { return &float_type_; }
 
   //! \brief Get an enumeration type by name.
   TypeDescriptionEnum* Enum(const std::string& enum_name);
@@ -287,6 +306,10 @@ public:
 private:
   //! \brief The string type.
   const TypeDescriptionString string_type_;
+
+  const TypeDescriptionInteger integer_type_;
+
+  const TypeDescriptionFloat float_type_;
 
   //! \brief All types managed by the typesystem.
   std::map<std::size_t, std::shared_ptr<TypeDescription>> types_;

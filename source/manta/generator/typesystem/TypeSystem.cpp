@@ -19,6 +19,10 @@ std::string to_string(TSGeneralType type) {
       return "Structure";
     case TSGeneralType::Enumeration:
       return "Enumeration";
+    case TSGeneralType::Integer:
+      return "Integer";
+    case TSGeneralType::Float:
+      return "Float";
     default:
       MANTA_FAIL("unrecogmized TSGeneralType");
   }
