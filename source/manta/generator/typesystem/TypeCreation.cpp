@@ -572,10 +572,10 @@ void ParserDataToTypeManager::determineBaseTypes(TypeDeduction& deduction) {
                  "there must be at least one type for non-terminal " << nonterminal_id);
     auto& nonterminal_name = production_rules_data_->GetNonterminalName(nonterminal_id);
 
-    // Add a non-terminal type enum
-    // TODO: Sanitize name?
+    // Add a non-terminal type enum.
     auto nonterminal_enum = node_manager().GetNonterminalEnum();
-    nonterminal_enum->AddOption(nonterminal_name);
+    auto nonterminal_enum_name = field_name_sanitizer_(nonterminal_name); // Sanitize name.
+    nonterminal_enum->AddOption(nonterminal_enum_name);
 
     if (1 < nonterminals_types.NumSubTypes()) {
       auto base_name = "ASTNodeBase_" + nonterminal_name;
@@ -595,7 +595,7 @@ void ParserDataToTypeManager::determineBaseTypes(TypeDeduction& deduction) {
           {{node_manager().GetASTNodeType(), "node_type"}},
           // Call ASTNodeBase's constructor
           {{node_manager().GetASTNodeBase(),
-            {"node_type", nonterminal_enum->GetName() + "::" + nonterminal_name}}}});
+            {"node_type", nonterminal_enum->GetName() + "::" + nonterminal_enum_name}}}});
 
       node_manager().GetNonterminalTypes(nonterminal_id).base_type = base_class_description;
       LOG_SEV(Info) << "  * Setting base type for non-terminal ID " << nonterminal_id << "(" << base_name
@@ -635,7 +635,7 @@ void ParserDataToTypeManager::determineBaseTypes(TypeDeduction& deduction) {
           // Call ASTNodeBase's constructor
           {{node_manager().GetASTNodeBase(),
             {StructureConstructor::Value {"ASTNodeType::Type_" + type_name},
-             StructureConstructor::Value {nonterminal_enum->GetName() + "::" + nonterminal_name}}}}});
+             StructureConstructor::Value {nonterminal_enum->GetName() + "::" + nonterminal_enum_name}}}}});
     }
 
     LOG_SEV(Info) << "  * The base type name for non-terminal " << nonterminal_id << "'s types will be "
