@@ -6,6 +6,9 @@
 
 namespace manta {
 
+//! \brief Class that creates the parser code from the generated types and description of the parser and
+//! lexer.
+//!
 class ParserCodegen {
 public:
   void GenerateParserCode(std::ostream& code_out, const std::shared_ptr<const ParserData>& parser_data) const;
@@ -21,8 +24,7 @@ public:
   }
 
 private:
-  static std::string fieldNameFromTarget(const std::string& target_name);
-
+  //! \brief Set up the base visitor class.
   TypeDescriptionStructure* createBaseVisitor(ASTNodeManager& node_manager) const;
 
   //! \brief If true, generated field names will be tagged with the argument number.

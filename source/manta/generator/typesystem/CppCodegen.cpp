@@ -117,12 +117,14 @@ void CppCodeGen::WriteDefinition(std::ostream& out, const TypeDescriptionStructu
   }
 
   // Write all fields.
+  AddComment(out, 1, " Public fields for " + structure->type_name + ".");
   for (auto& [field, type] : structure->fields) {
-    out << "  " << WriteName(type) << " " << field << ";\n";
+    out << "  " << WriteName(type) << " " << field << "{};\n";
   }
   out << "\n";
 
   // Write all functions.
+  AddComment(out, 1, " Public functions for " + structure->type_name + ".");
   for (auto& function : structure->functions) {
     out << "  ";
     if (function.IsVirtual()) {

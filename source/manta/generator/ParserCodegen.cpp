@@ -456,17 +456,6 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
   GenerateParserCode(code_out, generator.CreateParserData(parser_description));
 }
 
-std::string ParserCodegen::fieldNameFromTarget(const std::string& target_name) {
-  // Check if the target name is a reserved keyword or other problematic word.
-  // TODO: Fill in all keywords.
-  static std::set<std::string> keywords = {"class", "char", "int", "float", "double", "or", "and", "std"};
-
-  if (keywords.contains(target_name)) {
-    return "var_" + target_name;
-  }
-  return target_name;
-}
-
 TypeDescriptionStructure* ParserCodegen::createBaseVisitor(ASTNodeManager& node_manager) const {
   auto visitor = node_manager.GetVisitorStructure();
   auto& all_node_types = node_manager.GetAllNodeTypesForNonterminals();
@@ -475,7 +464,7 @@ TypeDescriptionStructure* ParserCodegen::createBaseVisitor(ASTNodeManager& node_
   StructureFunction accept_function {"Accept",
                                      StructureFunction::Signature {{StructureFunction::Argument {
                                          ElaboratedType {visitor, false, true}, "visitor"}}},
-                                     {} /* Virtual */};
+                                     {} /* Virtual function <=> no body */};
   node_manager.GetASTNodeBase()->AddFunction(accept_function);
 
   auto create_visitor_functions = [&](TypeDescriptionStructure* visitable_type) {
@@ -483,7 +472,7 @@ TypeDescriptionStructure* ParserCodegen::createBaseVisitor(ASTNodeManager& node_
     StructureFunction accept_function {"Accept",
                                        StructureFunction::Signature {{StructureFunction::Argument {
                                            ElaboratedType {visitor, false, true}, "visitor"}}},
-                                       "    visitor.Visit(*this);",
+                                       "    visitor.Visit(*this);" /* Function body */,
                                        true /* Is override */};
 
     visitable_type->AddFunction(accept_function);
@@ -492,7 +481,7 @@ TypeDescriptionStructure* ParserCodegen::createBaseVisitor(ASTNodeManager& node_
     StructureFunction visit_function {"Visit",
                                       StructureFunction::Signature {{StructureFunction::Argument {
                                           ElaboratedType {visitable_type, false, true}, "object"}}},
-                                      {} /* Virtual function */};
+                                      {} /* Virtual function <=> no body */};
     visitor->AddFunction(visit_function);
   };
 
