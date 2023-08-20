@@ -14,27 +14,39 @@ ASTNodeManager::ASTNodeManager() {
   node_enum_ = type_system_.Enum("ASTNodeType");
   node_enum_->AddOption("Literal");
 
+  nonterminal_enum_ = type_system_.Enum("NonterminalType");
+  nonterminal_enum_->AddOption("Terminal");  // Actually not a non-terminal
+
   // Create node base structure.
   node_base_ = type_system_.Structure("ASTNodeBase");
   node_base_->AddField("node_type", node_enum_);
-  node_base_->AddConstructor(StructureConstructor {{{node_enum_, "node_type"}},  // Arguments
-                                                   {},  // Parent constructors
-                                                   {
-                                                       {"node_type", "node_type"},
-                                                   },
-                                                   {}});
+  node_base_->AddField("nonterminal_type", nonterminal_enum_);
+  node_base_->AddConstructor(StructureConstructor {
+      // Constructor arguments
+      {{node_enum_, "node_type"}, {nonterminal_enum_, "nonterminal_type"}},
+      // Parent constructors
+      {},
+      // List initialized fields.
+      {{"node_type", "node_type"}, {"nonterminal_type", "nonterminal_type"}},
+      // Additional list initialized values
+      {}});
 
   // Create lexeme node.
   lexeme_node_ = type_system_.Structure("ASTLexeme");
   lexeme_node_->AddField("literal", type_system_.String());
   lexeme_node_->AddParent(node_base_);
   lexeme_node_->AddConstructor(StructureConstructor {
-      {{type_system_.String(), "literal"}},  // Argument list (type, arg name)
-      {{node_base_,
-        {
-            StructureConstructor::Value {"ASTNodeType::Literal"},
-        }}},
-      {{"literal", "literal"}},  // List initialized args, (arg name, field name)
+      // Constructor arguments
+      {{type_system_.String(), "literal"}},
+      // Parent constructors
+      {
+          // Initialize the base class ASTNodeBase
+          {node_base_,
+           {StructureConstructor::Value {"ASTNodeType::Literal"},
+            StructureConstructor::Value {"NonterminalType::Terminal"}}},
+      },
+      // List initialized args, (arg name, field name)
+      {{"literal", "literal"}},
       {}  // Additional initialized values (field name, value)
   });
 
@@ -56,6 +68,10 @@ NO_DISCARD TypeDescriptionStructure* ASTNodeManager::GetVisitorStructure() const
 
 TypeDescriptionEnum* ASTNodeManager::GetASTNodeType() const {
   return node_enum_;
+}
+
+NO_DISCARD TypeDescriptionEnum* ASTNodeManager::GetNonterminalEnum() const {
+  return nonterminal_enum_;
 }
 
 TypeDescriptionStructure* ASTNodeManager::GetNodeDescription(const std::string& type_name,

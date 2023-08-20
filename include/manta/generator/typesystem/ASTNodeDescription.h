@@ -31,7 +31,11 @@ public:
 
   NO_DISCARD TypeDescriptionStructure* GetVisitorStructure() const;
 
+  //! \brief Get the enum that enumerate all the ASTNodeTypes.
   NO_DISCARD TypeDescriptionEnum* GetASTNodeType() const;
+
+  //! \brief Get the enum that enumerate all the non-terminals.
+  NO_DISCARD TypeDescriptionEnum* GetNonterminalEnum() const;
 
   TypeDescriptionStructure* GetNodeDescription(const std::string& type_name, NonterminalID nonterminal_id);
 
@@ -56,8 +60,11 @@ public:
 private:
   TypeSystem type_system_;
 
-  //! \brief The type for enums for the nodes.
+  //! \brief The enum type for the AST nodes.
   TypeDescriptionEnum* node_enum_;
+
+  //! \brief The enum type for non-terminals.
+  TypeDescriptionEnum* nonterminal_enum_;
 
   //! \brief The type for the ASTNodeBase.
   TypeDescriptionStructure* node_base_;
