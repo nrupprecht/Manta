@@ -68,7 +68,7 @@ void format_logstream(const TypeDescription& type_description, lightning::RefBun
 void ParserCodegen::GenerateParserCode(std::ostream& code_out,
                                        const std::shared_ptr<const ParserData>& parser_data) const {
   ParserDataToTypeManager manager(false, true);
-  // Find all relationships between nodes.
+  // Find all relationships between nodes and create all node types.
   auto& [node_manager, relationships, nonterminals_for_type, node_types_for_item] =
       manager.CreateRelationships(parser_data);
   auto deduced_types = manager.DeduceTypes();
@@ -98,58 +98,24 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
   }
   LOG_SEV(Info) << "Done filling in all type descriptions.";
 
-  LOG_SEV(Info) << "Creating visitor.";
+  LOG_SEV(Info) << "Creating the base visitor class.";
+  createBaseVisitor(node_manager);
 
-  auto visitor = node_manager.GetVisitorStructure();
-  auto& all_node_types = node_manager.GetAllNodeTypesForNonterminals();
+  // ==============================================================================
+  //  Generate code.
+  // ==============================================================================
 
-  // Create base function in ASTNode base.
-  StructureFunction accept_function {"Accept",
-                                     StructureFunction::Signature {{StructureFunction::Argument {
-                                         ElaboratedType {visitor, false, true}, "visitor"}}},
-                                     {} /* Virtual */};
-  node_manager.GetASTNodeBase()->AddFunction(accept_function);
-
-  auto create_visitor_functions = [&](TypeDescriptionStructure* visitable_type) {
-    // Add accept function.
-    StructureFunction accept_function {"Accept",
-                                       StructureFunction::Signature {{StructureFunction::Argument {
-                                           ElaboratedType {visitor, false, true}, "visitor"}}},
-                                       "    visitor.Visit(*this);",
-                                       true /* Is override */};
-
-    visitable_type->AddFunction(accept_function);
-
-    // Add the visitor's visit function.
-    StructureFunction visit_function {"Visit",
-                                      StructureFunction::Signature {{StructureFunction::Argument {
-                                          ElaboratedType {visitable_type, false, true}, "object"}}},
-                                      {} /* Virtual function */};
-    visitor->AddFunction(visit_function);
-  };
-
-  for (auto& [_, node_types] : all_node_types) {
-    for (auto& [name, child_type] : node_types.child_types) {
-      create_visitor_functions(child_type);
-    }
-  }
-  // Create visitor for ASTLexeme.
-  create_visitor_functions(node_manager.GetASTLexeme());
+  CppCodeGen codegen;
 
   LOG_SEV(Info) << "Generating code.";
 
   // Write the guard and includes.
-  code_out << "#pragma once\n\n#include <vector>\n#include <string>\n\n";
-  code_out << "// Include the support for the parser.\n";
-  code_out << "#include \"manta/generator/ParserDriver.h\"\n";
-  code_out << "#include \"manta/generator/LexerGenerator.h\"\n\n";
-  code_out << "#include <Lightning/Lightning.h>\n\n";
+  codegen.WriteImports(code_out);
 
   // Create the node class definitions.
   LOG_SEV(Info) << "Generating code for all AST node definitions.";
 
-  CppCodeGen codegen;
-
+  // Write all node class definitions.
   node_manager.CreateAllDefinitions(code_out, codegen);
 
   std::string parser_class_name = "Parser";
@@ -378,8 +344,6 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
   {
     unsigned item_number = 0u;
     for (auto& item : parser_data->production_rules_data->all_productions) {
-      // TODO: Sanitize names.
-
       auto& node_type_name = node_types_for_item.at(item_number);
 
       code_out << "std::shared_ptr<" << node_type_name << ">\n";
@@ -501,4 +465,44 @@ std::string ParserCodegen::fieldNameFromTarget(const std::string& target_name) {
     return "var_" + target_name;
   }
   return target_name;
+}
+
+TypeDescriptionStructure* ParserCodegen::createBaseVisitor(ASTNodeManager& node_manager) const {
+  auto visitor = node_manager.GetVisitorStructure();
+  auto& all_node_types = node_manager.GetAllNodeTypesForNonterminals();
+
+  // Create base function in ASTNode base.
+  StructureFunction accept_function {"Accept",
+                                     StructureFunction::Signature {{StructureFunction::Argument {
+                                         ElaboratedType {visitor, false, true}, "visitor"}}},
+                                     {} /* Virtual */};
+  node_manager.GetASTNodeBase()->AddFunction(accept_function);
+
+  auto create_visitor_functions = [&](TypeDescriptionStructure* visitable_type) {
+    // Add accept function.
+    StructureFunction accept_function {"Accept",
+                                       StructureFunction::Signature {{StructureFunction::Argument {
+                                           ElaboratedType {visitor, false, true}, "visitor"}}},
+                                       "    visitor.Visit(*this);",
+                                       true /* Is override */};
+
+    visitable_type->AddFunction(accept_function);
+
+    // Add the visitor's visit function.
+    StructureFunction visit_function {"Visit",
+                                      StructureFunction::Signature {{StructureFunction::Argument {
+                                          ElaboratedType {visitable_type, false, true}, "object"}}},
+                                      {} /* Virtual function */};
+    visitor->AddFunction(visit_function);
+  };
+
+  for (auto& [_, node_types] : all_node_types) {
+    for (auto& [name, child_type] : node_types.child_types) {
+      create_visitor_functions(child_type);
+    }
+  }
+  // Create visitor for ASTLexeme.
+  create_visitor_functions(node_manager.GetASTLexeme());
+
+  return visitor;
 }

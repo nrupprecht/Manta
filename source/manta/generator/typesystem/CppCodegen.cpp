@@ -7,6 +7,15 @@
 
 namespace manta {
 
+void CppCodeGen::WriteImports(std::ostream& out) const {
+  // Write the guard and includes.
+  out << "#pragma once\n\n#include <vector>\n#include <string>\n\n";
+  out << "// Include the support for the parser.\n";
+  out << "#include \"manta/generator/ParserDriver.h\"\n";
+  out << "#include \"manta/generator/LexerGenerator.h\"\n\n";
+  out << "#include <Lightning/Lightning.h>\n\n";
+}
+
 void CppCodeGen::WriteDefinition(std::ostream& out, const TypeDescriptionStructure* structure) const {
   MANTA_REQUIRE(structure, "cannot write the declaration for a null type structure description pointer");
 
@@ -45,6 +54,7 @@ void CppCodeGen::WriteDefinition(std::ostream& out, const TypeDescriptionStructu
     }
     out << ")\n";
     bool has_list_init = false;
+    // Write out any calls to parent class constructors.
     if (!constructor.parent_constructors.empty()) {
       has_list_init = true;
       out << "    : ";
@@ -54,7 +64,11 @@ void CppCodeGen::WriteDefinition(std::ostream& out, const TypeDescriptionStructu
           out << ", ";
         }
         out << WriteName(pconst.first) << "(";
+        int j = 0;
         for (auto& arg : pconst.second) {
+          if (j != 0) {
+            out << ", ";
+          }
           if (arg.index() == 0) {
             out << std::get<0>(arg);
           }
@@ -63,6 +77,7 @@ void CppCodeGen::WriteDefinition(std::ostream& out, const TypeDescriptionStructu
             // "printing" them.
             out << std::get<1>(arg).literal;
           }
+          ++j;
         }
         out << ")";
         ++i;
@@ -128,7 +143,7 @@ void CppCodeGen::WriteDefinition(std::ostream& out, const TypeDescriptionStructu
       out << WriteName(arg.arg_type) << " " << arg.argument_name;
       ++count;
     }
-    out << ")" ;
+    out << ")";
     if (function.function_signature.is_const) {
       out << " const";
     }
@@ -158,6 +173,20 @@ void CppCodeGen::WriteDefinition(std::ostream& out, const TypeDescriptionEnum* e
   out << "};\n";
 }
 
+void CppCodeGen::GenerateEnumToStringFunction(std::ostream& out,
+                                              const TypeDescriptionEnum* enumeration) const {
+  out << "inline std::string to_string(" << enumeration->GetName() << " type) {\n";
+  out << "  switch (type) {\n";
+  for (auto& option : enumeration->GetOptions()) {
+    out << "  case " << enumeration->GetName() << "::" << option << ":\n";
+    out << "    return \"" << option << "\";\n";
+  }
+  // Default case - failure.
+  AddComment(out, 1, " Default case for unrecognized enums.");
+  out << "  default:\n     MANTA_FAIL(\"unrecognized enumeration\");\n";
+  out << "  }\n}\n";
+}
+
 std::string CppCodeGen::WriteName(const TypeDescription* type) const {
   MANTA_REQUIRE(type, "cannot write the name of a null type description pointer");
   switch (type->general_type) {
@@ -171,6 +200,12 @@ std::string CppCodeGen::WriteName(const TypeDescription* type) const {
     }
     case TSGeneralType::String: {
       return "std::string";
+    }
+    case TSGeneralType::Integer: {
+      return "int";
+    }
+    case TSGeneralType::Float: {
+      return "double";
     }
     case TSGeneralType::Structure: {
       auto stype = dynamic_cast<const TypeDescriptionStructure*>(type);
@@ -196,6 +231,26 @@ std::string CppCodeGen::WriteName(const ElaboratedType& type) const {
     output += "&";
   }
   return output;
+}
+
+void CppCodeGen::AddComment(std::ostream& out, const std::string& comment, bool newline) const {
+  out << "//" << comment;
+  if (newline) {
+    out << "\n";
+  }
+}
+
+void CppCodeGen::AddComment(std::ostream& out,
+                            int tab_indents,
+                            const std::string& comment,
+                            bool newline) const {
+  // Pad with 2 spaces per indent.
+  std::fill_n(std::ostream_iterator<char>(out), 2 * tab_indents, ' ');
+  AddComment(out, comment, newline);
+}
+
+void CppCodeGen::AddBreak(std::ostream& out) const {
+  out << "\n";
 }
 
 }  // namespace manta

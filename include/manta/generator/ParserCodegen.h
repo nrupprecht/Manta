@@ -8,8 +8,8 @@ namespace manta {
 
 class ParserCodegen {
 public:
-  void GenerateParserCode(const TypeDescriptionStructure* code_out,
-                          const std::shared_ptr<const ParserData>& parser_data) const;
+  void GenerateParserCode(std::ostream& code_out, const std::shared_ptr<const ParserData>& parser_data) const;
+
   void GenerateParserCode(std::ostream& code_out,
                           std::istream& parser_description,
                           ParserType parser_type) const;
@@ -23,6 +23,8 @@ public:
 private:
   static std::string fieldNameFromTarget(const std::string& target_name);
 
+  TypeDescriptionStructure* createBaseVisitor(ASTNodeManager& node_manager) const;
+
   //! \brief If true, generated field names will be tagged with the argument number.
   //!
   //! This is useful if there will be multiple identical lexemes or non-terminals in a single reduction.
@@ -35,7 +37,6 @@ private:
   //! This is useful if there is a non-terminal and a lexeme with the same name in a single reduction.
   //!
   bool generated_nodes_have_node_in_name = true;
-  void GenerateParserCode(std::ostream& code_out, const std::shared_ptr<const ParserData>& parser_data) const;
 };
 
 }  // namespace manta

@@ -96,7 +96,8 @@ void ASTNodeManager::CreateAllDefinitions(std::ostream& out, const CodeGen& code
   LOG_SEV(Info) << "";  // Log break.
 
   // Declare all node types.
-
+  // TODO: Remove C++ specific codegen.
+  code_gen.AddComment(out, " Forward declare AST node types.");
   for (auto& [nonterminal_id, nonterminal_types] : node_types_for_nonterminal_) {
     // Write base type definition.
     if (nonterminal_types.base_type) {
@@ -110,58 +111,72 @@ void ASTNodeManager::CreateAllDefinitions(std::ostream& out, const CodeGen& code
     }
   }
   // Forward declare lexeme.
-  out << "// Lexeme type.\n";
+  code_gen.AddComment(out, " Lexeme type");
   out << "struct " << code_gen.WriteName(lexeme_node_) << ";\n";
+  code_gen.AddBreak(out); // Break
 
-  out << "\n";
-
-  // Write the enum definitions.
-  out << "//! \\brief Define the enums for each node type.\n//!\n";
+  // Write the AST node type enum definitions.
+  code_gen.AddComment(out, "! \\brief Define the enums for each node type.");
+  code_gen.AddComment(out, "!");
   code_gen.WriteDefinition(out, node_enum_);
-  out << "\n";
+  code_gen.AddBreak(out); // Break
 
   // Write the node type enum's to_string function.
-  out << "//! \\brief Define function to write enums.\n//!\n";
-  out << "inline std::string to_string(" << node_enum_->GetName() << " type) {\n";
-  out << "  switch (type) {\n";
-  for (auto& option : node_enum_->GetOptions()) {
-    out << "  case " << node_enum_->GetName() << "::" << option << ":\n";
-    out << "    return \"" << option << "\";\n";
-  }
-  out << "  }\n}\n\n";
+  code_gen.AddComment(out, "! \\brief Define function to write AST node type enums.");
+  code_gen.AddComment(out, "!");
+  code_gen.GenerateEnumToStringFunction(out, node_enum_);
+  code_gen.AddBreak(out); // Break
+
+  // Write the enum definitions.
+  code_gen.AddComment(out, "! \\brief Define the enums for each non-terminal type.");
+  code_gen.AddComment(out, "!");
+  code_gen.WriteDefinition(out, nonterminal_enum_);
+  code_gen.AddBreak(out); // Break
+
+  // Write the non-terminal type enum's to_string function.
+  code_gen.AddComment(out, "! \\brief Define function to write the non-terminal type enum.");
+  code_gen.AddComment(out, "!");
+  code_gen.GenerateEnumToStringFunction(out, nonterminal_enum_);
+  code_gen.AddBreak(out); // Break
 
   // Write the visitor.
-  out << "//! \\brief Base visitor class.\n//!\n";
+  code_gen.AddComment(out, "! \\brief Base visitor class.");
+  code_gen.AddComment(out, "!");
   code_gen.WriteDefinition(out, visitor_type_);
-  out << "\n\n";
+  code_gen.AddBreak(out); // Break
 
-  out << "//! \\brief Define the base node type for all AST nodes.\n//!\n";
+  code_gen.AddComment(out, "! \\brief Define the base node type for all AST nodes.");
+  code_gen.AddComment(out, "!");
   code_gen.WriteDefinition(out, node_base_);
-  out << "\n\n";
+  code_gen.AddBreak(out); // Break
 
-  out << "//! \\brief Node for basic lexemes.\n//!\n";
+  code_gen.AddComment(out, "! \\brief Node for basic lexemes.");
+  code_gen.AddComment(out, "!");
   code_gen.WriteDefinition(out, lexeme_node_);
-  out << "\n\n";
+  code_gen.AddBreak(out); // Break
 
   for (auto& [nonterminal_id, nonterminal_types] : node_types_for_nonterminal_) {
-    out << "// ============================================================\n";
-    out << "//  Nodes for non-terminal " << nonterminal_id << "'s productions.\n";
-    out << "// ============================================================\n\n";
+    code_gen.AddComment(out, " ============================================================");
+    code_gen.AddComment(out,
+                        "  Nodes for non-terminal " + std::to_string(nonterminal_id) + "'s productions.");
+    code_gen.AddComment(out, " ============================================================");
+    code_gen.AddBreak(out); // Break
+
     // Write base type definition.
     if (nonterminal_types.base_type) {
       LOG_SEV(Info) << "There was a parent class for nodes associated with non-terminal type "
                     << nonterminal_id << ", generating definition for node type '"
                     << nonterminal_types.base_type->type_name << "'.";
-      // out << "//! \\brief Base node type for nodes associated with nonterminal " <<
-      // nonterminal_id << " productions.\n//!\n"; code_gen.WriteDefinition(out,
-      // nonterminal_types.base_type); out << "\n\n";
+      code_gen.AddComment(out,
+                          "! \\brief Parent type for non-terminal type " + std::to_string(nonterminal_id));
+      code_gen.AddComment(out, "!");
     }
 
     // Write all child types.
     for (auto& [name, type] : nonterminal_types.child_types) {
       LOG_SEV(Info) << "Generating definition for node type " << formatting::CLBB(name) << ".";
       code_gen.WriteDefinition(out, type);
-      out << "\n\n";
+      code_gen.AddBreak(out); // Break
     }
   }
 }
