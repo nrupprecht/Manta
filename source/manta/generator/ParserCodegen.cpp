@@ -101,6 +101,9 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
   LOG_SEV(Info) << "Creating the base visitor class.";
   createBaseVisitor(node_manager);
 
+  // TEST: Generate a printing visitor.
+  auto printing_visitor = createPrintingVisitor(node_manager);
+
   // ==============================================================================
   //  Generate code.
   // ==============================================================================
@@ -128,6 +131,11 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
 
   // Write all node class definitions.
   node_manager.CreateAllDefinitions(code_out, codegen);
+
+  // >>> Write printing visitor
+  code_out << "\n";
+  codegen.WriteDefinition(code_out, printing_visitor);
+  code_out << "\n";
 
   std::string parser_class_name = "Parser";
 
@@ -505,4 +513,124 @@ TypeDescriptionStructure* ParserCodegen::createBaseVisitor(ASTNodeManager& node_
   create_visitor_functions(node_manager.GetASTLexeme());
 
   return visitor;
+}
+
+TypeDescriptionStructure* ParserCodegen::createPrintingVisitor(ASTNodeManager& node_manager) const {
+  auto& type_system = node_manager.GetTypeSystem();
+  auto visitor = node_manager.GetVisitorStructure();
+  auto& all_node_types = node_manager.GetAllNodeTypesForNonterminals();
+
+  auto printing_visitor = type_system.Structure("PrintingVisitor");
+  printing_visitor->AddParent(visitor);
+  // Add an integer field for keeping track of spacing.
+  printing_visitor->AddField("indentation", type_system.Integer());
+
+  auto create_visit_function = [&](const TypeDescriptionStructure* visitable_type) {
+    auto& type_name = visitable_type->type_name;
+    std::string body =
+        "    LOG_SEV(Info) << lightning::PadUntil(indentation) << \"Visiting type \" << "
+        "manta::formatting::CLBG(\""
+        + type_name + "\") << \".\";\n\n";
+
+    // If this is a child type, visit the parent.
+    for (auto& parent : visitable_type->parent_classes) {
+      if (parent->type_name == "ASTNodeBase")
+        continue;
+      body += "    Visit(static_cast<" + parent->type_name + "&>(object));\n";
+    }
+
+    // Indent.
+    body += "    indentation += 2;\n";
+
+    for (auto& [name, type] : visitable_type->fields) {
+      if (type == type_system.String()) {
+        body += "    LOG_SEV(Info) << lightning::PadUntil(indentation) << \"[\" << manta::formatting::CLBW(\""
+            + name + "\") << \"] = '\" << manta::formatting::CLB(object." + name
+            + ") << \"'\"; // Print literals.\n";
+      }
+      else if (type->general_type == TSGeneralType::Vector) {
+        // auto vector_type = reinterpret_cast<const TypeDescriptionVector*>(type);
+        body += "    for (auto& ptr : object." + name + ") {\n";
+        body += "      if (ptr) ptr->Accept(*this);\n";
+        body += "      else LOG_SEV(Error) << \"An element of a vector is null: " + type_name + "::" + name
+            + "\";\n";
+        body += "    }\n";
+      }
+      else if (type->general_type == TSGeneralType::SharedPointer) {
+        body += "    if (object." + name + ") {\n";
+        body += "      object." + name + "->Accept(*this);\n";
+        body += "    }\n";
+        body += "    else {\n";
+        body += "      LOG_SEV(Error) << \"Field is null: " + type_name + "::" + name + "\";\n";
+        body += "    }\n";
+      }
+    }
+
+    // Un-indent
+    body += "    indentation = std::max(0, indentation - 2);\n";
+
+    StructureFunction visit_function {"Visit",
+                                      StructureFunction::Signature {{StructureFunction::Argument {
+                                          ElaboratedType {visitable_type, false, true}, "object"}}},
+                                      body,
+                                      true};
+    printing_visitor->AddFunction(visit_function);
+  };
+  for (auto& [_, node_types] : all_node_types) {
+    for (auto& [name, child_type] : node_types.child_types) {
+      create_visit_function(child_type);
+    }
+  }
+  // Create visitor for ASTLexeme.
+  create_visit_function(node_manager.GetASTLexeme());
+
+  return printing_visitor;
+}
+
+TypeDescriptionStructure* ParserCodegen::createTreePrintVisitor(ASTNodeManager& node_manager) const {
+  auto& type_system = node_manager.GetTypeSystem();
+  auto visitor = node_manager.GetVisitorStructure();
+  auto& all_node_types = node_manager.GetAllNodeTypesForNonterminals();
+
+  auto tree_length = type_system.Structure("TreeLengthVisitor");
+  tree_length->AddParent(visitor);
+
+  tree_length->AddField("tree_length", type_system.Integer());
+
+  auto create_visit_function = [&](const TypeDescriptionStructure* visitable_type) {
+    auto& type_name = visitable_type->type_name;
+    std::string body {};
+
+    // If this is a child type, visit the parent.
+    for (auto& parent : visitable_type->parent_classes) {
+      if (parent->type_name == "ASTNodeBase")
+        continue;
+      body += "    Visit(static_cast<" + parent->type_name + "&>(object));";
+    }
+
+    for (auto& [name, type] : visitable_type->fields) {
+      if (type == type_system.String()) {
+      }
+      else if (type->general_type == TSGeneralType::Vector) {
+      }
+      else if (type->general_type == TSGeneralType::SharedPointer) {
+      }
+    }
+
+    StructureFunction visit_function {"Visit",
+                                      StructureFunction::Signature {{StructureFunction::Argument {
+                                          ElaboratedType {visitable_type, false, true}, "object"}}},
+                                      body,
+                                      true};
+    tree_length->AddFunction(visit_function);
+  };
+  for (auto& [_, node_types] : all_node_types) {
+    for (auto& [name, child_type] : node_types.child_types) {
+      create_visit_function(child_type);
+    }
+  }
+  // Create visitor for ASTLexeme.
+  create_visit_function(node_manager.GetASTLexeme());
+
+  return {};
 }

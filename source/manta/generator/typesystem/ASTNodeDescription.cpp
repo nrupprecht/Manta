@@ -99,12 +99,8 @@ void ASTNodeManager::CreateAllDefinitions(std::ostream& out, const CodeGen& code
   // TODO: Remove C++ specific codegen.
   code_gen.AddComment(out, " Forward declare AST node types.");
   for (auto& [nonterminal_id, nonterminal_types] : node_types_for_nonterminal_) {
-    // Write base type definition.
-    if (nonterminal_types.base_type) {
-      out << "struct " << code_gen.WriteName(nonterminal_types.base_type) << ";\n";
-    }
 
-    // Write all child types.
+    // Write child types.
     for (auto& [name, type] : nonterminal_types.child_types) {
       LOG_SEV(Info) << "Generating definition for node type " << formatting::CLBB(name) << ".";
       out << "struct " << code_gen.WriteName(type) << ";\n";

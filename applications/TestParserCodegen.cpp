@@ -7,7 +7,7 @@ using namespace lightning::time;
 
 int main(int argc, char** argv) {
   // Set up the global core to an OstreamSink.
-  lightning::Global::GetCore()->AddSink(std::make_shared<OstreamSink>());
+  lightning::Global::GetCore()->AddSink(NewSink<lightning::UnlockedSink, lightning::OstreamSink>());
 
   ParserCodegen generator;
 
@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  // std::ifstream fin("../../config/full_rules_codegen.txt");
+  // std::ifstream fin("../../config/code_rules.txt");
   std::ifstream fin("../../config/full_rules_codegen.txt");
   if (fin.fail()) {
     LOG_SEV(Fatal) << "Error opening file to read parser description.";

@@ -21,7 +21,7 @@ void compareParsers(const std::string& rulesFilepath) {
 
 void testParser(const std::string& rules_filepath, const std::string& code_filepath) {
   lightning::Logger logger;
-  logger.GetCore()->AddSink(std::make_shared<lightning::OstreamSink>());
+  logger.GetCore()->AddSink(NewSink<lightning::UnlockedSink, lightning::OstreamSink>());
 
   // Parser
   ParserGenerator generator(ParserType::LALR);
@@ -67,7 +67,7 @@ void testParser(const std::string& rules_filepath, const std::string& code_filep
       std::cout << Display::RenderParseTree(program);
     }
     else {
-      LOG_SEV(Warning) << "FAILURE parsing file. Printing parse trace:\n\n";
+      LOG_SEV(Warning) << "FAILURE parsing file.";
       std::cout << "=============================================================\n\n";
     }
   }
@@ -78,7 +78,7 @@ void testParser(const std::string& rules_filepath, const std::string& code_filep
 }
 
 int main(int argc, char** argv) {
-  lightning::Global::GetCore()->AddSink(std::make_shared<OstreamSink>());
+  lightning::Global::GetCore()->AddSink(NewSink<lightning::UnlockedSink, lightning::OstreamSink>());
 
   // compareParsers("../config/simpler_rules.txt");
 

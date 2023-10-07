@@ -8,8 +8,7 @@
 
 using namespace manta;
 
-
-std::shared_ptr<ProductionRulesData> DescriptionParser::ParseDescription(std::istream &stream) {
+std::shared_ptr<ProductionRulesData> DescriptionParser::ParseDescription(std::istream& stream) {
   // Create a new production rules object.
   production_rules_data_ = std::make_shared<ProductionRulesData>();
 
@@ -18,18 +17,18 @@ std::shared_ptr<ProductionRulesData> DescriptionParser::ParseDescription(std::is
   int pid;
 
   // Create the lexer. We always add @eof as a lexer item.
-  production_rules_data_->lexer_generator->CreateLexer(stream, false); // Do not Clear old.
+  production_rules_data_->lexer_generator->CreateLexer(stream, false);  // Do not Clear old.
 
   // Find the .Parser indicator.
   stream.get(c);
   while (!stream.eof()) {
-    if (c == '#') { // Pass comments
+    if (c == '#') {  // Pass comments
       stream.get(c);
       while (!stream.eof() and c != '\n') {
         stream.get(c);
       }
     }
-    else if (c == '.') { // Command
+    else if (c == '.') {  // Command
       std::string command;
       stream.get(c);
       while (!stream.eof() && isalpha(c)) {
@@ -37,8 +36,8 @@ std::shared_ptr<ProductionRulesData> DescriptionParser::ParseDescription(std::is
         stream.get(c);
       }
       if (command == "Parser") {
-        stream.putback(c); // Just in case c is '.'
-        break; // Start lexing.
+        stream.putback(c);  // Just in case c is '.'
+        break;  // Start lexing.
       }
     }
     else {
@@ -79,38 +78,38 @@ std::shared_ptr<ProductionRulesData> DescriptionParser::ParseDescription(std::is
       // Find '->'
       stream.get(c);
       while (c != '-' && !stream.eof()) {
-        if (!isspace(c)) { // We expect there to only be spaces leading up to the equals sign.
-          throw UnexpectedInput("expected a space, encountered '" + std::string{c} + "'");
+        if (!isspace(c)) {  // We expect there to only be spaces leading up to the equals sign.
+          throw UnexpectedInput("expected a space, encountered '" + std::string {c} + "'");
         }
         stream.get(c);
       }
-      if (stream.eof()) { // We do not expect to hit EOF.
+      if (stream.eof()) {  // We do not expect to hit EOF.
         throw UnexpectedInput("encountered eof");
       }
       // Get the '>' part of the '->'
       stream.get(c);
       if (c != '>') {
-        throw UnexpectedInput("expected a '>' from a \"->\", found a " + std::string{c});
+        throw UnexpectedInput("expected a '>' from a \"->\", found a " + std::string {c});
       }
-      if (stream.eof()) { // We do not expect to hit EOF.
+      if (stream.eof()) {  // We do not expect to hit EOF.
         throw UnexpectedInput("encountered eof");
       }
 
       // Get all the production rules. Stream points to character after the '='
       getProductions(stream, pid);
     }
-      // OR
+    // OR
     else if (c == '|') {
       getProductions(stream, pid);
     }
-      // Start of a comment.
+    // Start of a comment.
     else if (c == '#') {
       // Pass comments.
       while (c != '\n' && !stream.eof()) {
         stream.get(c);
       }
     }
-      // Command
+    // Command
     else if (c == '.') {
       stream.get(c);
       std::string command;
@@ -126,9 +125,8 @@ std::shared_ptr<ProductionRulesData> DescriptionParser::ParseDescription(std::is
       if (command == "End") {
         break;
       }
-        // Set the start symbol.
+      // Set the start symbol.
       else if (command == "Start") {
-
         stream.get(c);
         while (!stream.eof() && c == ' ') {
           stream.get(c);
@@ -182,8 +180,7 @@ std::shared_ptr<ProductionRulesData> DescriptionParser::ParseDescription(std::is
   return production_rules_data_;
 }
 
-
-inline void DescriptionParser::getProductions(std::istream &in, int production_id) {
+inline void DescriptionParser::getProductions(std::istream& in, int production_id) {
   // Create an "item" to represent the production.
   Item production(production_id, next_production_label_++);
 
@@ -212,7 +209,7 @@ inline void DescriptionParser::getProductions(std::istream &in, int production_i
       // Clear accumulator.
       acc.clear();
     }
-      // Start of a production.
+    // Start of a production.
     else if (isalpha(c)) {
       do {
         acc.push_back(c);
@@ -224,7 +221,7 @@ inline void DescriptionParser::getProductions(std::istream &in, int production_i
         in.putback(c);
       }
 
-      // Found the production. Get it's production number.
+      // Found the production. Get its production number.
       int id = registerProduction(acc);
       // If this is the start state, register the start production id.
       // TODO: Register "start" at the construction of the parser generator so it always
@@ -238,8 +235,8 @@ inline void DescriptionParser::getProductions(std::istream &in, int production_i
       acc.clear();
     }
 
-      // Start of a default lexer type (terminal), or the @null symbol.
-      // TODO: Redo this part.
+    // Start of a default lexer type (terminal), or the @null symbol.
+    // TODO: Redo this part.
     else if (c == '@') {
       in.get(c);
       while (!isspace(c) && !in.eof()) {
@@ -257,7 +254,7 @@ inline void DescriptionParser::getProductions(std::istream &in, int production_i
       // Clear accumulator.
       acc.clear();
     }
-      // Other special symbol, like $null
+    // Other special symbol, like $null
     else if (c == '$') {
       in.get(c);
       while (!isspace(c) && !in.eof()) {
@@ -279,29 +276,29 @@ inline void DescriptionParser::getProductions(std::istream &in, int production_i
       // Clear accumulator.
       acc.clear();
     }
-      // Start of a comment.
+    // Start of a comment.
     else if (c == '#') {
       // Pass comments.
       while (c != '\n' && !in.eof()) {
         in.get(c);
       }
     }
-      // Start of precedence section
+    // Start of precedence section
     else if (c == '-') {
-      in.get(c); // Expect a '>'
+      in.get(c);  // Expect a '>'
       if (c != '>') {
-        throw UnexpectedInput("expected a >, got " + std::string{c});
+        throw UnexpectedInput("expected a >, got " + std::string {c});
       }
       // Fill in the production's resolution info.
       findResInfo(in, production.res_info);
     }
-      // Start of the instructions
+    // Start of the instructions
     else if (c == ':') {
       // Store the rule.
       production.instructions = getInstructions(in, production_id);
       break;
     }
-    else if (c == '|') { // Start of another production for the non-terminal. Put it back and return.
+    else if (c == '|') {  // Start of another production for the non-terminal. Put it back and return.
       in.putback(c);
       break;
     }
@@ -325,7 +322,7 @@ inline void DescriptionParser::getProductions(std::istream &in, int production_i
   production_rules_data_->all_productions.push_back(production);
 }
 
-void DescriptionParser::findResInfo(std::istream &in, ResolutionInfo &res_info) {
+void DescriptionParser::findResInfo(std::istream& in, ResolutionInfo& res_info) {
   auto is_terminator = [](char c) { return c == '\n' || c == '\r' || c == ';'; };
 
   // Note - comments are not allowed in the resolution info section.
@@ -333,8 +330,9 @@ void DescriptionParser::findResInfo(std::istream &in, ResolutionInfo &res_info) 
   in.get(c);
   std::string word;
   while (!in.eof()) {
-    if (c == ' ') {} // Pass spaces
-    else if (is_terminator(c)) { // End of production. No instructions.
+    if (c == ' ') {
+    }  // Pass spaces
+    else if (is_terminator(c)) {  // End of production. No instructions.
       // Put the character back so the calling function will detect the end of the production
       in.putback(c);
       return;
@@ -349,7 +347,7 @@ void DescriptionParser::findResInfo(std::istream &in, ResolutionInfo &res_info) 
       // Expect a '('
       in.get(c);
       if (c != '(') {
-        throw UnexpectedInput("in findResInfo, expected (, found " + std::string{c});
+        throw UnexpectedInput("in findResInfo, expected (, found " + std::string {c});
       }
 
       // Get the argument. We expect there to be one argument, since the only functions currently accepted
@@ -362,11 +360,18 @@ void DescriptionParser::findResInfo(std::istream &in, ResolutionInfo &res_info) 
       else if (word == "assoc") {
         word.clear();
         not_eof = getWord(in, word);
-        if (word == "Left") { res_info.assoc = Associativity::Left; }
-        else if (word == "Right") { res_info.assoc = Associativity::Right; }
-        else if (word == "None") { res_info.assoc = Associativity::None; }
+        if (word == "Left") {
+          res_info.assoc = Associativity::Left;
+        }
+        else if (word == "Right") {
+          res_info.assoc = Associativity::Right;
+        }
+        else if (word == "None") {
+          res_info.assoc = Associativity::None;
+        }
         else {
-          throw UnexpectedInput("in findResInfo, expected Left, Right, or None as an associativity, not " + word);
+          throw UnexpectedInput("in findResInfo, expected Left, Right, or None as an associativity, not "
+                                + word);
         }
       }
       else {
@@ -379,7 +384,7 @@ void DescriptionParser::findResInfo(std::istream &in, ResolutionInfo &res_info) 
         throw UnexpectedInput("in findResInfo, expected )");
       }
     }
-    else if (c == ':') { // Start of the instruction section.
+    else if (c == ':') {  // Start of the instruction section.
       // Put the ':' back so the calling function will detect the start of the instruction section.
       in.putback(c);
       return;
@@ -390,7 +395,7 @@ void DescriptionParser::findResInfo(std::istream &in, ResolutionInfo &res_info) 
   }
 }
 
-inline std::shared_ptr<ParseNode> DescriptionParser::getInstructions(std::istream &in, int pid) {
+inline std::shared_ptr<ParseNode> DescriptionParser::getInstructions(std::istream& in, int pid) {
   // Setup.
   char c;
   std::string acc;
@@ -421,7 +426,7 @@ inline std::shared_ptr<ParseNode> DescriptionParser::getInstructions(std::istrea
       do {
         acc.push_back(c);
         in.get(c);
-      } while (isalpha(c) || c == '_'); // letters or underscores
+      } while (isalpha(c) || c == '_');  // letters or underscores
 
       // Add a node.
       auto node = std::make_shared<ParseNode>(acc);
@@ -434,7 +439,7 @@ inline std::shared_ptr<ParseNode> DescriptionParser::getInstructions(std::istrea
         in.get(c);
       }
       if (c != '(') {
-        std::string message = "Error: expected an open parenthesis. Found [" + std::string{c};
+        std::string message = "Error: expected an open parenthesis. Found [" + std::string {c};
         message += "]. (Trying to find the argument for [" + node->designator + "].\n";
         message += "Instruction so far is " + instruction->printTerminals();
         throw UnexpectedInput(message);
@@ -444,7 +449,8 @@ inline std::shared_ptr<ParseNode> DescriptionParser::getInstructions(std::istrea
       in.get(c);
       while (!in.eof() && c != ')') {
         // Pass spaces.
-        if (isspace(c));
+        if (isspace(c))
+          ;
         // The character '$' starts a node reference - that is, it refers to the nodes of the production
         // the instruction corresponds to.
         else if (c == '$') {
@@ -459,12 +465,12 @@ inline std::shared_ptr<ParseNode> DescriptionParser::getInstructions(std::istrea
 
           // Allow for arguments like "$0.arg_list"
           if (!in.eof() && c == '.') {
+            acc.push_back(c);
+            in.get(c);
+            while (!in.eof() && (isalpha(c) || c == '_')) {
               acc.push_back(c);
               in.get(c);
-              while (!in.eof() && (isalpha(c) || c == '_')) {
-                acc.push_back(c);
-                in.get(c);
-              }
+            }
           }
 
           if (!in.eof()) {
@@ -476,7 +482,7 @@ inline std::shared_ptr<ParseNode> DescriptionParser::getInstructions(std::istrea
           // Clear accumulator.
           acc.clear();
         }
-          // String.
+        // String.
         else if (c == '"') {
           in.get(c);
           // TODO: Handle escaped quotes.
@@ -489,8 +495,9 @@ inline std::shared_ptr<ParseNode> DescriptionParser::getInstructions(std::istrea
           // Clear accumulator.
           acc.clear();
         }
-          // Argument separators.
-        else if (c == ',') {}; // Put this on a separate line to silence a warning
+        // Argument separators.
+        else if (c == ',') {
+        };  // Put this on a separate line to silence a warning
 
         // Get next character.
         in.get(c);
@@ -504,7 +511,7 @@ inline std::shared_ptr<ParseNode> DescriptionParser::getInstructions(std::istrea
   return instruction;
 }
 
-bool DescriptionParser::getWord(std::istream &in, std::string &word) {
+bool DescriptionParser::getWord(std::istream& in, std::string& word) {
   char c;
   in.get(c);
   while (!in.eof() && std::isalpha(c)) {
@@ -518,7 +525,7 @@ bool DescriptionParser::getWord(std::istream &in, std::string &word) {
   return false;
 }
 
-bool DescriptionParser::getInteger(std::istream &in, std::string &word) {
+bool DescriptionParser::getInteger(std::istream& in, std::string& word) {
   char c;
   in.get(c);
   while (!in.eof() && isdigit(c)) {
@@ -532,11 +539,12 @@ bool DescriptionParser::getInteger(std::istream &in, std::string &word) {
   return false;
 }
 
-int DescriptionParser::registerProduction(const std::string &production) {
+int DescriptionParser::registerProduction(const std::string& production) {
   auto it = production_rules_data_->nonterminal_map.find(production);
   if (it == production_rules_data_->nonterminal_map.end()) {
     production_rules_data_->nonterminal_map.emplace(production, production_rules_data_->num_productions);
-    production_rules_data_->inverse_nonterminal_map.emplace(production_rules_data_->num_productions, production);
+    production_rules_data_->inverse_nonterminal_map.emplace(production_rules_data_->num_productions,
+                                                            production);
     return production_rules_data_->num_productions--;
   }
   return it->second;
@@ -547,16 +555,16 @@ void DescriptionParser::shiftProductionNumbers() {
   int lids = static_cast<int>(production_rules_data_->lexer_generator->GetNumLexemes());
 
   // Shift the ids in production map.
-  for (auto &p: production_rules_data_->nonterminal_map) {
+  for (auto& p : production_rules_data_->nonterminal_map) {
     p.second = lids - p.second;
   }
 
   // Shift the ids in all productions
-  for (auto &item: production_rules_data_->all_productions) {
+  for (auto& item : production_rules_data_->all_productions) {
     // Correct production.
     item.production = lids - item.production;
     // Correct productions in the rhs.
-    for (auto &i: item.rhs) {
+    for (auto& i : item.rhs) {
       if (i < 0) {
         i = lids - i;
       }
@@ -565,7 +573,7 @@ void DescriptionParser::shiftProductionNumbers() {
 
   // Shift the ids in inverse map
   std::map<int, std::string> new_inverse_map;
-  for (auto &p: production_rules_data_->inverse_nonterminal_map) {
+  for (auto& p : production_rules_data_->inverse_nonterminal_map) {
     new_inverse_map.emplace(lids - p.first, p.second);
   }
   production_rules_data_->inverse_nonterminal_map = new_inverse_map;
@@ -575,13 +583,13 @@ void DescriptionParser::shiftProductionNumbers() {
 
   // Shift the ids in productions_for_.
   std::map<int, State> new_productions_for;
-  for (auto &p: production_rules_data_->productions_for) {
+  for (auto& p : production_rules_data_->productions_for) {
     State state;
-    for (auto item: p.second) {
+    for (auto item : p.second) {
       // Correct production.
       item.production = lids - item.production;
       // Correct productions in the rhs.
-      for (auto &i: item.rhs) {
+      for (auto& i : item.rhs) {
         if (i < 0) {
           i = lids - i;
         }
@@ -592,5 +600,6 @@ void DescriptionParser::shiftProductionNumbers() {
   }
   production_rules_data_->productions_for = new_productions_for;
   // Set total_symbols_.
-  production_rules_data_->total_symbols = lids + static_cast<int>(production_rules_data_->nonterminal_map.size());
+  production_rules_data_->total_symbols =
+      lids + static_cast<int>(production_rules_data_->nonterminal_map.size());
 }

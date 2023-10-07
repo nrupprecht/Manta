@@ -9,7 +9,7 @@
 
 #include <Lightning/Lightning.h>
 
-#include "ParseNode.h"
+#include "manta/parser/ParseNode.h"
 #include "manta/lexer/LexerDFA.hpp"
 #include "manta/parser/ParserData.h"
 #include "manta/utility/ParserUtility.hpp"

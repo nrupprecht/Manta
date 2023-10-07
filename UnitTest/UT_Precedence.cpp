@@ -83,12 +83,8 @@ TEST(Precedence, Operators) {
   }
   catch (const std::exception& ex) {
     std::cout << "Exception was " << ex.what()  << std::endl;
-    std::cout << "Parse trace: " << parser->GetParseTrace();
     throw;
   }
-
-
-
 }
 
 }

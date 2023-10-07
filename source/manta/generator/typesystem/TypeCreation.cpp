@@ -189,7 +189,7 @@ ParserTypeData& ParserDataToTypeManager::CreateRelationships(
       }
       else {
         // Create a node type name from the production name. Every item potentially needs its own node type.
-        //  TODO: Merge duplicate nodes at the end.
+        //  TODO: Merge duplicate nodes at the end. Eliminate nodes with no members.
         type_name = "ASTNode_" + std::to_string(generated_nodes) + "_" + nonterminal_name;
         ++generated_nodes;
       }
@@ -539,19 +539,22 @@ TypeDeduction ParserDataToTypeManager::DeduceTypes() {
   LOG_SEV(Info) << "Removing fields from child nodes that should only be in parent node.";
   for (auto& [_, types] : deduction.types_data) {
     auto& base_type = types.base_type_name;
-    for (auto& [type_name, fields] : types.fields_for_type) {
-      // Leave the common fields in the base type (only).
-      if (type_name == base_type) {
-        continue;
-      }
+    for (auto& common_field : types.common_fields) {
+      LOG_SEV(Debug) << "Searching sub-types for field " << formatting::CLW(common_field) << " to remove.";
+      for (auto& [type_name, fields] : types.fields_for_type) {
+        // Leave the common fields in the base type (only).
+        if (type_name == base_type) {
+          continue;
+        }
+        // Remove common fields from all other types.
+        auto type_ptr = types.sub_types.at(type_name);
 
-      // Remove common fields from all other types.
-      auto type_ptr = types.sub_types.at(type_name);
-      for (auto& common_field : types.common_fields) {
-        if (type_ptr->RemoveField(common_field)) {
+        LOG_SEV(Debug) << ">> Checking type " << formatting::CLBB(type_name) << ", has "
+                       << type_ptr->fields.size() << " fields.";
+
+        if (types.RemoveField(type_name, common_field)) {
           LOG_SEV(Debug) << "  * Removing the field '" << formatting::CLW(common_field) << "' from type "
                          << formatting::CLBB(type_name) << " since it is a common field.";
-          fields.erase(common_field);
         }
       }
     }
@@ -574,9 +577,10 @@ void ParserDataToTypeManager::determineBaseTypes(TypeDeduction& deduction) {
 
     // Add a non-terminal type enum.
     auto nonterminal_enum = node_manager().GetNonterminalEnum();
-    auto nonterminal_enum_name = field_name_sanitizer_(nonterminal_name); // Sanitize name.
+    auto nonterminal_enum_name = field_name_sanitizer_(nonterminal_name);  // Sanitize name.
     nonterminal_enum->AddOption(nonterminal_enum_name);
 
+    // TODO: Consolidate "subclasses" that have no additional data.
     if (1 < nonterminals_types.NumSubTypes()) {
       auto base_name = "ASTNodeBase_" + nonterminal_name;
       // Add the new type name to the set of all type names.
@@ -598,7 +602,7 @@ void ParserDataToTypeManager::determineBaseTypes(TypeDeduction& deduction) {
             {"node_type", nonterminal_enum->GetName() + "::" + nonterminal_enum_name}}}});
 
       node_manager().GetNonterminalTypes(nonterminal_id).base_type = base_class_description;
-      LOG_SEV(Info) << "  * Setting base type for non-terminal ID " << nonterminal_id << "(" << base_name
+      LOG_SEV(Info) << "  * Setting base type for non-terminal ID " << nonterminal_id << " (" << base_name
                     << ").";
 
       // Add the base class as the base class of all other classes for the non-terminal.

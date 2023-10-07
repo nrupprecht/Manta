@@ -33,6 +33,7 @@ std::shared_ptr<ParseNode> LALRParser::ParseString(const std::string& input) {
 
 std::shared_ptr<ParseNode> LALRParser::ParserCodeFile(const std::string& file_name) {
   if (!lexer_->SetFileToLex(file_name)) {
+    LOG_SEV_TO(logger_, Error) << "File '" << file_name << "' does not exist.";
     return nullptr;
   }
   return parse();

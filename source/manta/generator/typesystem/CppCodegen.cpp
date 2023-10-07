@@ -13,7 +13,8 @@ void CppCodeGen::WriteImports(std::ostream& out) const {
   out << "// Include the support for the parser.\n";
   out << "#include \"manta/generator/ParserDriver.h\"\n";
   out << "#include \"manta/generator/LexerGenerator.h\"\n\n";
-  out << "#include <Lightning/Lightning.h>\n\n";
+  out << "#include <Lightning/Lightning.h>\n";
+  out << "#include \"manta/utility/Formatting.h\"\n\n";
 }
 
 void CppCodeGen::WriteDefinition(std::ostream& out, const TypeDescriptionStructure* structure) const {
@@ -117,14 +118,20 @@ void CppCodeGen::WriteDefinition(std::ostream& out, const TypeDescriptionStructu
   }
 
   // Write all fields.
-  AddComment(out, 1, " Public fields for " + structure->type_name + ".");
+  if (!structure->fields.empty()) {
+    AddComment(out, 1, " Public fields for " + structure->type_name + ".");
+    AddBreak(out);
+  }
   for (auto& [field, type] : structure->fields) {
     out << "  " << WriteName(type) << " " << field << "{};\n";
   }
   out << "\n";
 
   // Write all functions.
-  AddComment(out, 1, " Public functions for " + structure->type_name + ".");
+  if (!structure->functions.empty()) {
+    AddComment(out, 1, " Public functions for " + structure->type_name + ".");
+    AddBreak(out);
+  }
   for (auto& function : structure->functions) {
     out << "  ";
     if (function.IsVirtual()) {

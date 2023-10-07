@@ -27,6 +27,10 @@ private:
   //! \brief Set up the base visitor class.
   TypeDescriptionStructure* createBaseVisitor(ASTNodeManager& node_manager) const;
 
+  TypeDescriptionStructure* createPrintingVisitor(ASTNodeManager& node_manager) const;
+
+  TypeDescriptionStructure* createTreePrintVisitor(ASTNodeManager& node_manager) const;
+
   //! \brief If true, generated field names will be tagged with the argument number.
   //!
   //! This is useful if there will be multiple identical lexemes or non-terminals in a single reduction.

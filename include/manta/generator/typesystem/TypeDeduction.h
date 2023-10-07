@@ -55,13 +55,20 @@ public:
                   const TypeDescription* field_type = nullptr) {
       all_fields.insert(field_name);
       fields_for_type[type_name].insert(field_name);
-      if (auto& ptr =  field_type_descriptions[field_name]) {
+      if (auto& ptr = field_type_descriptions[field_name]) {
         ptr = field_type;
       }
     }
 
-    NO_DISCARD const std::set<std::string>& GetFields(
-        const std::string& type_name) const {
+    bool RemoveField(const std::string& type_name, const std::string& field_name) {
+      auto type_ptr = sub_types.at(type_name);
+      type_ptr->RemoveField(field_name);
+      // Remove also from the types deduction data structure.
+      fields_for_type.at(type_name).erase(field_name);
+      return false;
+    }
+
+    NO_DISCARD const std::set<std::string>& GetFields(const std::string& type_name) const {
       return fields_for_type.at(type_name);
     }
 
@@ -92,7 +99,7 @@ public:
     //! \brief Get the number of sub-types for the non-terminal.
     NO_DISCARD std::size_t NumSubTypes() const { return fields_for_type.size(); }
 
-  }; // struct NonterminalsTypes
+  };  // struct NonterminalsTypes
 
   void AddType(NonterminalID nonterminal_id, const std::string& type_name) {
     types_data[nonterminal_id].AddType(type_name);
@@ -117,8 +124,7 @@ public:
     return num_common_fields;
   }
 
-  NO_DISCARD bool IsCommonField(NonterminalID nonterminal_id,
-                                const std::string& field_name) const {
+  NO_DISCARD bool IsCommonField(NonterminalID nonterminal_id, const std::string& field_name) const {
     auto& common_fields = types_data.at(nonterminal_id).common_fields;
     return common_fields.find(field_name) != common_fields.end();
   }
@@ -134,23 +140,18 @@ public:
     return types_data.at(nonterminal_id).base_type_name;
   }
 
-  NO_DISCARD NonterminalsTypes& At(NonterminalID nonterminal_id) {
-    return types_data.at(nonterminal_id);
-  }
+  NO_DISCARD NonterminalsTypes& At(NonterminalID nonterminal_id) { return types_data.at(nonterminal_id); }
 
   //! \brief Fill the sub-types map for every set of non-terminals' types.
   void GetTypeDescriptions(ASTNodeManager& node_manager) {
     for (auto& [_, nonterminals_types] : types_data) {
       for (auto& [type_name, _2] : nonterminals_types.fields_for_type) {
-        nonterminals_types.sub_types[type_name] =
-            node_manager.GetNodeDescription(type_name);
+        nonterminals_types.sub_types[type_name] = node_manager.GetNodeDescription(type_name);
       }
     }
   }
 
-  NO_DISCARD const std::map<NonterminalID, NonterminalsTypes>& GetTypesData() const {
-    return types_data;
-  }
+  NO_DISCARD const std::map<NonterminalID, NonterminalsTypes>& GetTypesData() const { return types_data; }
 
   //! \brief The data about all type associated with each non-terminal.
   std::map<NonterminalID, NonterminalsTypes> types_data;

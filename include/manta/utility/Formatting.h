@@ -25,6 +25,10 @@ template<typename T>
 auto CLW(const T& data) {
   return LCOL8(data, White);
 }
+template<typename T>
+auto CLBW(const T& data) {
+  return LCOL8(data, BrightWhite);
+}
 
 template<typename T>
 auto CLB(const T& data) {
@@ -34,6 +38,11 @@ auto CLB(const T& data) {
 template<typename T>
 auto CLM(const T& data) {
   return LCOL8(data, Magenta);
+}
+
+template<typename T>
+auto CLG(const T& data) {
+  return LCOL8(data, Green);
 }
 
 template<typename T>
