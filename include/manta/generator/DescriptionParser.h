@@ -78,11 +78,47 @@ struct ProductionRulesData {
   NO_DISCARD bool IsTerminal(int id) const { return !IsNonTerminal(id); }
 };
 
+//! \brief Base class for objects that can parse a stream and produce a description of a parser described by
+//! the stream.
+//!
+//! Note that each description parser, as a parser, accepts its own specific language.
+//!
+class DescriptionParser {
+public:
+  //! \brief Parse the description of a parser from a stream, creating the
+  //! ProductionRulesData that can be used to to make the parser.
+  virtual std::shared_ptr<ProductionRulesData> ParseDescription(std::istream& stream) = 0;
+};
+
+//! \brief Class that contains common functionality for building production rules data.
+class ProductionRulesBuilder {
+protected:
+  //! \brief Get the production number associated with a production name, registering it
+  //! if it has not already been registered.
+  int registerProduction(const std::string& production);
+
+  //! \brief Shifts the production numbers from being negative to being positive numbers
+  //! after the last lexer token number.
+  void shiftProductionNumbers();
+
+  //! \brief Generate an item with the next production label.
+  Item makeNextItem(int production_id);
+
+  //! \brief The description of the lexer and parser to create.
+  std::shared_ptr<ProductionRulesData> production_rules_data_ {};
+
+  //! \brief The number to assign to the next production.
+  //!
+  //! Note: To keep things easy to compare, right now we are starting productions at 1.
+  int next_production_label_ = 1;
+};
+
 //! \brief Class that can parse the description of a lexer and a parser from a stream.
+//! Written "by hand," not produced by Manta itself. You have to have a parser to make a parser generator...
 //!
 //! Note that this is, itself, a specific type of parser.
 //!
-class DescriptionParser {
+class HandWrittenDescriptionParser : public DescriptionParser, public ProductionRulesBuilder {
 public:
   //! \brief Parse the description of a parser from a stream, creating the
   //! ProductionRulesData that can be used to to make the parser.
@@ -108,7 +144,7 @@ private:
   static void findResInfo(std::istream& in, ResolutionInfo& res_info);
 
   //! \brief Get the instruction for a production.
-  static inline std::shared_ptr<ParseNode> getInstructions(std::istream& fin, int pid);
+  static std::shared_ptr<ParseNode> getInstructions(std::istream& fin, int pid);
 
   //! \brief Get all alphabetical characters and put them into a word. Returns true if the
   //! word was *not* terminated by the EOF. Does not Clear word at any point.
@@ -117,29 +153,6 @@ private:
   //! Get all numeric characters and put them into a word. Returns true if the word was
   //! *not* terminated by the EOF. Does not Clear word at any point.
   static bool getInteger(std::istream& in, std::string& word);
-
-  //! \brief Get the production number associated with a production name, registering it
-  //! if it has not already been registered.
-  int registerProduction(const std::string& production);
-
-  //! \brief Shifts the production numbers from being negative to being positive numbers
-  //! after the last lexer token number.
-  void shiftProductionNumbers();
-
-  // ============================================================================
-  //  Private member variables.
-  // ============================================================================
-
-  //! \brief The description of the lexer and parser to create.
-  std::shared_ptr<ProductionRulesData> production_rules_data_ {};
-
-  //! \brief The number to assign to the next production.
-  //!
-  //! Note: To keep things easy to compare, right now we are starting productions at 1.
-  int next_production_label_ = 1;
-
-  //! \brief A string that records the history of the parser generation.
-  std::stringstream parser_generation_trace_;
 };
 
 }  // namespace manta

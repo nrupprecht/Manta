@@ -266,11 +266,11 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
 
   // Generate the code to create the lexer.
   code_out << "void Parser::createLexer() {\n";
-  auto& lex_gen = parser_data->lexer_generator;
+  auto& lex_gen = parser_data->GetLexerGenerator();
   code_out << "  auto lexer_generator = std::make_shared<manta::LexerGenerator>();\n\n";
 
-  auto&& defining_expressions = lex_gen->GetDefiningExpressions();
-  auto&& ordered_definitions = lex_gen->GetOrderedLexemeDefinitions();
+  auto&& defining_expressions = lex_gen.GetDefiningExpressions();
+  auto&& ordered_definitions = lex_gen.GetOrderedLexemeDefinitions();
   int count_lexemes = 0;
   for (auto& [lexeme_name, regex, prec] : ordered_definitions) {
     if (lexeme_name == "eof") {
@@ -278,7 +278,7 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
                   "lexeme.\n";
       MANTA_ASSERT(count_lexemes == 0, "'eof' is not the 0-th lexeme");
     }
-    else if (lex_gen->IsReserved(lexeme_name)) {
+    else if (lex_gen.IsReserved(lexeme_name)) {
       auto escaped_regex = treatLiteral(regex);
       LOG_SEV(Debug) << "Adding (non-reserved) lexeme names '" << lexeme_name << "' with precedence " << prec
                      << ", (literal-treated) pattern is '" << CLBG(escaped_regex)
@@ -300,7 +300,7 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
 
   // Add all skip lexemes.
   code_out << "  // Add the skip-lexemes (these will be lexed, but skipped, by the lexer).\n";
-  auto skip_lexemes = lex_gen->GetSkipLexemeNames();
+  auto skip_lexemes = lex_gen.GetSkipLexemeNames();
   for (auto& skip_lexeme_name : skip_lexemes) {
     code_out << "  lexer_generator->AddSkip(\"" << skip_lexeme_name << "\");\n";
   }

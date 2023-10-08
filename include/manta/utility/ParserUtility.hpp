@@ -6,12 +6,10 @@ namespace manta {
 
 using NonterminalID = int;
 using ProductionID = int;
-using ActionID = int;
 using StateID = int;
 
 //! \brief Enum for the associativity of an operator/production rule.
-enum class Associativity
-{
+enum class Associativity {
   Left,
   Right,
   None
@@ -45,9 +43,7 @@ constexpr ResolutionInfo NullResolutionInfo {};
 
 //! \brief Encode a production rule, like A -> a X b, etc.
 struct ProductionRule {
-  explicit ProductionRule(ProductionID production,
-                          int label,
-                          const std::vector<int> rhs = {})
+  explicit ProductionRule(ProductionID production, int label, const std::vector<int> rhs = {})
       : production(production)
       , production_label(label)
       , rhs(rhs) {}
@@ -96,7 +92,7 @@ struct ProductionRule {
 //!
 //! An Item is a production rule plus a bookmark.
 //! A state is a set of state items.
-//! \TODO: Change Item to be a pointer to a production rule, plus a bookmark.
+// TODO: Change Item to be a pointer to a production rule, plus a bookmark.
 struct Item : public ProductionRule {
   Item(ProductionID production,
        int label,
@@ -189,8 +185,7 @@ struct State {
 };
 
 //! \brief Table entry action types.
-enum class Action
-{
+enum class Action {
   Error,
   Shift,
   Reduce,

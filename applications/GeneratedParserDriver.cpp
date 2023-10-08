@@ -7,12 +7,14 @@
 #include "manta/generatedparsers/TestParser.h"
 #include "manta/utility/Timer.h"
 
-auto main() -> int {
-  lightning::Global().GetCore()->AddSink(
-      lightning::NewSink<lightning::UnlockedSink, lightning::OstreamSink>());
+using namespace lightning;
 
-  lightning::Logger logger;
-  logger.GetCore()->AddSink(lightning::NewSink<lightning::UnlockedSink, lightning::OstreamSink>());
+auto main() -> int {
+  Global::GetCore()->AddSink(
+      NewSink<UnlockedSink, OstreamSink>());
+
+  Logger logger;
+  logger.GetCore()->AddSink(NewSink<UnlockedSink, OstreamSink>());
 
   Parser parser;
   parser.SetLogger(logger);

@@ -97,7 +97,7 @@ private:
                    parser_data->production_rules_data->total_symbols,
                    parser_data->parse_table,
                    parser_data->all_states,
-                   parser_data->lexer_generator->CreateLexer()) {}
+                   parser_data->GetLexerGenerator().CreateLexer()) {}
 
   // ================================================
   //  Private member variables.

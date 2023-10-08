@@ -14,7 +14,8 @@ ParserGenerator::ParserGenerator(ParserType type)
 
 std::shared_ptr<ParserData> ParserGenerator::CreateParserData(std::istream& stream) {
   // Parse the stream to get description of the lexer_generator and the parser.
-  DescriptionParser parser_parser;
+  // TODO: Make the description parser a member pointer, so we can swap it out.
+  HandWrittenDescriptionParser parser_parser{};
   production_rules_data_ = parser_parser.ParseDescription(stream);
 
   // Now, create the parser from its description.
@@ -34,7 +35,6 @@ std::shared_ptr<ParserData> ParserGenerator::CreateParserData(std::istream& stre
   parser_data->production_rules_data = production_rules_data_;
   parser_data->parse_table = parse_table_;
   parser_data->all_states = all_states_;
-  parser_data->lexer_generator = production_rules_data_->lexer_generator;
 
   return parser_data;
 }
