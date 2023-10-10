@@ -4,43 +4,49 @@
 
 #pragma once
 
-#include "manta/parser/ParseNode.h"
-#include "manta/parser/ParserData.h"
-#include "manta/lexer/LexerDFA.hpp"
-#include "manta/utility/WorkDeque.h"
-#include "manta/generator/LexerGenerator.h"
 #include "manta/generator/DescriptionParser.h"
 #include "manta/generator/LALRPropagationGraph.h"
+#include "manta/generator/LexerGenerator.h"
+#include "manta/lexer/LexerDFA.hpp"
+#include "manta/parser/ParseNode.h"
+#include "manta/parser/ParserData.h"
+#include "manta/utility/WorkDeque.h"
 
 namespace manta {
 
 //! \brief Determines what type of parser to create.
-enum class ParserType { LR0, SLR, LALR };
+enum class ParserType {
+  LR0,
+  SLR,
+  LALR
+};
 
 // Forward declare LALR parser.
 class LALRParser;
-
 
 //! \brief Class that can read a description of a parser and create from that a table-driven LALRParser.
 //!
 //!     The start of the parser description with be the indicator ".Parser"
 class ParserGenerator {
- public:
+public:
   //! \brief Create a parser generator of the specified type.
   explicit ParserGenerator(ParserType type = ParserType::SLR);
+
+  //! \brief Mutator to set the description_parser_.
+  void SetDescriptionParser(std::shared_ptr<DescriptionParser> description_parser);
 
   //! \brief Read the description of a Parser from a stream and create all the data necessary to
   //! run that parser.
   std::shared_ptr<ParserData> CreateParserData(std::istream& stream);
 
   //! \brief Parse a description of a grammar from a file to create a parser.
-  std::shared_ptr<LALRParser> CreateParserFromFile(const std::string &filename);
+  std::shared_ptr<LALRParser> CreateParserFromFile(const std::string& filename);
 
   //! \brief Parse a description of a grammar from a string to create a parser.
-  std::shared_ptr<LALRParser> CreateParserFromString(const std::string &description);
+  std::shared_ptr<LALRParser> CreateParserFromString(const std::string& description);
 
   //! \brief Parse a description of a grammar from an istream to create a parser.
-  std::shared_ptr<LALRParser> CreateParserFromStream(std::istream &stream);
+  std::shared_ptr<LALRParser> CreateParserFromStream(std::istream& stream);
 
   //! \brief Get the number of non-terminal symbols.
   NO_DISCARD int NumNonTerminals() const;
@@ -49,7 +55,7 @@ class ParserGenerator {
   NO_DISCARD int NumTerminals() const;
 
   //! \brief Get the ID of a non-terminal (lexeme).
-  NO_DISCARD int GetNonterminalID(const std::string &non_terminal) const;
+  NO_DISCARD int GetNonterminalID(const std::string& non_terminal) const;
 
   //! \brief Compute the first set of a symbol. This is the set of terminals that begin
   //! strings derivable from X.
@@ -65,7 +71,7 @@ class ParserGenerator {
   //! \param symbol The symbol, as an integer ID.
   //! \return The follow set of symbol.
   std::set<int> FirstSet(int symbol);
-  std::set<std::string> FirstSet(const std::string &symbol);
+  std::set<std::string> FirstSet(const std::string& symbol);
 
   //! \brief Compute the follow set of a symbol.
   //!
@@ -78,14 +84,14 @@ class ParserGenerator {
   //! \param symbol The symbol in question.
   //! \return The follow set.
   std::set<int> FollowSet(int symbol);
-  std::set<std::string> FollowSet(const std::string &symbol);
+  std::set<std::string> FollowSet(const std::string& symbol);
 
   // ======================================================
   //  Diagnostics
   // ======================================================
 
   //! \brief Write all the states (as item sets) to an ostream.
-  void WriteStates(std::ostream &out) const;
+  void WriteStates(std::ostream& out) const;
 
   //! \brief Get the parser generation trace.
   std::string GetParserGenerationTrace() const;
@@ -94,13 +100,15 @@ class ParserGenerator {
   //  Exceptions
   // ======================================================
 
-  //! \brief An exception class that represents encountering an unexpected character type or state while parsing.
+  //! \brief An exception class that represents encountering an unexpected character type or state while
+  //! parsing.
   EXCEPTION_MESSAGE_CTOR(UnexpectedInput);
 
-  //! \brief An exception class the signals that a lexeme type (@...) was not recognized by the lexer generator.
+  //! \brief An exception class the signals that a lexeme type (@...) was not recognized by the lexer
+  //! generator.
   EXCEPTION_MESSAGE_CTOR(UnrecognizedLexerItem);
 
- private:
+private:
   // ======================================================
   //  Private helper functions.
   // ======================================================
@@ -109,7 +117,7 @@ class ParserGenerator {
   NO_DISCARD std::string nameOf(int id) const;
 
   //! \brief Write an item (a production rule + bookmark) to a string.
-  NO_DISCARD std::string writeItem(const Item &item) const;
+  NO_DISCARD std::string writeItem(const Item& item) const;
 
   //! \brief Compute the nonterminal_derives_empty_ vector, which indicates which states can derive empty.
   void createStateDerivesEmpty();
@@ -130,7 +138,7 @@ class ParserGenerator {
   bool computeLR0();
 
   //! \brief Adds a state to the parser as it is being built.
-  int addState(const State &items, std::deque<int>& work_list);
+  int addState(const State& items, std::deque<int>& work_list);
 
   //! \brief Fill in the goto for state s.
   void computeGoto(int s, std::deque<int>& work_list);
@@ -139,14 +147,14 @@ class ParserGenerator {
   State closure(int s) const;
 
   //! \brief Try to advance the bookmark (dot) of a state, returning the resulting state.
-  static State advanceDot(const State &state, int symb);
+  static State advanceDot(const State& state, int symb);
 
   //! \brief Fill in the rest of the parser table, calculating the reductions.
   void completeTable();
 
   //! \brief Set an entry in the parse table. If there is no entry, we set it. If there is
   //! already an entry, resolution is attempted.
-  void assertEntry(int state, int symbol, const Entry &action);
+  void assertEntry(int state, int symbol, const Entry& action);
 
   //! \brief Step in LALR parser generation to compute the LALR propagation graph and follow sets.
   void computeLookahead();
@@ -159,21 +167,21 @@ class ParserGenerator {
   void evalItemForPropGraph();
 
   //! \brief Fill out a row in the parser table.
-  void tryRuleInState(int state, const Item &rule);
+  void tryRuleInState(int state, const Item& rule);
 
   //! \brief The LALR version of computing what actions should be reduce.
   void tryRuleInStateLALR(int state_index, const Item& rule, const ItemFollowSet& item_follow);
 
   //! \brief Tries to find a state in all_states_. Returns -1 for failure.
-  int findState(const State &items) const;
+  int findState(const State& items) const;
 
   //! \brief The internal implementation of the first set calculation. Uses a vector
   //! to keep track of which symbols were already visited by the first calculation.
-  std::set<int> internalFirst(int symbol, std::vector<bool> &visited);
+  std::set<int> internalFirst(int symbol, std::vector<bool>& visited);
 
   //! \brief A function that is called recursively in the compute follow set algorithm.
   //! Uses a vector to keep track of which symbols were already visited by the follow calculation.
-  std::set<int> internalFollow(int symbol, std::vector<bool> &visited);
+  std::set<int> internalFollow(int symbol, std::vector<bool>& visited);
 
   //! \brief Returns whether the entire tail of a vector of production symbols can derive
   //! the empty symbol.
@@ -186,8 +194,11 @@ class ParserGenerator {
   //  Private member variables.
   // ======================================================
 
+  //! \brief A description parser for reading the description of the parser from a stream.
+  std::shared_ptr<DescriptionParser> description_parser_ = std::make_shared<HandWrittenDescriptionParser>();
+
   //! \brief The data that defines the parser to create. Includes the lexer.
-  std::shared_ptr<ProductionRulesData> production_rules_data_{};
+  std::shared_ptr<ProductionRulesData> production_rules_data_ {};
 
   //! \brief The parse table. It is a vector so we can add new states.
   //!
@@ -216,4 +227,4 @@ class ParserGenerator {
   std::stringstream parser_generation_trace_;
 };
 
-} // namespace manta
+}  // namespace manta
