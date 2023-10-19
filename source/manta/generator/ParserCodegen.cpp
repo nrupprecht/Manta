@@ -99,7 +99,7 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
   LOG_SEV(Info) << "Done filling in all type descriptions.";
 
   LOG_SEV(Info) << "Creating the base visitor class.";
-  createBaseVisitor(node_manager);
+  createBaseVisitor(node_manager);  // Fills in the base visitor.
 
   // TEST: Generate a printing visitor.
   auto printing_visitor = createPrintingVisitor(node_manager);
@@ -141,13 +141,9 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
 
   // Write parser definitions
   code_out << std::endl;
-  code_out << "// "
-              "================================================================"
-              "========\n";
+  code_out << "// ========================================================================\n";
   code_out << "//  LALR Parser.\n";
-  code_out << "// "
-              "================================================================"
-              "========\n";
+  code_out << "// ========================================================================\n";
   code_out << std::endl;
   code_out << "class Parser : public manta::ParserDriverBase<ASTNodeBase, ASTLexeme,"
               "Parser> {\n";
@@ -387,7 +383,7 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
         if (parser_data->production_rules_data->IsNonTerminal(id)) {
           // Get the base type for this non-terminal.
           auto& base_type = deduced_types.GetBaseTypeName(id);
-          code_out << "\n    const std::shared_ptr<" << base_type
+          code_out << "\n    [[maybe_unused]] const std::shared_ptr<" << base_type
                    << ">& "
                    // parser_data->production_rules_data->GetName(id)
                    << "argument_" << i;
@@ -397,7 +393,7 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
         }
         else {
           LOG_SEV(Debug) << "  * Argument " << i << " is a terminal. Parameter will be a std::string.";
-          code_out << "\n    const std::string& argument_" << i;
+          code_out << "\n    [[maybe_unused]] const std::string& argument_" << i;
         }
         ++i;
       }
@@ -465,6 +461,37 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
       LOG_SEV(Info) << "Done writing code for reduction of item " << item_number << ".";
       ++item_number;
     }
+  }
+
+  // ===========================================================
+  //  Generate any additional visitor classes.
+  // ===========================================================
+
+  // Create a map from item number to the type for that item.
+
+  auto&& all_types = node_manager.GetAllNodeTypesForNonterminals();
+
+  // Invert the map node_types_for_item, forming a map where the values in the original map are the keys, and
+  // the keys are the values.
+  std::map<std::string, unsigned> type_names_to_ids;
+  for (auto& [key, value] : node_types_for_item) {
+    type_names_to_ids[value] = key;
+  }
+
+  std::map<unsigned, const TypeDescriptionStructure*> types_by_item;
+  for (auto [_, types] : all_types) {
+    for (auto [name, type] : types.child_types) {
+      if (auto it = type_names_to_ids.find(name); it != type_names_to_ids.end()) {
+        types_by_item[it->second] = type;
+      }
+    }
+  }
+
+  auto& visitor_data = parser_data->production_rules_data->visitor_data;
+  for (auto& [name, data] : visitor_data.visitors) {
+    auto visitor = createVisitorFromTemplate(node_manager, data, types_by_item);
+    codegen.WriteDefinition(code_out, visitor);
+    code_out << "\n";
   }
 }
 
@@ -585,6 +612,44 @@ TypeDescriptionStructure* ParserCodegen::createPrintingVisitor(ASTNodeManager& n
   create_visit_function(node_manager.GetASTLexeme());
 
   return printing_visitor;
+}
+
+TypeDescriptionStructure* ParserCodegen::createVisitorFromTemplate(
+    ASTNodeManager& node_manager,
+    const VisitorData::Visitor& visitor_data,
+    const std::map<unsigned, const TypeDescriptionStructure*>& node_types_for_item) const {
+  auto& type_system = node_manager.GetTypeSystem();
+  auto base_visitor = node_manager.GetVisitorStructure();
+
+  auto visitor = type_system.Structure(visitor_data.name);
+  visitor->AddParent(base_visitor);
+
+  auto create_visit_function = [&](const TypeDescriptionStructure* visitable_type, NonterminalID id) {
+    std::string body {};
+    if (auto it = visitor_data.code.find(id); it != visitor_data.code.end()) {
+      body = it->second;
+    }
+    StructureFunction visit_function {"Visit",
+                                      StructureFunction::Signature {{StructureFunction::Argument {
+                                          ElaboratedType {visitable_type, false, true}, "object"}}},
+                                      body,
+                                      true};
+    visitor->AddFunction(visit_function);
+  };
+  for (auto& [id, node_type] : node_types_for_item) {
+    create_visit_function(node_type, id);
+  }
+
+  // Create visitor for ASTLexeme.
+  StructureFunction visit_function {
+      "Visit",
+      StructureFunction::Signature {{StructureFunction::Argument {
+          ElaboratedType {node_manager.GetASTLexeme(), false, true}, "object"}}},
+      {},
+      true};
+  visitor->AddFunction(visit_function);
+
+  return visitor;
 }
 
 TypeDescriptionStructure* ParserCodegen::createTreePrintVisitor(ASTNodeManager& node_manager) const {

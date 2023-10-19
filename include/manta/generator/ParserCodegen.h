@@ -29,6 +29,11 @@ private:
 
   TypeDescriptionStructure* createPrintingVisitor(ASTNodeManager& node_manager) const;
 
+  TypeDescriptionStructure* createVisitorFromTemplate(
+      ASTNodeManager& node_manager,
+      const VisitorData::Visitor& visitor_data,
+      const std::map<unsigned, const TypeDescriptionStructure*>& node_types_for_item) const;
+
   TypeDescriptionStructure* createTreePrintVisitor(ASTNodeManager& node_manager) const;
 
   //! \brief If true, generated field names will be tagged with the argument number.

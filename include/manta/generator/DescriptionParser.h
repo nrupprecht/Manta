@@ -9,6 +9,24 @@
 
 namespace manta {
 
+struct VisitorData {
+  //! \brief Definition for a single visitor.
+  struct Visitor {
+    //! \brief Map from Item to the code that should go in the visitor for that item.
+    std::map<unsigned, std::string> code;
+
+    //! \brief The name of the visitor class.
+    std::string name;
+
+    //! \brief Code to inject into the body of the visitor class, could be data definitions or additional
+    //! functions.
+    std::string other_definitions;
+  };
+
+  //! \brief Map from visitor name to a description of the visitor.
+  std::map<std::string, Visitor> visitors;
+};
+
 //! \brief Object that contains the definition of a lexer and the productions that make up
 //! a grammar.
 //!
@@ -47,6 +65,9 @@ struct ProductionRulesData {
   //! \brief The total number of lexer ids (terminals) plus non-terminal symbols. This is
   //! the number of columns in the parse_table_.
   int total_symbols = 0;
+
+  //! \brief Data about any visitors that should be generated.
+  VisitorData visitor_data{};
 
   // ============================================================================
   //  Helper functions.
