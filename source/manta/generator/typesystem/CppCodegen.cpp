@@ -163,11 +163,22 @@ void CppCodeGen::WriteDefinition(std::ostream& out, const TypeDescriptionStructu
       out << " = 0;\n\n";
     }
     else {
-      out << " {\n";
-      // Write function body.
-      out << *function.function_body;
-      // Write closing }
-      out << "\n  }\n\n";
+      if (function.function_body->empty()) {
+        out << " {}\n\n";
+      }
+      else {
+        out << " {\n";
+        // Write function body. Indent after every newline. function_body is not nullopt, since the function is not virtual.
+        out << "    ";  // Indent.
+        for (auto c : *function.function_body) {
+          out << c;
+          if (c == '\n') {
+            out << "\n    ";
+          }
+        }
+        // Write closing '}'
+        out << "\n  }\n\n";
+      }
     }
   }
 
