@@ -518,7 +518,7 @@ TypeDescriptionStructure* ParserCodegen::createBaseVisitor(ASTNodeManager& node_
     StructureFunction accept_function {"Accept",
                                        StructureFunction::Signature {{StructureFunction::Argument {
                                            ElaboratedType {visitor, false, true}, "visitor"}}},
-                                       "    visitor.Visit(*this);" /* Function body */,
+                                       "visitor.Visit(*this);" /* Function body */,
                                        true /* Is override */};
 
     visitable_type->AddFunction(accept_function);
@@ -555,7 +555,7 @@ TypeDescriptionStructure* ParserCodegen::createPrintingVisitor(ASTNodeManager& n
   auto create_visit_function = [&](const TypeDescriptionStructure* visitable_type) {
     auto& type_name = visitable_type->type_name;
     std::string body =
-        "    LOG_SEV(Info) << lightning::PadUntil(indentation) << \"Visiting type \" << "
+        "LOG_SEV(Info) << lightning::PadUntil(indentation) << \"Visiting type \" << "
         "manta::formatting::CLBG(\""
         + type_name + "\") << \".\";\n\n";
 
@@ -563,38 +563,38 @@ TypeDescriptionStructure* ParserCodegen::createPrintingVisitor(ASTNodeManager& n
     for (auto& parent : visitable_type->parent_classes) {
       if (parent->type_name == "ASTNodeBase")
         continue;
-      body += "    Visit(static_cast<" + parent->type_name + "&>(object));\n";
+      body += "Visit(static_cast<" + parent->type_name + "&>(object));\n";
     }
 
     // Indent.
-    body += "    indentation += 2;\n";
+    body += "indentation += 2;\n";
 
     for (auto& [name, type] : visitable_type->fields) {
       if (type == type_system.String()) {
-        body += "    LOG_SEV(Info) << lightning::PadUntil(indentation) << \"[\" << manta::formatting::CLBW(\""
+        body += "LOG_SEV(Info) << lightning::PadUntil(indentation) << \"[\" << manta::formatting::CLBW(\""
             + name + "\") << \"] = '\" << manta::formatting::CLB(object." + name
             + ") << \"'\"; // Print literals.\n";
       }
       else if (type->general_type == TSGeneralType::Vector) {
         // auto vector_type = reinterpret_cast<const TypeDescriptionVector*>(type);
-        body += "    for (auto& ptr : object." + name + ") {\n";
-        body += "      if (ptr) ptr->Accept(*this);\n";
-        body += "      else LOG_SEV(Error) << \"An element of a vector is null: " + type_name + "::" + name
-            + "\";\n";
-        body += "    }\n";
+        body += "for (auto& ptr : object." + name + ") {\n";
+        body += "  if (ptr) ptr->Accept(*this);\n";
+        body +=
+            "  else LOG_SEV(Error) << \"An element of a vector is null: " + type_name + "::" + name + "\";\n";
+        body += "}\n";
       }
       else if (type->general_type == TSGeneralType::SharedPointer) {
-        body += "    if (object." + name + ") {\n";
-        body += "      object." + name + "->Accept(*this);\n";
-        body += "    }\n";
-        body += "    else {\n";
-        body += "      LOG_SEV(Error) << \"Field is null: " + type_name + "::" + name + "\";\n";
-        body += "    }\n";
+        body += "if (object." + name + ") {\n";
+        body += "  object." + name + "->Accept(*this);\n";
+        body += "}\n";
+        body += "else {\n";
+        body += "  LOG_SEV(Error) << \"Field is null: " + type_name + "::" + name + "\";\n";
+        body += "}\n";
       }
     }
 
     // Un-indent
-    body += "    indentation = std::max(0, indentation - 2);\n";
+    body += "indentation = std::max(0, indentation - 2);\n";
 
     StructureFunction visit_function {"Visit",
                                       StructureFunction::Signature {{StructureFunction::Argument {
