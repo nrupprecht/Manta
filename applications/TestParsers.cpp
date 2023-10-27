@@ -80,21 +80,7 @@ void testParser(const std::string& rules_filepath, const std::string& code_filep
 int main(int argc, char** argv) {
   lightning::Global::GetCore()->AddSink(NewSink<lightning::UnlockedSink, lightning::OstreamSink>());
 
-  // compareParsers("../config/simpler_rules.txt");
-
-  // testParser("../../config/simple-rules.txt", "../../examples/code-ex.txt");
-
-  // testParser("../../config/op_prec.txt", "../../examples/code-ex.txt");
-
-  testParser("../../config/full_rules.txt", "../../examples/basic_parser_and_lexer.txt");
-
-  // testParser("../../config/manta.txt", "../../examples/manta_code.txt");
-
-  // testParser("../../config/test_newline_or.txt", "../../examples/test_newline_or.txt");
-
-  // testParser("../../config/code_rules.txt", "../../examples/codefile.txt");
-
-  // testParser("../../config/lalr_grammar.txt", "../../examples/lalr_example.txt");
+  testParser("../../examples/C-/C- grammer.txt", "../../examples/C-/C- code.cmm");
 
   return 0;
 }
