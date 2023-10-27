@@ -10,6 +10,9 @@ namespace manta {
 
 class CodeGen {
 public:
+  //! \brief Write any header for a file, e.g. #pragma once.
+  virtual void WriteHeader(std::ostream& out) const = 0;
+
   virtual void WriteImports(std::ostream& out) const = 0;
 
   //! \brief Write the definition of a type.
@@ -25,6 +28,9 @@ public:
   virtual std::string WriteName(const TypeDescription* type) const = 0;
   //! \brief Write the name of an elaborated type.
   virtual std::string WriteName(const ElaboratedType& type) const = 0;
+
+  //! \brief Write an import or include statement for a file or module.
+  virtual void WriteImport(std::ostream& out, const std::string& name, bool is_external) const = 0;
 
   virtual void AddComment(std::ostream& out, const std::string& comment, bool newline = true) const = 0;
   virtual void AddComment(std::ostream& out,

@@ -133,11 +133,15 @@ public:
   //!
   NO_DISCARD const TypeDescription* GetFieldType(NonterminalID nonterminal_id,
                                                  const std::string& field_name) const {
-    return types_data.at(nonterminal_id).field_type_descriptions.at(field_name);
+    auto it = types_data.find(nonterminal_id);
+    MANTA_ASSERT(it != types_data.end(), "Could not find type data for non-terminal " << nonterminal_id);
+    return it->second.field_type_descriptions.at(field_name);
   }
 
   NO_DISCARD const std::string& GetBaseTypeName(NonterminalID nonterminal_id) const {
-    return types_data.at(nonterminal_id).base_type_name;
+    auto it = types_data.find(nonterminal_id);
+    MANTA_ASSERT(it != types_data.end(), "Could not find type data for non-terminal " << nonterminal_id);
+    return it->second.base_type_name;
   }
 
   NO_DISCARD NonterminalsTypes& At(NonterminalID nonterminal_id) { return types_data.at(nonterminal_id); }

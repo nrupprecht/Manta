@@ -5,8 +5,13 @@
 #include "manta/generator/DescriptionParser.h"
 // Other files
 #include "manta/parser/ParseNode.h"
+#include <Lightning/Lightning.h>
 
 namespace manta {
+
+// ====================================================================================
+//  ProductionRulesBuilder.
+// ====================================================================================
 
 int ProductionRulesBuilder::registerProduction(const std::string& production) {
   auto it = production_rules_data_->nonterminal_map.find(production);
@@ -17,6 +22,10 @@ int ProductionRulesBuilder::registerProduction(const std::string& production) {
     return production_rules_data_->num_productions--;
   }
   return it->second;
+}
+
+void ProductionRulesBuilder::registerStartingProduction(int id) {
+  production_rules_data_->start_nonterminal = id;
 }
 
 void ProductionRulesBuilder::shiftProductionNumbers() {
@@ -73,9 +82,48 @@ void ProductionRulesBuilder::shiftProductionNumbers() {
       lids + static_cast<int>(production_rules_data_->nonterminal_map.size());
 }
 
-Item ProductionRulesBuilder::makeNextItem(int production_id) {
-  return {production_id, next_production_label_++};
+int ProductionRulesBuilder::getLexemeID(const std::string& lexeme_name) const {
+  return production_rules_data_->lexer_generator->LexemeID(lexeme_name);
 }
+
+Item& ProductionRulesBuilder::makeNextItem(int production_id) {
+  current_item_ = {production_id, next_production_label_++};
+  current_item_.item_number = item_number_++;
+  return current_item_;
+}
+
+void ProductionRulesBuilder::storeCurrentItem() {
+  auto production_id = current_item_.production;
+
+  // Done finding the rule. Store the rule.
+  auto prod = production_rules_data_->productions_for.find(production_id);
+  if (prod == production_rules_data_->productions_for.end()) {
+    production_rules_data_->productions_for.emplace(production_id, State());
+    prod = production_rules_data_->productions_for.find(production_id);
+  }
+
+  // Add production to the productions for production_id
+  prod->second.insert(current_item_);
+  // Add production to all productions.
+  production_rules_data_->all_productions.push_back(current_item_);
+}
+
+void ProductionRulesBuilder::findStartProduction() {
+  auto it = production_rules_data_->nonterminal_map.find(production_rules_data_->start_nonterminal_name);
+  if (it == production_rules_data_->nonterminal_map.end()) {
+    MANTA_FAIL("could not find the start production '" << production_rules_data_->start_nonterminal_name
+                                                       << "'");
+  }
+  production_rules_data_->start_nonterminal = it->second;
+}
+
+std::optional<unsigned> ProductionRulesBuilder::getCurrentItemNumber() const {
+  return current_item_.item_number;
+}
+
+// ====================================================================================
+//  HandWrittenDescriptionParser.
+// ====================================================================================
 
 std::shared_ptr<ProductionRulesData> HandWrittenDescriptionParser::ParseDescription(std::istream& stream) {
   // Create a new production rules object.
@@ -238,20 +286,14 @@ std::shared_ptr<ProductionRulesData> HandWrittenDescriptionParser::ParseDescript
   // Shift productions, so all terminals and nonterminals have positive numbers.
   shiftProductionNumbers();
 
-  // Find start production (must do this after we shift production numbers).
-  auto it = production_rules_data_->nonterminal_map.find(production_rules_data_->start_nonterminal_name);
-  if (it == production_rules_data_->nonterminal_map.end()) {
-    MANTA_FAIL("could not find the start production '" << production_rules_data_->start_nonterminal_name
-                                                       << "'");
-  }
-  production_rules_data_->start_nonterminal = it->second;
+  findStartProduction();
 
   return production_rules_data_;
 }
 
 inline void HandWrittenDescriptionParser::getProductions(std::istream& in, int production_id) {
   // Create an "item" to represent the production.
-  auto production = makeNextItem(production_id);
+  auto& production = makeNextItem(production_id);
 
   auto is_terminator = [](char c) { return c == '\n' || c == '\r' || c == ';'; };
 
@@ -296,7 +338,7 @@ inline void HandWrittenDescriptionParser::getProductions(std::istream& in, int p
       // TODO: Register "start" at the construction of the parser generator so it always
       //  has the first id.
       if (acc == "start") {
-        production_rules_data_->start_nonterminal = id;
+        registerStartingProduction(id);
       }
       // Add production to rule.
       production.add(id);
@@ -314,7 +356,7 @@ inline void HandWrittenDescriptionParser::getProductions(std::istream& in, int p
       }
 
       // Ask the lexer generator for the lexeme ID of the terminal
-      int id = production_rules_data_->lexer_generator->LexemeID(acc);
+      int id = getLexemeID(acc);
       if (id < 0) {
         MANTA_THROW(UnexpectedInput, "word " << acc << " not a valid lexeme type");
       }
@@ -378,17 +420,7 @@ inline void HandWrittenDescriptionParser::getProductions(std::istream& in, int p
     }
   }
 
-  // Done finding the rule. Store the rule.
-  auto prod = production_rules_data_->productions_for.find(production_id);
-  if (prod == production_rules_data_->productions_for.end()) {
-    production_rules_data_->productions_for.emplace(production_id, State());
-    prod = production_rules_data_->productions_for.find(production_id);
-  }
-
-  // Add production to the productions for production_id
-  prod->second.insert(production);
-  // Add production to all productions.
-  production_rules_data_->all_productions.push_back(production);
+  storeCurrentItem();
 }
 
 void HandWrittenDescriptionParser::findResInfo(std::istream& in, ResolutionInfo& res_info) {
@@ -465,7 +497,7 @@ void HandWrittenDescriptionParser::findResInfo(std::istream& in, ResolutionInfo&
   }
 }
 
-inline std::shared_ptr<ParseNode> HandWrittenDescriptionParser::getInstructions(std::istream& in, int pid) {
+std::shared_ptr<ParseNode> HandWrittenDescriptionParser::getInstructions(std::istream& in, int pid) {
   // Setup.
   char c;
   std::string acc;
@@ -510,7 +542,7 @@ inline std::shared_ptr<ParseNode> HandWrittenDescriptionParser::getInstructions(
       }
       if (c != '(') {
         MANTA_THROW(UnexpectedInput,
-                    "Error: expected an open parenthesis. Found ["
+                    "Error while getting instruction: expected an open parenthesis. Found ["
                         << c << "]. (Trying to find the argument for [" << node->designator
                         << "]. Instruction so far is " << instruction->printTerminals());
       }
@@ -609,5 +641,4 @@ bool HandWrittenDescriptionParser::getInteger(std::istream& in, std::string& wor
   return false;
 }
 
-
-}
+}  // namespace manta

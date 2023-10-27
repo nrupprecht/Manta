@@ -67,12 +67,15 @@ void format_logstream(const TypeDescription& type_description, lightning::RefBun
 
 void ParserCodegen::GenerateParserCode(std::ostream& code_out,
                                        const std::shared_ptr<const ParserData>& parser_data) const {
+  LOG_SEV(Info) << "Generating parser code. Creating relationships.";
+
   ParserDataToTypeManager manager(false, true);
   // Find all relationships between nodes and create all node types.
   auto& [node_manager, relationships, nonterminals_for_type, node_types_for_item] =
       manager.CreateRelationships(parser_data);
-  auto deduced_types = manager.DeduceTypes();
 
+  LOG_SEV(Info) << "Done creating relationships. Deducing types.";
+  auto deduced_types = manager.DeduceTypes();
   LOG_SEV(Info) << "Done deducing types. Filling in type descriptions for all nonterminals' types.";
 
   // Fill in all type descriptions from the deduced types.
@@ -122,6 +125,13 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
   codegen.AddComment(code_out,
                      "============================================================================");
   codegen.AddBreak(code_out);
+
+  codegen.WriteHeader(code_out);
+
+  // Write any user specified imports.
+  for (auto& name : parser_data->production_rules_data->file_data.import_names) {
+    codegen.WriteImport(code_out, name, false);
+  }
 
   // Write the guard and includes.
   codegen.WriteImports(code_out);
@@ -499,6 +509,7 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
                                        std::istream& parser_description,
                                        ParserType parser_type) const {
   ParserGenerator generator(parser_type);
+  generator.SetDescriptionParser(description_parser_);
   GenerateParserCode(code_out, generator.CreateParserData(parser_description));
 }
 

@@ -25,6 +25,17 @@ struct VisitorData {
 
   //! \brief Map from visitor name to a description of the visitor.
   std::map<std::string, Visitor> visitors;
+
+  void SetBodyForItem(const std::string& visitor_name, unsigned item_number, const std::string& body) {
+    auto& visitor = visitors[visitor_name];
+    visitor.name = visitor_name;
+    visitor.code[item_number] = body;
+  }
+};
+
+struct FileData {
+  //! \brief Vector of files or modules to include or import.
+  std::vector<std::string> import_names;
 };
 
 //! \brief Object that contains the definition of a lexer and the productions that make up
@@ -67,7 +78,10 @@ struct ProductionRulesData {
   int total_symbols = 0;
 
   //! \brief Data about any visitors that should be generated.
-  VisitorData visitor_data{};
+  VisitorData visitor_data {};
+
+  //! brief Data about any files that should be generated.
+  FileData file_data{};
 
   // ============================================================================
   //  Helper functions.
@@ -80,21 +94,15 @@ struct ProductionRulesData {
     return GetNonterminalName(id);
   }
 
-  NO_DISCARD const std::string& GetNonterminalName(int id) const {
-    return inverse_nonterminal_map.at(id);
-  }
+  NO_DISCARD const std::string& GetNonterminalName(int id) const { return inverse_nonterminal_map.at(id); }
 
   NO_DISCARD int NumNonTerminals() const {
     return total_symbols - static_cast<int>(lexer_generator->GetNumLexemes());
   }
 
-  NO_DISCARD int NumTerminals() const {
-    return static_cast<int>(lexer_generator->GetNumLexemes());
-  }
+  NO_DISCARD int NumTerminals() const { return static_cast<int>(lexer_generator->GetNumLexemes()); }
 
-  NO_DISCARD bool IsNonTerminal(int id) const {
-    return lexer_generator->GetNumLexemes() <= id;
-  }
+  NO_DISCARD bool IsNonTerminal(int id) const { return lexer_generator->GetNumLexemes() <= id; }
 
   NO_DISCARD bool IsTerminal(int id) const { return !IsNonTerminal(id); }
 };
@@ -113,17 +121,45 @@ public:
 
 //! \brief Class that contains common functionality for building production rules data.
 class ProductionRulesBuilder {
+public:
+  ProductionRulesBuilder()
+      : production_rules_data_(std::make_shared<ProductionRulesData>()) {}
+
+  //! \brief Get the production rules data that has been built.
+  std::shared_ptr<ProductionRulesData> GetProductionRulesData() { return production_rules_data_; }
+
 protected:
   //! \brief Get the production number associated with a production name, registering it
   //! if it has not already been registered.
   int registerProduction(const std::string& production);
 
+  //! \brief Register a production as starting production.
+  void registerStartingProduction(int id);
+
   //! \brief Shifts the production numbers from being negative to being positive numbers
   //! after the last lexer token number.
   void shiftProductionNumbers();
 
-  //! \brief Generate an item with the next production label.
-  Item makeNextItem(int production_id);
+  //! \brief Find the ID for a lexeme, by the lexeme's name.
+  int getLexemeID(const std::string& lexeme_name) const;
+
+  //! \brief Generate an item with the next production label, sets the current_item_ to be this new item.
+  Item& makeNextItem(int production_id);
+
+  //! \brief Store the current, completed item.
+  void storeCurrentItem();
+
+  //! \brief Find start production. This must be done after we shift production numbers.
+  void findStartProduction();
+
+  //! \brief Get the number of the current item.
+  std::optional<unsigned> getCurrentItemNumber() const;
+
+  //! \brief The current item being built.
+  Item current_item_ {};
+
+  //! \brief Keep track of the next production item.
+  unsigned item_number_ = 0;
 
   //! \brief The description of the lexer and parser to create.
   std::shared_ptr<ProductionRulesData> production_rules_data_ {};
@@ -139,7 +175,9 @@ protected:
 //!
 //! Note that this is, itself, a specific type of parser.
 //!
-class HandWrittenDescriptionParser : public DescriptionParser, public ProductionRulesBuilder {
+class HandWrittenDescriptionParser
+    : public DescriptionParser
+    , public ProductionRulesBuilder {
 public:
   //! \brief Parse the description of a parser from a stream, creating the
   //! ProductionRulesData that can be used to to make the parser.
@@ -162,10 +200,10 @@ private:
   void getProductions(std::istream& in, int production_id);
 
   //! \brief Find the conflict resolution info for a production.
-  static void findResInfo(std::istream& in, ResolutionInfo& res_info);
+  void findResInfo(std::istream& in, ResolutionInfo& res_info);
 
   //! \brief Get the instruction for a production.
-  static std::shared_ptr<ParseNode> getInstructions(std::istream& fin, int pid);
+  std::shared_ptr<ParseNode> getInstructions(std::istream& fin, int pid);
 
   //! \brief Get all alphabetical characters and put them into a word. Returns true if the
   //! word was *not* terminated by the EOF. Does not Clear word at any point.

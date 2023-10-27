@@ -23,6 +23,10 @@ public:
     generated_nodes_have_node_in_name = flag;
   }
 
+  void SetDescriptionParser(std::shared_ptr<DescriptionParser> description_parser) {
+    description_parser_ = std::move(description_parser);
+  }
+
 private:
   //! \brief Set up the base visitor class.
   TypeDescriptionStructure* createBaseVisitor(ASTNodeManager& node_manager) const;
@@ -48,6 +52,10 @@ private:
   //! This is useful if there is a non-terminal and a lexeme with the same name in a single reduction.
   //!
   bool generated_nodes_have_node_in_name = true;
+
+  //! \brief The description parser that will be used to parse the description of the parser.
+  //!
+  std::shared_ptr<DescriptionParser> description_parser_ = std::make_shared<HandWrittenDescriptionParser>();
 };
 
 }  // namespace manta

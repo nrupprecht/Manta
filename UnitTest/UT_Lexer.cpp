@@ -47,11 +47,11 @@ TEST(Lexer, CharClassSimple) {
 
   ASSERT_EQ(lexemes.size(), 5);
 
-  std::vector<std::string> expected_names{"upper", "lower", "lower", "upper", "lower"};
+  std::vector<std::string> expected_names {"upper", "lower", "lower", "upper", "lower"};
 
   for (std::size_t i = 0; i < std::min(lexemes.size(), expected_names.size()); ++i) {
     EXPECT_EQ(lexer->LexemeName(lexemes[i].type), expected_names[i])
-              << "Disagreement for i = " << i << ": '" << lexemes[i].literal << "'";
+        << "Disagreement for i = " << i << ": '" << lexemes[i].literal << "'";
   }
 }
 
@@ -69,17 +69,15 @@ TEST(Lexer, CharClassComplex) {
 
   ASSERT_EQ(lexemes.size(), 7);
 
-  std::vector<std::string> expected_names{"B", "A", "B", "A", "B", "B", "A"};
+  std::vector<std::string> expected_names {"B", "A", "B", "A", "B", "B", "A"};
 
   for (std::size_t i = 0; i < std::min(lexemes.size(), expected_names.size()); ++i) {
     EXPECT_EQ(lexer->LexemeName(lexemes[i].type), expected_names[i])
-              << "Disagreement for i = " << i << ": '" << lexemes[i].literal << "'";
+        << "Disagreement for i = " << i << ": '" << lexemes[i].literal << "'";
   }
 }
 
-TEST(Lexer, CharClassRange) {
-
-}
+TEST(Lexer, CharClassRange) {}
 
 TEST(Lexer, StringComplement) {
   LexerGenerator test(false);
@@ -95,11 +93,11 @@ TEST(Lexer, StringComplement) {
 
   ASSERT_EQ(lexemes.size(), 4);
 
-  std::vector<std::string> expected_names{"word", "comment", "word", "word"};
+  std::vector<std::string> expected_names {"word", "comment", "word", "word"};
 
   for (std::size_t i = 0; i < std::min(lexemes.size(), expected_names.size()); ++i) {
     EXPECT_EQ(lexer->LexemeName(lexemes[i].type), expected_names[i])
-              << "Disagreement for i = " << i << ": '" << lexemes[i].literal << "'";
+        << "Disagreement for i = " << i << ": '" << lexemes[i].literal << "'";
   }
 }
 
@@ -209,7 +207,8 @@ TEST(Lexer, Precedence_I) {
   EXPECT_EQ(lexer->LexemeName(lexemes[1].type), "UpperString");
   EXPECT_EQ(lexer->LexemeName(lexemes[2].type), "MixedString");
 
-  // We expect to end in state FAStatus::EndedNonAccepting (ended after encountering EOF, but did not accept EOF).
+  // We expect to end in state FAStatus::EndedNonAccepting (ended after encountering EOF, but did not accept
+  // EOF).
   EXPECT_EQ(lexer->CheckStatus(), FAStatus::EndedNonAccepting);
 }
 
@@ -231,8 +230,8 @@ TEST(Lexer, Cases) {
   EXPECT_EQ(lexer->LexemeName(lexemes[2].type), "OtherWord");
   EXPECT_EQ(lexer->LexemeName(lexemes[3].type), "SnakeCase");
 
-  // We expect to end in state FAStatus::EndedNonAccepting (ended after encountering EOF, but did not accept EOF).
-  // We expect this even though the string ends with a skip token (space).
+  // We expect to end in state FAStatus::EndedNonAccepting (ended after encountering EOF, but did not accept
+  // EOF). We expect this even though the string ends with a skip token (space).
   EXPECT_EQ(lexer->CheckStatus(), FAStatus::EndedNonAccepting);
 }
 
@@ -249,16 +248,11 @@ TEST(Lexer, Reserved) {
   auto lexemes = lexer->LexAll();
 
   ASSERT_EQ(lexemes.size(), 4);
-  std::vector<std::string> expected_names = {
-      "RES:hello",
-      "Whitespaces",
-      "RES:world",
-      "EOF"
-  };
+  std::vector<std::string> expected_names = {"RES:hello", "Whitespaces", "RES:world", "EOF"};
 
   for (std::size_t i = 0; i < std::min(lexemes.size(), expected_names.size()); ++i) {
     EXPECT_EQ(lexer->LexemeName(lexemes[i].type), expected_names[i])
-              << "Disagreement for i = " << i << ": '" << lexemes[i].literal << "'";
+        << "Disagreement for i = " << i << ": '" << lexemes[i].literal << "'";
   }
 }
 
@@ -287,28 +281,9 @@ TEST(Lexer, LargeTest) {
   //  Note: We do this instead of using the integer representations of the states, since we do
   //  not care if the implementation / bookkeeping details of state representation change.
   std::vector<std::string> expected_names = {
-      "RES:String",
-      "Whitespaces",
-      "RES:for",
-      "Punctuation",
-      "Whitespaces",
-      "String",
-      "Whitespaces",
-      "String",
-      "Punctuation",
-      "Whitespaces",
-      "Double",
-      "Punctuation",
-      "Whitespaces",
-      "Integer",
-      "Punctuation",
-      "Whitespaces",
-      "Float",
-      "Punctuation",
-      "Whitespaces",
-      "Hexidecimal",
-      "EOF"
-  };
+      "RES:String",  "Whitespaces", "RES:for",     "Punctuation", "Whitespaces", "String",      "Whitespaces",
+      "String",      "Punctuation", "Whitespaces", "Double",      "Punctuation", "Whitespaces", "Integer",
+      "Punctuation", "Whitespaces", "Float",       "Punctuation", "Whitespaces", "Hexidecimal", "EOF"};
   for (std::size_t i = 0; i < std::min(expected_names.size(), lexemes.size()); ++i) {
     EXPECT_EQ(lexer->LexemeName(lexemes[i].type), expected_names[i]) << "Disagreement for i = " << i;
   }
@@ -331,15 +306,7 @@ TEST(Lexer, Words) {
   ASSERT_EQ(lexemes.size(), 8);
 
   std::vector<std::string> expected_names = {
-      "Hello",
-      "Whitespaces",
-      "Xthing",
-      "Whitespaces",
-      "Xthing",
-      "Whitespaces",
-      "Goodbye",
-      "EOF"
-  };
+      "Hello", "Whitespaces", "Xthing", "Whitespaces", "Xthing", "Whitespaces", "Goodbye", "EOF"};
 
   for (std::size_t i = 0; i < expected_names.size(); ++i) {
     EXPECT_EQ(lexer->LexemeName(lexemes.at(i).type), expected_names[i]) << "Disagreement for i = " << i;
@@ -396,13 +363,11 @@ TEST(Lexer, WithUnderscores) {
   auto lexemes = lexer->LexAll();
 
   ASSERT_EQ(lexemes.size(), 5);
-  std::vector<std::string> expected_names = {
-      "identifier", "identifier", "identifier", "identifier", "EOF"
-  };
+  std::vector<std::string> expected_names = {"identifier", "identifier", "identifier", "identifier", "EOF"};
 
   for (std::size_t i = 0; i < std::min(lexemes.size(), expected_names.size()); ++i) {
     EXPECT_EQ(lexer->LexemeName(lexemes[i].type), expected_names[i])
-              << "Disagreement for i = " << i << ": '" << lexemes[i].literal << "'";
+        << "Disagreement for i = " << i << ": '" << lexemes[i].literal << "'";
   }
 }
 
@@ -430,7 +395,7 @@ TEST(Lexer, LexemeWithQuotes) {
 
   for (std::size_t i = 0; i < lexemes.size(); ++i) {
     EXPECT_EQ(lexer->LexemeName(lexemes[i].type), expected_names[i])
-              << "Disagreement for i = " << i << ": '" << lexemes[i].literal << "'";
+        << "Disagreement for i = " << i << ": '" << lexemes[i].literal << "'";
   }
 
   // We expect to end in state 3 (ended after encountering EOF).
@@ -462,58 +427,56 @@ TEST(Lexer, LexTheLexer) {
       "   @spaces: r`\"\\s+\"`                 \n"
       "   @newlines: r`\"\\n+\"`               \n"
       "   @eof: r`\"\\0\"`                     \n"
-      ".End                                 \n"
-  );
+      ".End                                 \n");
   auto lexemes = lexer->LexAll();
 
   ASSERT_EQ(lexemes.size(), 37);
   std::vector<std::string> expected_names = {
-      "special_symbol",
-      "newlines",
-      "lexeme_name",
-      "semicolon",
-      "regex",
-      "newlines",
-      "lexeme_name",
-      "semicolon",
-      "regex",
-      "newlines",
-      "lexeme_name",
-      "semicolon",
-      "regex",
-      "newlines",
-      "lexeme_name",
-      "semicolon",
-      "regex",
-      "newlines",
-      "lexeme_name",
-      "semicolon",
-      "regex",
-      "newlines",
-      "lexeme_name",
-      "semicolon",
-      "regex",
-      "newlines",
-      "lexeme_name",
-      "semicolon",
-      "regex",
-      "newlines",
-      "lexeme_name",
-      "semicolon",
-      "regex",
-      "newlines",
-      "special_symbol",
-      "newlines",
-      "eof",
+      "special_symbol", "newlines",    "lexeme_name", "semicolon",   "regex",
+      "newlines",       "lexeme_name", "semicolon",   "regex",       "newlines",
+      "lexeme_name",    "semicolon",   "regex",       "newlines",    "lexeme_name",
+      "semicolon",      "regex",       "newlines",    "lexeme_name", "semicolon",
+      "regex",          "newlines",    "lexeme_name", "semicolon",   "regex",
+      "newlines",       "lexeme_name", "semicolon",   "regex",       "newlines",
+      "lexeme_name",    "semicolon",   "regex",       "newlines",    "special_symbol",
+      "newlines",       "eof",
   };
   for (std::size_t i = 0; i < std::min(lexemes.size(), expected_names.size()); ++i) {
     EXPECT_EQ(lexer->LexemeName(lexemes[i].type), expected_names[i])
-              << "Disagreement for i = " << i << ": '" << lexemes[i].literal << "'";
+        << "Disagreement for i = " << i << ": '" << lexemes[i].literal << "'";
   }
 
   // We expect to end in state 3 (ended after encountering EOF).
   EXPECT_EQ(lexer->CheckStatus(), FAStatus::AcceptedEOF)
-            << "Ended on line: " << lexer->GetLine() << ", character: " << lexer->GetColumn();
+      << "Ended on line: " << lexer->GetLine() << ", character: " << lexer->GetColumn();
 }
 
-} // namespace UnitTest
+TEST(Lexer, CodeBlock) {
+  LexerGenerator test(false);
+
+  test.AddLexeme("identifier", "(\\@ | _)+", 1);
+  test.AddLexeme("spaces", "\\s+", 5);
+  test.AddLexeme("newlines", "\\n+");
+  test.AddLexeme("eof", "");
+  test.AddLexeme("code_block", "%{ [~%\\}]* %}");
+
+  auto lexer = test.CreateLexer();
+  lexer->SetStringToLex("hello %{ this is \n a code block %} world");
+  auto lexemes = lexer->LexAll();
+  ASSERT_EQ(lexemes.size(), 6);
+  std::vector<std::string> expected_names = {
+      "identifier",
+      "spaces",
+      "code_block",
+      "spaces",
+      "identifier",
+      "eof",
+  };
+  for (std::size_t i = 0; i < std::min(lexemes.size(), expected_names.size()); ++i) {
+    EXPECT_EQ(lexer->LexemeName(lexemes[i].type), expected_names[i])
+        << "Disagreement for i = " << i << ": '" << lexemes[i].literal << "'";
+  }
+  EXPECT_EQ(lexemes[2].literal, "%{ this is \n a code block %}");
+}
+
+}  // namespace UnitTest

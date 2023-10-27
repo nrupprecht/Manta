@@ -371,12 +371,16 @@ TypeDeduction ParserDataToTypeManager::DeduceTypes() {
       // First, check if we are in this simple case - where type is a shared pointer to or
       // container of shared pointers of the base class for the other node.
       if (!rel.source_field_name) {
+        LOG_SEV(Trace) << "    >> Relationship references another node, but does not "
+                          "reference a field of that node. Type will be a shared pointer. Referenced ID is "
+                       << rel.referenced_id << ".";
         // The type will be the node type. We can fill this in right away, now that every
         // base class has been created.
         auto& base_type_name = deduction.GetBaseTypeName(rel.referenced_id);
 
         auto base_type = node_manager().GetNodeDescription(base_type_name);
         if (rel.check_type == CheckType::Field) {
+          LOG_SEV(Trace) << "    >> Check type is FIELD.";
           auto shared_ptr_type = node_manager().MakeShared(base_type);
           // Note that the AddField function in set_field_type will make sure that if the
           // field is added again, the types match.
@@ -387,6 +391,7 @@ TypeDeduction ParserDataToTypeManager::DeduceTypes() {
                          << to_string(*shared_ptr_type) << ".";
         }
         else if (rel.check_type == CheckType::Push) {
+          LOG_SEV(Trace) << "    >> Check type is PUSH.";
           // The type is std::vector<std::shared_ptr<T>>
           auto vector_type = node_manager().MakeVector(node_manager().MakeShared(base_type));
           // Note that the AddField function in set_field_type will make sure that if the
@@ -407,6 +412,8 @@ TypeDeduction ParserDataToTypeManager::DeduceTypes() {
       // could have been formed by any production for the non-terminal, only common fields
       // for the non-terminal's base node type can be referenced.
       else {
+        LOG_SEV(Trace) << "    >> There is no source field name.";
+
         auto referenced_nonterminal = rel.referenced_id;
 
         // Make sure the referenced field is common
@@ -423,7 +430,8 @@ TypeDeduction ParserDataToTypeManager::DeduceTypes() {
         auto& base_type_name = deduction.GetBaseTypeName(referenced_nonterminal);
         auto base_type = node_manager().GetNodeDescription(base_type_name);
         if (auto ty = base_type->fields.find(*rel.source_field_name);
-            ty != base_type->fields.end() && ty->second) {
+            ty != base_type->fields.end() && ty->second)
+        {
           // The field has already been typed and defined. We can handle this relationship
           // right now. It must be that the target type is some vector type.
           auto type = ty->second;
@@ -571,6 +579,7 @@ void ParserDataToTypeManager::determineBaseTypes(TypeDeduction& deduction) {
   // Right now the algorithm is that we create a base type for every non-terminal that has more than one
   // production (item) associated with it.
   for (auto& [nonterminal_id, nonterminals_types] : deduction.types_data) {
+    LOG_SEV(Debug) << "Determining base type for non-terminal ID " << nonterminal_id << ".";
     MANTA_ASSERT(nonterminals_types.NumSubTypes() != 0,
                  "there must be at least one type for non-terminal " << nonterminal_id);
     auto& nonterminal_name = production_rules_data_->GetNonterminalName(nonterminal_id);

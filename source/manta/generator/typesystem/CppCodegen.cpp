@@ -5,16 +5,25 @@
 #include "manta/generator/typesystem/CppCodegen.h"
 // Other files.
 
+using namespace std::literals;
+
 namespace manta {
+
+void CppCodeGen::WriteHeader(std::ostream& out) const {
+  out << "#pragma once\n\n";
+}
 
 void CppCodeGen::WriteImports(std::ostream& out) const {
   // Write the guard and includes.
-  out << "#pragma once\n\n#include <vector>\n#include <string>\n\n";
-  out << "// Include the support for the parser.\n";
-  out << "#include \"manta/generator/ParserDriver.h\"\n";
-  out << "#include \"manta/generator/LexerGenerator.h\"\n\n";
-  out << "#include <Lightning/Lightning.h>\n";
-  out << "#include \"manta/utility/Formatting.h\"\n\n";
+  WriteImport(out, "vector", true);
+  WriteImport(out, "string", true);
+
+  AddComment(out, 0, " Include the support for the parser."s);
+  WriteImport(out, "manta/generator/ParserDriver.h", false);
+  WriteImport(out, "manta/generator/LexerGenerator.h", false);
+  WriteImport(out, "Lightning/Lightning.h", true);
+  WriteImport(out, "manta/utility/Formatting.h", false);
+  out << "\n\n";
 }
 
 void CppCodeGen::WriteDefinition(std::ostream& out, const TypeDescriptionStructure* structure) const {
@@ -114,24 +123,19 @@ void CppCodeGen::WriteDefinition(std::ostream& out, const TypeDescriptionStructu
       }
     }
 
-    out << "\n  {}\n\n";
+    out << " {}\n";
+  }
+  if (!structure->constructors.empty()) {
+    AddBreak(out);
   }
 
   // Write all fields.
-  if (!structure->fields.empty()) {
-    AddComment(out, 1, " Public fields for " + structure->type_name + ".");
-    AddBreak(out);
-  }
   for (auto& [field, type] : structure->fields) {
     out << "  " << WriteName(type) << " " << field << "{};\n";
   }
-  out << "\n";
+  AddBreak(out);
 
   // Write all functions.
-  if (!structure->functions.empty()) {
-    AddComment(out, 1, " Public functions for " + structure->type_name + ".");
-    AddBreak(out);
-  }
   for (auto& function : structure->functions) {
     out << "  ";
     if (function.IsVirtual()) {
@@ -160,11 +164,11 @@ void CppCodeGen::WriteDefinition(std::ostream& out, const TypeDescriptionStructu
       out << " override";
     }
     if (function.IsVirtual()) {
-      out << " = 0;\n\n";
+      out << " = 0;\n";
     }
     else {
       if (function.function_body->empty()) {
-        out << " {}\n\n";
+        out << " {}\n";
       }
       else {
         out << " {\n";
@@ -178,12 +182,13 @@ void CppCodeGen::WriteDefinition(std::ostream& out, const TypeDescriptionStructu
           }
         }
         // Write closing '}'
-        out << "\n  }\n\n";
+        out << "\n  }\n";
       }
     }
   }
 
-  out << "};\n";
+  out << "};";
+  AddBreak(out);
 }
 
 void CppCodeGen::WriteDefinition(std::ostream& out, const TypeDescriptionEnum* enumeration) const {
@@ -252,6 +257,10 @@ std::string CppCodeGen::WriteName(const ElaboratedType& type) const {
     output += "&";
   }
   return output;
+}
+
+void CppCodeGen::WriteImport(std::ostream& out, const std::string& name, bool is_external) const {
+  out << "#include " << (is_external ? "<"s : "\""s) << name << (is_external ? ">"s : "\""s) << "\n";
 }
 
 void CppCodeGen::AddComment(std::ostream& out, const std::string& comment, bool newline) const {
