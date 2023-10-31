@@ -21,6 +21,9 @@ struct VisitorData {
     //! \brief Code to inject into the body of the visitor class, could be data definitions or additional
     //! functions.
     std::string other_definitions;
+
+    //! \brief Additional base classes for the visitor.
+    std::vector<std::string> additional_base_classes;
   };
 
   //! \brief Map from visitor name to a description of the visitor.
@@ -49,14 +52,14 @@ struct ProductionRulesData {
   std::shared_ptr<LexerGenerator> lexer_generator {};
 
   //! \brief Maps non-terminal names to non-terminal numbers.
-  std::map<std::string, int> nonterminal_map;
+  std::map<std::string, NonterminalID> nonterminal_map;
 
   //! \brief Maps non-terminal numbers to non-terminal names.
-  std::map<int, std::string> inverse_nonterminal_map;
+  std::map<NonterminalID, std::string> inverse_nonterminal_map;
 
   //! \brief The productions for each non-terminal. A State (here) is essentially a set of
   //! production rules.
-  std::map<int, State> productions_for;
+  std::map<NonterminalID , State> productions_for;
 
   //! \brief All the productions, for all non-terminals.
   std::vector<Item> all_productions;
@@ -68,7 +71,7 @@ struct ProductionRulesData {
   int num_productions = 0;
 
   //! \brief Which non-terminal is the starting non-terminal.
-  int start_nonterminal = 0;
+  NonterminalID start_nonterminal = 0;
 
   //! \brief The name of the start non-terminal. By default, this is "start."
   std::string start_nonterminal_name = "start";
@@ -76,6 +79,9 @@ struct ProductionRulesData {
   //! \brief The total number of lexer ids (terminals) plus non-terminal symbols. This is
   //! the number of columns in the parse_table_.
   int total_symbols = 0;
+
+  //! \brief Code that should be injected after an item reduce occurs.
+  std::map<ItemID, std::string> reduction_code;
 
   //! \brief Data about any visitors that should be generated.
   VisitorData visitor_data {};
@@ -196,6 +202,8 @@ private:
   //  Private functions.
   // ============================================================================
 
+  std::string findNextCommand(std::istream& stream) const;
+
   //! \brief Get a production from it's representation in a stream.
   void getProductions(std::istream& in, int production_id);
 
@@ -205,6 +213,9 @@ private:
   //! \brief Get the instruction for a production.
   std::shared_ptr<ParseNode> getInstructions(std::istream& fin, int pid);
 
+  //! \brief Get additional data, including visitor related data and module import data.
+  void getData(std::istream& in);
+
   //! \brief Get all alphabetical characters and put them into a word. Returns true if the
   //! word was *not* terminated by the EOF. Does not Clear word at any point.
   static bool getWord(std::istream& in, std::string& word);
@@ -212,6 +223,9 @@ private:
   //! Get all numeric characters and put them into a word. Returns true if the word was
   //! *not* terminated by the EOF. Does not Clear word at any point.
   static bool getInteger(std::istream& in, std::string& word);
+
+  //! \brief Bypass white spaces in a stream.
+  static void bypassWhitespace(std::istream& stream);
 };
 
 }  // namespace manta

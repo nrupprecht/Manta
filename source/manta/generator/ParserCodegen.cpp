@@ -660,6 +660,16 @@ TypeDescriptionStructure* ParserCodegen::createVisitorFromTemplate(
       true};
   visitor->AddFunction(visit_function);
 
+  // Add any ad-hoc code.
+  visitor->adhoc_code = visitor_data.other_definitions;
+
+  // Add any additional base classes.
+  for (auto& base_class : visitor_data.additional_base_classes) {
+    // Just make up the base class structures, these will, in general, not be things we define in the
+    // generated code.
+    visitor->AddParent(type_system.Structure(base_class));
+  }
+
   return visitor;
 }
 

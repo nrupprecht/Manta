@@ -5,7 +5,7 @@
 namespace manta {
 
 using NonterminalID = int;
-using ProductionID = int;
+using ItemID = int;
 using StateID = int;
 
 //! \brief Enum for the associativity of an operator/production rule.
@@ -43,7 +43,7 @@ constexpr ResolutionInfo NullResolutionInfo {};
 
 //! \brief Encode a production rule, like A -> a X b, etc.
 struct ProductionRule {
-  explicit ProductionRule(ProductionID production, int label, const std::vector<int> rhs = {})
+  explicit ProductionRule(NonterminalID production, int label, const std::vector<int> rhs = {})
       : production(production)
       , production_label(label)
       , rhs(rhs) {}
@@ -71,7 +71,7 @@ struct ProductionRule {
   //! \brief The nonterminal ID that this is a rule for. I.e., the left hand side of a
   //! production rule.
   // TODO: This should be referenced_id, not "production"
-  ProductionID production = -1;
+  NonterminalID production = -1;
 
   //! \brief A number for the production, i.e. this is the n-th production.
   int production_label {};
@@ -94,7 +94,7 @@ struct ProductionRule {
 //! A state is a set of state items.
 // TODO: Change Item to be a pointer to a production rule, plus a bookmark.
 struct Item : public ProductionRule {
-  Item(ProductionID production,
+  Item(NonterminalID production,
        int label,
        int bookmark = 0,
        const std::vector<int>& rhs = {},
@@ -138,7 +138,7 @@ struct Item : public ProductionRule {
 
   //! \brief What the item number for this item is. Used e.g. to find the correct item
   //! reduction function.
-  std::optional<unsigned> item_number {};
+  std::optional<ItemID> item_number {};
 
   //! \brief The location of the bookmark.
   //!

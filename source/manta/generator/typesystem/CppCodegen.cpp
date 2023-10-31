@@ -187,6 +187,12 @@ void CppCodeGen::WriteDefinition(std::ostream& out, const TypeDescriptionStructu
     }
   }
 
+  if (!structure->adhoc_code.empty()) {
+    out << "\n  // Ad-hoc code.\n";
+    out << structure->adhoc_code;
+    out << "\n  // End ad-hoc code.\n";
+  }
+
   out << "};";
   AddBreak(out);
 }

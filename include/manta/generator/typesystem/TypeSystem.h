@@ -125,6 +125,8 @@ struct StructureConstructor {
   StructureConstructor& WithAdditionalInitializations(std::vector<std::pair<FieldName, Value>> inits);
 };
 
+//! \brief A structure that represents a function of a record or structure.
+//!
 struct StructureFunction {
   struct Argument {
     ElaboratedType arg_type {};
@@ -201,6 +203,10 @@ struct TypeDescriptionStructure : public TypeDescription {
 
   //! \brief Functions for the structure.
   std::vector<StructureFunction> functions;
+
+  //! \brief Field for injecting arbitrary user defined code into the structure. This could include things
+  //! like additional function or variable definitions.
+  std::string adhoc_code {};
 };
 
 //! \brief Represents a vector or ordered collection of objects of some other type.

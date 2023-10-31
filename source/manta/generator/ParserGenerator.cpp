@@ -186,7 +186,7 @@ void ParserGenerator::createStateDerivesEmpty() {
   // See p. 128 - 130 of "Crafting a Compiler"
   // TODO: Test.
 
-  utility::WorkDeque<ProductionID> work_deque;
+  utility::WorkDeque<NonterminalID> work_deque;
   std::map<Item, bool> rule_derives_empty;
   // Count the symbols on the RHS of each production that do not derive empty.
   //  This is updated throughout the algorithm.
@@ -208,7 +208,8 @@ void ParserGenerator::createStateDerivesEmpty() {
   };
 
   // Record all the production rules that contain instances of a symbol
-  std::map<ProductionID, std::set<int>> productions_containing_symbol;
+  // TODO: Are these production (nonterminal) IDs, or item IDs?
+  std::map<NonterminalID, std::set<int>> productions_containing_symbol;
 
   int i = 0;
   for (auto& production : production_rules_data_->all_productions) {

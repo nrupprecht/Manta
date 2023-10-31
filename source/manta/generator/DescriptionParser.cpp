@@ -4,8 +4,9 @@
 
 #include "manta/generator/DescriptionParser.h"
 // Other files
-#include "manta/parser/ParseNode.h"
 #include <Lightning/Lightning.h>
+
+#include "manta/parser/ParseNode.h"
 
 namespace manta {
 
@@ -125,17 +126,8 @@ std::optional<unsigned> ProductionRulesBuilder::getCurrentItemNumber() const {
 //  HandWrittenDescriptionParser.
 // ====================================================================================
 
-std::shared_ptr<ProductionRulesData> HandWrittenDescriptionParser::ParseDescription(std::istream& stream) {
-  // Create a new production rules object.
-  production_rules_data_ = std::make_shared<ProductionRulesData>();
-
+std::string HandWrittenDescriptionParser::findNextCommand(std::istream& stream) const {
   char c;
-  std::string production_name;
-  int pid;
-
-  // Create the lexer. We always add @eof as a lexer item.
-  production_rules_data_->lexer_generator->CreateLexer(stream, false);  // Do not Clear old.
-
   // Find the .Parser indicator.
   stream.get(c);
   while (!stream.eof()) {
@@ -152,15 +144,30 @@ std::shared_ptr<ProductionRulesData> HandWrittenDescriptionParser::ParseDescript
         command.push_back(c);
         stream.get(c);
       }
-      if (command == "Parser") {
-        stream.putback(c);  // Just in case c is '.'
-        break;  // Start lexing.
-      }
+      return command;
     }
     else {
       stream.get(c);
     }
   }
+  return "";
+}
+
+std::shared_ptr<ProductionRulesData> HandWrittenDescriptionParser::ParseDescription(std::istream& stream) {
+  // Create a new production rules object.
+  production_rules_data_ = std::make_shared<ProductionRulesData>();
+
+  char c;
+  std::string production_name;
+  int pid;
+
+  // Create the lexer. We always add @eof as a lexer item.
+  production_rules_data_->lexer_generator->CreateLexer(stream, false);  // Do not Clear old.
+
+  if (auto cmd = findNextCommand(stream); cmd != "Parser") {
+    MANTA_THROW(UnexpectedInput, "expected a .Parser command, found a ." << cmd);
+  }
+
   // If we reached the end of the stream without finding a .Parser indicator, that means the stream
   // did not actually define a parser.
   if (stream.eof()) {
@@ -283,6 +290,12 @@ std::shared_ptr<ProductionRulesData> HandWrittenDescriptionParser::ParseDescript
     stream.get(c);
   }
 
+  // Get any additional information about visitor classes.
+
+  if (auto cmd = findNextCommand(stream); cmd == "Data") {
+    getData(stream);
+  }
+
   // Shift productions, so all terminals and nonterminals have positive numbers.
   shiftProductionNumbers();
 
@@ -358,7 +371,7 @@ inline void HandWrittenDescriptionParser::getProductions(std::istream& in, int p
       // Ask the lexer generator for the lexeme ID of the terminal
       int id = getLexemeID(acc);
       if (id < 0) {
-        MANTA_THROW(UnexpectedInput, "word " << acc << " not a valid lexeme type");
+        MANTA_THROW(UnexpectedInput, "visitor_name " << acc << " not a valid lexeme type");
       }
       production.add(id);
 
@@ -523,6 +536,59 @@ std::shared_ptr<ParseNode> HandWrittenDescriptionParser::getInstructions(std::is
       }
       break;
     }
+    // Reduction code.
+    else if (c == '%') {
+      MANTA_ASSERT(!in.eof(), "unexpected eof while getting reduction code");
+
+      // Get what type of code this is for, a visitor, or a function to be called upon the REDUCE.
+      acc.clear();
+      do {
+        in.get(c);
+        acc.push_back(c);
+      } while (!in.eof() && c != '{');
+      MANTA_ASSERT(!in.eof(), "unexpected eof while getting reduction code");
+      in.putback('{');
+      acc.pop_back();
+      auto target_type = acc;
+      if (target_type.empty()) {
+        LOG_SEV(Debug) << "Got reduction code for the REDUCE function.";
+      }
+      else {
+        LOG_SEV(Debug) << "Reduction code got the target type '" << acc << "'.";
+      }
+
+      MANTA_ASSERT(!in.eof(), "unexpected eof while getting reduction code");
+
+      in.get(c);
+      MANTA_ASSERT(!in.eof(), "unexpected eof while getting reduction code");
+      if (c != '{') {
+        MANTA_THROW(UnexpectedInput, "expected '{' after '%', found '" << c << "'");
+      }
+
+      // Get everything up until the closing "%}"
+      acc.clear();
+      do {
+        in.get(c);
+        acc.push_back(c);
+      } while (!in.eof() && acc.size() < 2 || acc.substr(acc.size() - 2) != "%}");
+      if (acc.size() < 2) {
+        MANTA_THROW(UnexpectedInput, "unexpected eof while getting reduction code");
+      }
+      acc = acc.substr(0, acc.size() - 2);
+
+      if (auto item = getCurrentItemNumber()) {
+        if (target_type.empty() || target_type == "REDUCE") {
+          production_rules_data_->reduction_code[*item] = acc;
+        }
+        else {
+          // TODO: (?) Sanitize visitor type name (target_type).
+          production_rules_data_->visitor_data.SetBodyForItem(target_type, *item, acc);
+        }
+      }
+      else {
+        MANTA_THROW(UnexpectedInput, "could not get item number for reduction code");
+      }
+    }
     else if (isalpha(c)) {
       // Get the whole identifier.
       do {
@@ -613,6 +679,126 @@ std::shared_ptr<ParseNode> HandWrittenDescriptionParser::getInstructions(std::is
   return instruction;
 }
 
+void HandWrittenDescriptionParser::getData(std::istream& stream) {
+  char c;
+
+  // Find the next word, bypassing spaces and comments (which start with '#').
+  std::string word;
+  stream.get(c);
+  while (!stream.eof()) {
+    if (c == '#') {
+      // Pass comments.
+      while (c != '\n' && !stream.eof()) {
+        stream.get(c);
+      }
+    }
+    else if (c == '.') {
+      word.clear();
+      getWord(stream, word);
+      if (word == "End") {
+        return;
+      }
+      else {
+        MANTA_THROW(UnexpectedInput, "in getData, expected a .End command, found a ." << word);
+      }
+    }
+    // Module import.
+    else if (c == '@') {
+      // Get the command.
+      word.clear();
+      getWord(stream, word);
+      if (word == "import") {
+        bypassWhitespace(stream);
+        word.clear();
+        // Get all characters until a whitespace occurs.
+        stream.get(c);
+        do {
+          word.push_back(c);
+          stream.get(c);
+        } while (!isspace(c) && !stream.eof());
+        // Add the import.
+        production_rules_data_->file_data.import_names.push_back(word);
+        LOG_SEV(Debug) << "Found command to import the module '" << word << "'.";
+      }
+      else {
+        MANTA_THROW(UnexpectedInput, "in getData, expected a @import command, found a @" << word);
+      }
+    }
+    else if (isalpha(c)) {
+      word.clear();
+      word.push_back(c);
+      if (!getWord(stream, word)) {
+        MANTA_THROW(UnexpectedInput, "in getData, unexpectedly reached EOF");
+      }
+      auto command_type = word;
+
+      // Bypass white spaces.
+      bypassWhitespace(stream);
+
+      // Next word should be the visitor name.
+      word.clear();
+      if (!getWord(stream, word)) {
+        MANTA_THROW(UnexpectedInput, "in getData, unexpectedly reached EOF");
+      }
+      auto visitor_name = word;
+      auto& visitor_data = production_rules_data_->visitor_data.visitors;
+      auto it = visitor_data.find(word);
+      MANTA_ASSERT(it != visitor_data.end(), "could not find visitor '" << word << "' to add code to it");
+      auto& visitor = it->second;
+
+      if (command_type == "code") {
+        // Bypass white spaces.
+        bypassWhitespace(stream);
+
+        // Expect a '%{'
+        stream.get(c);
+        if (c != '%' && !stream.eof()) {
+          MANTA_THROW(UnexpectedInput, "in getData, expected a %, found " << c);
+        }
+        stream.get(c);
+        if (c != '{' && !stream.eof()) {
+          MANTA_THROW(UnexpectedInput, "in getData, expected a {, found " << c);
+        }
+        // Get all the code up until the '%}'
+        std::string code;
+        stream.get(c);
+        while (!stream.eof() && !(c == '}' && code.back() == '%')) {
+          code.push_back(c);
+          stream.get(c);
+        }
+        // Last two characters of code are '%}', remove those.
+        code.pop_back();
+        code.pop_back();
+
+        // Add the code to the visitor.
+        visitor.other_definitions = code;
+      }
+      else if (command_type == "inherits") {
+        // Next word is the class that the visitor inherits from. This is programmer specified, and does not
+        // have to be a type the parser knows about.
+
+        // Bypass white spaces.
+        bypassWhitespace(stream);
+
+        word.clear();
+        // Get all characters until a whitespace occurs.
+        stream.get(c);
+        do {
+          word.push_back(c);
+          stream.get(c);
+        } while (!isspace(c) && !stream.eof());
+        visitor.additional_base_classes.push_back(word);
+        LOG_SEV(Debug) << "Visitor class '" << visitor_name << "' will inherit from '" << word << "'.";
+      }
+      else {
+        MANTA_FAIL("unrecognized command type " << command_type);
+      }
+    }
+
+    stream.get(c);
+  }
+}
+
 bool HandWrittenDescriptionParser::getWord(std::istream& in, std::string& word) {
   char c;
   in.get(c);
@@ -639,6 +825,17 @@ bool HandWrittenDescriptionParser::getInteger(std::istream& in, std::string& wor
     return true;
   }
   return false;
+}
+
+void HandWrittenDescriptionParser::bypassWhitespace(std::istream& stream) {
+  char c;
+
+  // Bypass white spaces.
+  stream.get(c);
+  while (!stream.eof() && isspace(c)) {
+    stream.get(c);
+  }
+  stream.putback(c);
 }
 
 }  // namespace manta
