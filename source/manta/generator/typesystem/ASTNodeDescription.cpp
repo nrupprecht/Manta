@@ -7,7 +7,6 @@
 #include "manta/utility/Formatting.h"
 
 using namespace manta;
-using namespace manta;
 
 ASTNodeManager::ASTNodeManager() {
   // Create the NodeType enum.
@@ -17,13 +16,17 @@ ASTNodeManager::ASTNodeManager() {
   nonterminal_enum_ = type_system_.Enum("NonterminalType");
   nonterminal_enum_->AddOption("Terminal");  // Actually not a non-terminal
 
+  // In real code, this is actually a typedef for an integer.
+  item_id_type_ = type_system_.Structure("ItemID");
+
   // Create node base structure.
   node_base_ = type_system_.Structure("ASTNodeBase");
+  node_base_->AddField("item_id", item_id_type_);
   node_base_->AddField("node_type", node_enum_);
   node_base_->AddField("nonterminal_type", nonterminal_enum_);
   node_base_->AddConstructor(StructureConstructor {
       // Constructor arguments
-      {{node_enum_, "node_type"}, {nonterminal_enum_, "nonterminal_type"}},
+      {{node_enum_, "node_type"}, {nonterminal_enum_, "nonterminal_type"}, {item_id_type_, "item_id"}},
       // Parent constructors
       {},
       // List initialized fields.
@@ -43,7 +46,8 @@ ASTNodeManager::ASTNodeManager() {
           // Initialize the base class ASTNodeBase
           {node_base_,
            {StructureConstructor::Value {"ASTNodeType::Literal"},
-            StructureConstructor::Value {"NonterminalType::Terminal"}}},
+            StructureConstructor::Value {"NonterminalType::Terminal"},
+            StructureConstructor::Value {"-1"} /* To denote no item */}},
       },
       // List initialized args, (arg name, field name)
       {{"literal", "literal"}},
@@ -72,6 +76,10 @@ TypeDescriptionEnum* ASTNodeManager::GetASTNodeType() const {
 
 NO_DISCARD TypeDescriptionEnum* ASTNodeManager::GetNonterminalEnum() const {
   return nonterminal_enum_;
+}
+
+TypeDescriptionStructure* ASTNodeManager::GetItemID() const {
+  return item_id_type_;
 }
 
 TypeDescriptionStructure* ASTNodeManager::GetNodeDescription(const std::string& type_name,

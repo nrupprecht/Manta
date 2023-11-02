@@ -36,7 +36,7 @@ private:
   TypeDescriptionStructure* createVisitorFromTemplate(
       ASTNodeManager& node_manager,
       const VisitorData::Visitor& visitor_data,
-      const std::map<unsigned, const TypeDescriptionStructure*>& node_types_for_item) const;
+      const std::map<ItemID, const TypeDescriptionStructure*>& node_types_for_item) const;
 
   TypeDescriptionStructure* createTreePrintVisitor(ASTNodeManager& node_manager) const;
 

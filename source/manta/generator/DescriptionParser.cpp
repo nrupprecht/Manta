@@ -7,6 +7,7 @@
 #include <Lightning/Lightning.h>
 
 #include "manta/parser/ParseNode.h"
+#include "manta/utility/Formatting.h"
 
 namespace manta {
 
@@ -536,7 +537,7 @@ std::shared_ptr<ParseNode> HandWrittenDescriptionParser::getInstructions(std::is
       }
       break;
     }
-    // Reduction code.
+    // Reduction / visitor code.
     else if (c == '%') {
       MANTA_ASSERT(!in.eof(), "unexpected eof while getting reduction code");
 
@@ -583,6 +584,8 @@ std::shared_ptr<ParseNode> HandWrittenDescriptionParser::getInstructions(std::is
         else {
           // TODO: (?) Sanitize visitor type name (target_type).
           production_rules_data_->visitor_data.SetBodyForItem(target_type, *item, acc);
+          LOG_SEV(Debug) << "Adding code body to visitor '" << formatting::CLBB(target_type)
+                         << "' for item number " << *item << ".";
         }
       }
       else {

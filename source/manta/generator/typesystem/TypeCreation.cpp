@@ -605,10 +605,10 @@ void ParserDataToTypeManager::determineBaseTypes(TypeDeduction& deduction) {
       base_class_description->AddParent(node_manager().GetASTNodeBase());
       base_class_description->AddConstructor(StructureConstructor {
           // Arguments,
-          {{node_manager().GetASTNodeType(), "node_type"}},
+          {{node_manager().GetASTNodeType(), "node_type"}, {node_manager().GetItemID(), "item_id"}},
           // Call ASTNodeBase's constructor
           {{node_manager().GetASTNodeBase(),
-            {"node_type", nonterminal_enum->GetName() + "::" + nonterminal_enum_name}}}});
+            {"node_type", nonterminal_enum->GetName() + "::" + nonterminal_enum_name, "item_id"}}}});
 
       node_manager().GetNonterminalTypes(nonterminal_id).base_type = base_class_description;
       LOG_SEV(Info) << "  * Setting base type for non-terminal ID " << nonterminal_id << " (" << base_name
@@ -622,7 +622,11 @@ void ParserDataToTypeManager::determineBaseTypes(TypeDeduction& deduction) {
                       << formatting::CLBB(base_class_description->type_name) << ".";
         description->AddParent(base_class_description);
         description->AddConstructor(StructureConstructor {
-            {}, {{base_class_description, {StructureConstructor::Value {"ASTNodeType::Type_" + name}}}}});
+            // Arguments
+            {{node_manager().GetItemID(), "item_id"}},
+            // Call base class's constructor
+            {{base_class_description, {StructureConstructor::Value {"ASTNodeType::Type_" + name}, "item_id"}}}
+        });
       }
 
       // Add the type.
@@ -644,11 +648,12 @@ void ParserDataToTypeManager::determineBaseTypes(TypeDeduction& deduction) {
       type->AddParent(node_manager().GetASTNodeBase());
       type->AddConstructor(StructureConstructor {
           // Arguments,
-          {},
+          {{node_manager().GetItemID(), "item_id"}},
           // Call ASTNodeBase's constructor
           {{node_manager().GetASTNodeBase(),
             {StructureConstructor::Value {"ASTNodeType::Type_" + type_name},
-             StructureConstructor::Value {nonterminal_enum->GetName() + "::" + nonterminal_enum_name}}}}});
+             StructureConstructor::Value {nonterminal_enum->GetName() + "::" + nonterminal_enum_name},
+            "item_id"}}}});
     }
 
     LOG_SEV(Info) << "  * The base type name for non-terminal " << nonterminal_id << "'s types will be "

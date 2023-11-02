@@ -136,6 +136,9 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
   // Write the guard and includes.
   codegen.WriteImports(code_out);
 
+  // Write any typedefs
+  code_out << "using manta::ItemID;\n\n";
+
   // Create the node class definitions.
   LOG_SEV(Info) << "Generating code for all AST node definitions.";
 
@@ -409,7 +412,7 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
       }
       LOG_SEV(Debug) << "Done creating function arguments.";
       code_out << ") {\n";
-      code_out << "  auto new_node = std::make_shared<" << node_type_name << ">();\n\n";
+      code_out << "  auto new_node = std::make_shared<" << node_type_name << ">(" << item_number << ");\n\n";
       code_out << "  // Set fields in the new node.\n";
 
       // Get relationships for this node. We only keep the ones for this item number.
@@ -483,16 +486,18 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
 
   // Invert the map node_types_for_item, forming a map where the values in the original map are the keys, and
   // the keys are the values.
-  std::map<std::string, unsigned> type_names_to_ids;
+  std::map<std::string, std::set<ItemID>> type_names_to_ids;
   for (auto& [key, value] : node_types_for_item) {
-    type_names_to_ids[value] = key;
+    type_names_to_ids[value].insert(key);
   }
 
-  std::map<unsigned, const TypeDescriptionStructure*> types_by_item;
+  std::map<ItemID, const TypeDescriptionStructure*> types_by_item;
   for (auto [_, types] : all_types) {
     for (auto [name, type] : types.child_types) {
       if (auto it = type_names_to_ids.find(name); it != type_names_to_ids.end()) {
-        types_by_item[it->second] = type;
+        for (auto& item_id : it->second) {
+          types_by_item[item_id] = type;
+        }
       }
     }
   }
@@ -628,27 +633,83 @@ TypeDescriptionStructure* ParserCodegen::createPrintingVisitor(ASTNodeManager& n
 TypeDescriptionStructure* ParserCodegen::createVisitorFromTemplate(
     ASTNodeManager& node_manager,
     const VisitorData::Visitor& visitor_data,
-    const std::map<unsigned, const TypeDescriptionStructure*>& node_types_for_item) const {
+    const std::map<ItemID, const TypeDescriptionStructure*>& node_types_for_item) const {
   auto& type_system = node_manager.GetTypeSystem();
   auto base_visitor = node_manager.GetVisitorStructure();
 
   auto visitor = type_system.Structure(visitor_data.name);
   visitor->AddParent(base_visitor);
 
-  auto create_visit_function = [&](const TypeDescriptionStructure* visitable_type, NonterminalID id) {
-    std::string body {};
-    if (auto it = visitor_data.code.find(id); it != visitor_data.code.end()) {
-      body = it->second;
+  // Invert the node_types_for_item data, grouping items by node type.
+  std::map<const TypeDescriptionStructure*, std::vector<unsigned>> node_types_to_items;
+  for (auto& [item_id, structure_type] : node_types_for_item) {
+    node_types_to_items[structure_type].push_back(item_id);
+  }
+
+  // Since a single type can be used for multiple items, we need to keep track of which piece of code should
+  // be run due to which item gave rise to the node.
+  std::map<const TypeDescriptionStructure*, std::vector<std::pair<ItemID, std::string>>> code_for_items;
+  for (auto& [item_id, structure_type] : node_types_for_item) {
+    auto it = visitor_data.code.find(item_id);
+    if (it == visitor_data.code.end()) {
+      continue;
     }
+    code_for_items[structure_type].emplace_back(item_id, it->second);
+  }
+
+  // Add the visit functions, taking care to put in switch statements that depend on which production / item
+  // gave rise to the node.
+  // Go through all the structures that need visit functions, adding the sections of code.
+  for (auto& [structure_type, items] : node_types_to_items) {
+    std::string body {};
+    for (auto item_id : items) {
+      auto it = visitor_data.code.find(item_id);
+      if (it == visitor_data.code.end()) {
+        continue;
+      }
+
+      if (body.empty()) {
+        body += "switch (object.item_id) {";
+      }
+
+      body += "\n  case " + std::to_string(item_id) + ": {\n";
+      // TODO: Sanitize? Detect special requests for type names?
+      body += it->second;
+      body += "\n    break;\n  }";
+    }
+
+    if (!body.empty()) {
+      body += "\n  default: {};\n";
+      body += "}\n";  // End the switch statement.
+    }
+
     StructureFunction visit_function {"Visit",
                                       StructureFunction::Signature {{StructureFunction::Argument {
-                                          ElaboratedType {visitable_type, false, true}, "object"}}},
+                                          ElaboratedType {structure_type, false, true}, "object"}}},
                                       body,
                                       true};
     visitor->AddFunction(visit_function);
-  };
-  for (auto& [id, node_type] : node_types_for_item) {
-    create_visit_function(node_type, id);
+  }
+
+  // TODO: Create visitor functions for all base node types.
+  auto&& all_node_types = node_manager.GetAllNodeTypesForNonterminals();
+  for (auto& [nonterminal_id, nonterminals_types] : all_node_types) {
+    if (code_for_items.count(nonterminals_types.base_type) == 0) {
+      // TODO: Allow for code to be injected into a base type somehow.
+      // For now, create an empty function
+      auto base_type = nonterminals_types.base_type;
+      if (!base_type) {
+        continue; // No base type, just a single type so no base type is needed.
+      }
+
+      StructureFunction visit_function {
+          "Visit",
+          StructureFunction::Signature {{StructureFunction::Argument {
+              ElaboratedType {base_type, false, true}, "object"}}},
+          "",
+          true};
+      visitor->AddFunction(visit_function);
+    }
   }
 
   // Create visitor for ASTLexeme.
@@ -656,7 +717,7 @@ TypeDescriptionStructure* ParserCodegen::createVisitorFromTemplate(
       "Visit",
       StructureFunction::Signature {{StructureFunction::Argument {
           ElaboratedType {node_manager.GetASTLexeme(), false, true}, "object"}}},
-      {},
+      "" /* Empty function, not abstract function */,
       true};
   visitor->AddFunction(visit_function);
 

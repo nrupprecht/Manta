@@ -37,6 +37,9 @@ public:
   //! \brief Get the enum that enumerate all the non-terminals.
   NO_DISCARD TypeDescriptionEnum* GetNonterminalEnum() const;
 
+  //! \brief Get the ItemID "structucture" type.
+  NO_DISCARD TypeDescriptionStructure* GetItemID() const;
+
   TypeDescriptionStructure* GetNodeDescription(const std::string& type_name, NonterminalID nonterminal_id);
 
   NO_DISCARD TypeDescriptionStructure* GetNodeDescription(const std::string& type_name);
@@ -59,6 +62,9 @@ public:
 
 private:
   TypeSystem type_system_;
+
+  //! \brief A structure that acts as a placeholder for the type of an item ID.
+  TypeDescriptionStructure* item_id_type_;
 
   //! \brief The enum type for the AST nodes.
   TypeDescriptionEnum* node_enum_;

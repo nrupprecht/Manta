@@ -13,7 +13,7 @@ struct VisitorData {
   //! \brief Definition for a single visitor.
   struct Visitor {
     //! \brief Map from Item to the code that should go in the visitor for that item.
-    std::map<unsigned, std::string> code;
+    std::map<ItemID, std::string> code;
 
     //! \brief The name of the visitor class.
     std::string name;
