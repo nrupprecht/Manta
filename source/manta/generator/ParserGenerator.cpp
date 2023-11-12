@@ -164,10 +164,10 @@ std::string ParserGenerator::nameOf(int id) const {
 
 std::string ParserGenerator::writeItem(const Item& item) const {
   // This may be a null production, just a placeholder for a shift.
-  if (item.production < 0) {
+  if (item.produced_nonterminal < 0) {
     return "";
   }
-  std::string output = nameOf(item.production) + " -> ";
+  std::string output = nameOf(item.produced_nonterminal) + " -> ";
   int j = 0;
   for (auto symbol : item.rhs) {
     if (j == item.bookmark) {
@@ -199,10 +199,10 @@ void ParserGenerator::createStateDerivesEmpty() {
   auto check_for_empty = [&](const Item& item, int count) {
     if (count == 0) {
       rule_derives_empty[item] = true;
-      auto index = nonTerminalIndex(item.production);
+      auto index = nonTerminalIndex(item.produced_nonterminal);
       if (!production_rules_data_->nonterminal_derives_empty[index]) {
         production_rules_data_->nonterminal_derives_empty[index] = true;
-        work_deque.Add(item.production);
+        work_deque.Add(item.produced_nonterminal);
       }
     }
   };
@@ -378,7 +378,7 @@ State ParserGenerator::advanceDot(const State& state, int symbol) {
   // Create set: { A -> a X * b | A -> a * X b in state}
   for (const auto& item : state) {
     int bookmark = item.bookmark;
-    if (-1 < bookmark && bookmark < item.size() && item.at(bookmark) == symbol) {
+    if (-1 < bookmark && bookmark < item.Size() && item.At(bookmark) == symbol) {
       Item new_item = item;
       // Increment the bookmark
       ++new_item.bookmark;
@@ -431,16 +431,17 @@ void ParserGenerator::assertEntry(int state, int symbol, const Entry& action) {
         << "  > Current entry:  " << ToString(current_entry.GetAction()) << " " << current_entry.GetState()
         << (current_entry.IsReduce() ? "\n" + bf + "Reduction" + writeItem(current_entry.GetRule()) : "")
         << "\n"
-        << bf << "Prec: " << current_res_info.precedence << ", Assoc: " << ToString(current_res_info.assoc)
+        << bf << "Prec: " << current_res_info.precedence << ", Assoc: " << to_string(current_res_info.assoc)
         << "\n"
         << "  > Proposed entry: " << ToString(action.GetAction()) << " " << action.GetState()
         << (action.IsReduce() ? "\n" + bf + "Reduction: " + writeItem(action.GetRule()) : "") << "\n"
-        << bf << "Prec: " << res_info.precedence << ", Assoc: " << ToString(res_info.assoc) << "\n";
+        << bf << "Prec: " << res_info.precedence << ", Assoc: " << to_string(res_info.assoc) << "\n";
 
     // This is resolution is a generalization of comparing the precedence of first and second operators, e.g.
     // things like A + A * A. We compare the precedence of the first and second operator. The lookahead is the
     // second operator, and the proposed reduction will contain the first operator, e.g. X -> A "+" A.
-    // In other words, the second operator's precedence is in the current_res_info, the first operator's precedence is in the incoming action.
+    // In other words, the second operator's precedence is in the current_res_info, the first operator's
+    // precedence is in the incoming action.
 
     auto first_prec = res_info.precedence;
     auto second_prec = current_res_info.precedence;
@@ -542,7 +543,7 @@ void ParserGenerator::buildItemForPropGraph() {
         ++added_edges;
 
         std::optional<int> gamma =
-            item.bookmark + 1 < item.size() ? std::optional(item.rhs[item.bookmark + 1]) : std::nullopt;
+            item.bookmark + 1 < item.Size() ? std::optional(item.rhs[item.bookmark + 1]) : std::nullopt;
         std::set<int> first_set;
         if (gamma) {
           // TODO / NOTE: I think this may be wrong, we need the first set of the tail string, not just the next element. This is
@@ -552,7 +553,7 @@ void ParserGenerator::buildItemForPropGraph() {
 
         // Find items of the form (B -> * gamma) in the same state.
         for (auto& other_item : augmented_state) {
-          if (other_item.production != *el || !other_item.IsBookmarkAtBeginning()) {
+          if (other_item.produced_nonterminal != *el || !other_item.IsBookmarkAtBeginning()) {
             continue;
           }
           // {state_id, B -> * gamma}
@@ -619,7 +620,7 @@ void ParserGenerator::tryRuleInState(int state, const Item& rule) {
     case ParserType::SLR: {
       // === SLR ===
       if (state_set.contains(rule_reduce)) {  // If LHS(rule) -> RHS(rule) * is in State(state)
-        auto follow_set = FollowSet(rule.production);
+        auto follow_set = FollowSet(rule.produced_nonterminal);
         for (int sym : follow_set) {
           assertEntry(state, sym, Entry(rule));
         }
@@ -677,7 +678,7 @@ std::set<int> ParserGenerator::internalFirst(int symbol, std::vector<bool>& visi
     visited[nonterminal_index] = true;
     const auto& state = production_rules_data_->productions_for[symbol];
     for (const auto& production : state) {
-      if (production.size() == 0) {  // Lambda production.
+      if (production.Size() == 0) {  // Lambda production.
         continue;
       }
 
@@ -719,7 +720,7 @@ std::set<int> ParserGenerator::internalFollow(int symbol, std::vector<bool>& vis
           }
           // Note that this is automatically true if the symbol is the last in the production.
           if (allDeriveEmpty(production.rhs, i + 1)) {
-            auto follow_set = internalFollow(production.production, visited);
+            auto follow_set = internalFollow(production.produced_nonterminal, visited);
             output.insert(follow_set.begin(), follow_set.end());
           }
         }

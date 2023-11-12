@@ -65,7 +65,7 @@ protected:
     std::string output;
     if (entry.IsReduce()) {
       auto rule = entry.GetRule();
-      output += inverse_nonterminal_map_.at(rule.production) + " ->";
+      output += inverse_nonterminal_map_.at(rule.produced_nonterminal) + " ->";
       for (const auto& r : rule.rhs) {
         output += " " + idToString(r);
       }
@@ -252,8 +252,8 @@ ParserDriverBase<NodeBase_t, LexemeNode_t, Parent_t>::parse() {
       LOG_SEV_TO(logger_, Debug) << "SHIFT. State is now " << action.GetState() << ".";
     }
     else if (action.IsReduce()) {
-      int size = action.GetRule().size();
-      int production = action.GetRule().production;
+      int size = action.GetRule().Size();
+      int production = action.GetRule().produced_nonterminal;
 
       // Put (newly reduced) production onto the input stack.
       incoming_deque.push_front(Token(production, ""));
@@ -274,13 +274,13 @@ ParserDriverBase<NodeBase_t, LexemeNode_t, Parent_t>::parse() {
       // REDUCTION. This is carried out by the child classes.
 
       // TODO: Get reduction ID.
-      auto reduction_id = action.GetRule().item_number;
+      auto reduction_id = action.GetRule().production_item_number;
       MANTA_ASSERT(reduction_id, "reduction did not have its item number set");
       LOG_SEV_TO(logger_, Debug)
           << "Reducing " << collect.size() << " collected nodes using item "
-          << *reduction_id << ".";
+          << reduction_id << ".";
 
-      auto production_node = static_cast<Parent_t*>(this)->reduce(*reduction_id, collect);
+      auto production_node = static_cast<Parent_t*>(this)->reduce(reduction_id, collect);
 
       // Clear collection vector.
       collect.clear();

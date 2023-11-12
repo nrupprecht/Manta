@@ -8,19 +8,19 @@
 
 using namespace manta;
 
-void ProductionRule::add(int r) {
+void ProductionRule::AddToProduction(int r) {
   rhs.push_back(r);
 }
 
-int& ProductionRule::at(int i) {
+int& ProductionRule::At(int i) {
   return rhs.at(i);
 }
 
-int ProductionRule::at(int i) const {
+int ProductionRule::At(int i) const {
   return rhs.at(i);
 }
 
-int ProductionRule::size() const {
+int ProductionRule::Size() const {
   return static_cast<int>(rhs.size());
 }
 
@@ -63,7 +63,7 @@ std::optional<int> Item::GetElementFollowingBookmark() const {
 
 void State::insert(const Item& item) {
   // Check if the item is a null production.
-  if (item.size() == 0)
+  if (item.Size() == 0)
     has_null_production = true;
   // Insert the item into the set.
   item_set.insert(item);
@@ -172,18 +172,18 @@ bool operator==(const State& s1, const State& s2) {
 }
 
 bool operator<(const Item& a, const Item& b) {
-  return std::tie(a.production, a.bookmark, a.rhs)
-      < std::tie(b.production, b.bookmark, b.rhs);
+  return std::tie(a.produced_nonterminal, a.bookmark, a.rhs)
+      < std::tie(b.produced_nonterminal, b.bookmark, b.rhs);
 }
 
 bool operator==(const Item& a, const Item& b) {
-  return std::tie(a.production, a.bookmark, a.rhs)
-      == std::tie(b.production, b.bookmark, b.rhs);
+  return std::tie(a.produced_nonterminal, a.bookmark, a.rhs)
+      == std::tie(b.produced_nonterminal, b.bookmark, b.rhs);
 }
 
 std::ostream& operator<<(std::ostream& out, const Item& item) {
-  out << item.production << " -> ";
-  for (int i = 0; i < item.size(); ++i) {
+  out << item.produced_nonterminal << " -> ";
+  for (int i = 0; i < item.Size(); ++i) {
     if (i == item.bookmark) {
       out << "* ";
     }
@@ -192,7 +192,7 @@ std::ostream& operator<<(std::ostream& out, const Item& item) {
   if (item.bookmark < 0) {
     out << "[*] ";
   }
-  else if (item.bookmark == item.size()) {
+  else if (item.bookmark == item.Size()) {
     out << "* ";
   }
   return out;
@@ -200,8 +200,8 @@ std::ostream& operator<<(std::ostream& out, const Item& item) {
 
 std::string to_string(const Item& item, bool print_marker) {
   std::stringstream out;
-  out << item.production << " -> ";
-  for (int i = 0; i < item.size(); ++i) {
+  out << item.produced_nonterminal << " -> ";
+  for (int i = 0; i < item.Size(); ++i) {
     if (i == item.bookmark && print_marker) {
       out << "* ";
     }
@@ -210,7 +210,7 @@ std::string to_string(const Item& item, bool print_marker) {
   if (item.bookmark < 0) {
     out << "[*] ";
   }
-  else if (item.bookmark == item.size()) {
+  else if (item.bookmark == item.Size()) {
     out << "* ";
   }
   return out.str();
@@ -228,7 +228,7 @@ std::string Entry::Write(int length) const {
       break;
     }
     case Action::Reduce: {
-      str = "R" + std::to_string(rule.production_label);
+      str = "R" + std::to_string(rule.production_item_number);
       break;
     }
     case Action::Accept: {
@@ -236,7 +236,7 @@ std::string Entry::Write(int length) const {
       break;
     }
     default: {
-      std::cout << "Error. Bad Entry.\n";
+      LOG_SEV(Warning) << "Entry::Write: Bad Entry.";
       break;
     }
   }
@@ -267,7 +267,7 @@ std::ostream& operator<<(std::ostream& out, const Entry& entry) {
       break;
     }
     default: {
-      std::cout << "[Bad Entry]";
+      LOG_SEV(Warning) << "Cannot stream entry, bad entry.";
       break;
     }
   }

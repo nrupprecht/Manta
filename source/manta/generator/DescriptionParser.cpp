@@ -42,7 +42,7 @@ void ProductionRulesBuilder::shiftProductionNumbers() {
   // Shift the ids in all productions
   for (auto& item : production_rules_data_->all_productions) {
     // Correct production.
-    item.production = lids - item.production;
+    item.produced_nonterminal = lids - item.produced_nonterminal;
     // Correct productions in the rhs.
     for (auto& i : item.rhs) {
       if (i < 0) {
@@ -67,7 +67,7 @@ void ProductionRulesBuilder::shiftProductionNumbers() {
     State state;
     for (auto item : p.second) {
       // Correct production.
-      item.production = lids - item.production;
+      item.produced_nonterminal = lids - item.produced_nonterminal;
       // Correct productions in the rhs.
       for (auto& i : item.rhs) {
         if (i < 0) {
@@ -95,7 +95,7 @@ Item& ProductionRulesBuilder::makeNextItem(int production_id) {
 }
 
 void ProductionRulesBuilder::storeCurrentItem() {
-  auto production_id = current_item_.production;
+  auto production_id = current_item_.produced_nonterminal;
 
   // Done finding the rule. Store the rule.
   auto prod = production_rules_data_->productions_for.find(production_id);
@@ -329,7 +329,7 @@ inline void HandWrittenDescriptionParser::getProductions(std::istream& in, int p
       if (!acc.empty()) {
         int id = production_rules_data_->lexer_generator->AddReserved(acc);
         // Add to production
-        production.add(id);
+        production.AddToProduction(id);
       }
       // Clear accumulator.
       acc.clear();
@@ -355,7 +355,7 @@ inline void HandWrittenDescriptionParser::getProductions(std::istream& in, int p
         registerStartingProduction(id);
       }
       // Add production to rule.
-      production.add(id);
+      production.AddToProduction(id);
       // Clear accumulator.
       acc.clear();
     }
@@ -374,7 +374,7 @@ inline void HandWrittenDescriptionParser::getProductions(std::istream& in, int p
       if (id < 0) {
         MANTA_THROW(UnexpectedInput, "visitor_name " << acc << " not a valid lexeme type");
       }
-      production.add(id);
+      production.AddToProduction(id);
 
       // Clear accumulator.
       acc.clear();

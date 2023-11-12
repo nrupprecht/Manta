@@ -174,8 +174,8 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
       LOG_SEV_TO(logger_, Debug) << "SHIFT. State is now " << action.GetState() << ".";
     }
     else if (action.IsReduce()) {
-      int size = action.GetRule().size();
-      int production = action.GetRule().production;
+      int size = action.GetRule().Size();
+      int production = action.GetRule().produced_nonterminal;
 
       // Put (newly reduced) production onto the input stack.
       incoming_deque.push_front(Token(production, ""));
@@ -500,7 +500,7 @@ std::string LALRParser::entryToString(const Entry& entry) {
   std::string output;
   if (entry.IsReduce()) {
     auto rule = entry.GetRule();
-    output += inverse_production_map_.at(rule.production) + " ->";
+    output += inverse_production_map_.at(rule.produced_nonterminal) + " ->";
     for (const auto& r : rule.rhs) {
       output += " " + idToString(r);
 

@@ -154,7 +154,7 @@ ParserTypeData& ParserDataToTypeManager::CreateRelationships(
     LOG_SEV(Info) << "Processing item number " << item_number << " (" << item_number + 1 << " / "
                   << all_productions.size() << ").";
     // Check for instructions upon a reduction by this rule.
-    auto nonterminal_id = item.production;
+    auto nonterminal_id = item.produced_nonterminal;
     auto& instructions = item.instructions;
     auto& nonterminal_name = parser_data->production_rules_data->GetNonterminalName(nonterminal_id);
     LOG_SEV(Info) << "Non-terminal's name is '" << nonterminal_name << ".";
@@ -738,7 +738,7 @@ void ParserDataToTypeManager::processFieldCommand(const std::vector<std::shared_
                                                   const Item& item,
                                                   unsigned item_number,
                                                   TypeDescriptionStructure* node_type_description) {
-  auto nonterminal_id = item.production;
+  auto nonterminal_id = item.produced_nonterminal;
   auto& instructions = item.instructions;
   auto&& nonterminal_name = production_rules_data_->GetNonterminalName(nonterminal_id);
 
@@ -815,7 +815,7 @@ void ParserDataToTypeManager::processAppendCommand(const std::vector<std::shared
                                                    TypeDescriptionStructure* node_type_description) {
   // Form: append($N.field_name_1, field_name_2)
 
-  auto nonterminal_id = item.production;
+  auto nonterminal_id = item.produced_nonterminal;
   auto& instructions = item.instructions;
   auto&& nonterminal_name = production_rules_data_->GetNonterminalName(nonterminal_id);
 
@@ -852,7 +852,7 @@ void ParserDataToTypeManager::processPushCommand(const std::vector<std::shared_p
                                                  const Item& item,
                                                  unsigned item_number,  // item_number
                                                  TypeDescriptionStructure* node_type_description) {
-  auto nonterminal_id = item.production;
+  auto nonterminal_id = item.produced_nonterminal;
   auto& instructions = item.instructions;
   auto&& nonterminal_name = production_rules_data_->GetNonterminalName(nonterminal_id);
 

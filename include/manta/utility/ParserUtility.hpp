@@ -15,7 +15,7 @@ enum class Associativity {
   None
 };
 
-inline std::string ToString(Associativity assoc) {
+inline std::string to_string(Associativity assoc) {
   switch (assoc) {
     case Associativity::Left:
       return "Left";
@@ -44,42 +44,50 @@ constexpr ResolutionInfo NullResolutionInfo {};
 //! \brief Encode a production rule, like A -> a X b, etc.
 struct ProductionRule {
   explicit ProductionRule(NonterminalID production, int label, const std::vector<int> rhs = {})
-      : production(production)
-      , production_label(label)
+      : produced_nonterminal(production)
+      , production_item_number(label)
       , rhs(rhs) {}
 
   //! \brief Create an empty production rule.
   ProductionRule() = default;
 
-  void add(int r);
-  int& at(int i);
-  NO_DISCARD int at(int i) const;
-  NO_DISCARD int size() const;
+  //! \brief Add a terminal or non-terminal, by ID, to the right hand side of the production rule.
+  //!
+  //! Thinking of the RHS as a vector of symbols, this adds a non-terminal to the end of the vector.
+  void AddToProduction(int r);
+
+  //! \brief Get the i-th element of the RHS of the production.
+  NO_DISCARD int& At(int i);
+  NO_DISCARD int At(int i) const;
+
+  //! \brief Get the number of elements in the RHS of the production.
+  NO_DISCARD int Size() const;
 
   bool operator<(const ProductionRule& rule) const {
-    return std::tie(production, rhs) < std::tie(rule.production, rule.rhs);
+    return std::tie(produced_nonterminal, rhs) < std::tie(rule.produced_nonterminal, rule.rhs);
   }
 
   bool operator==(const ProductionRule& rule) {
-    return std::tie(production, rhs) == std::tie(rule.production, rule.rhs);
+    return std::tie(produced_nonterminal, rhs) == std::tie(rule.produced_nonterminal, rule.rhs);
   }
 
   // --- Data items ---
 
   // NOTE(Nate): Check how production and production_label differ - can we consolidate?
 
-  //! \brief The nonterminal ID that this is a rule for. I.e., the left hand side of a
+  //! \brief The nonterminal sybol, by ID, that this is a rule for. I.e., the left hand side of a
   //! production rule.
-  // TODO: This should be referenced_id, not "production"
-  NonterminalID production = -1;
+  NonterminalID produced_nonterminal = -1;
 
-  //! \brief A number for the production, i.e. this is the n-th production.
-  int production_label {};
+  //! \brief A number for the production, i.e. this is the n-th item.
+  ItemID production_item_number {};
 
   //! \brief The right hand side of the production.
   std::vector<int> rhs;
 
   //! \brief Instructions associated with the state.
+  //!
+  //! TODO: Keep these in a better, dedicted structure.
   std::shared_ptr<class ParseNode> instructions = nullptr;
 
   //! \brief Resolution info - this encodes the precedence and associativity of a

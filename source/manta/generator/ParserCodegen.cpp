@@ -238,7 +238,7 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
           // Look up the item number.
           auto item_number = item_numbers.at(item);
 
-          code_out << "Entry(Item(" << item.production << ", " << item.production_label << ", 0, {";
+          code_out << "Entry(Item(" << item.produced_nonterminal << ", " << item.production_item_number << ", 0, {";
           for (auto i = 0u; i < item.rhs.size(); ++i) {
             if (i != 0)
               code_out << ", ";
@@ -699,15 +699,14 @@ TypeDescriptionStructure* ParserCodegen::createVisitorFromTemplate(
       // For now, create an empty function
       auto base_type = nonterminals_types.base_type;
       if (!base_type) {
-        continue; // No base type, just a single type so no base type is needed.
+        continue;  // No base type, just a single type so no base type is needed.
       }
 
-      StructureFunction visit_function {
-          "Visit",
-          StructureFunction::Signature {{StructureFunction::Argument {
-              ElaboratedType {base_type, false, true}, "object"}}},
-          "",
-          true};
+      StructureFunction visit_function {"Visit",
+                                        StructureFunction::Signature {{StructureFunction::Argument {
+                                            ElaboratedType {base_type, false, true}, "object"}}},
+                                        "",
+                                        true};
       visitor->AddFunction(visit_function);
     }
   }
