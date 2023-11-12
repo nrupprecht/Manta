@@ -139,6 +139,10 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
   // Write any typedefs
   code_out << "using manta::ItemID;\n\n";
 
+  code_out << "#define REDUCE_ASSERT(count, item, size) \\\n"
+              "  MANTA_REQUIRE(count <= size, \"in reduction \" << item << \", not enough nodes in the "
+              "collect vector, needed at least \" << count << \", actual size was \" << size)\n\n";
+
   // Create the node class definitions.
   LOG_SEV(Info) << "Generating code for all AST node definitions.";
 
@@ -331,10 +335,14 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
 
       auto& node_type_name = node_types_for_item.at(item_number);
       code_out << "    case " << item_number << ": {\n";
+
       // Make sure there are enough nodes in the collect vector.
-      code_out << "      MANTA_REQUIRE(" << item.rhs.size() << " <= collected_nodes.size(), \"in reduction "
-               << item_number << ", not enough nodes in the collect vector, needed at least "
-               << item.rhs.size() << ", actual size was \" << collected_nodes.size());\n";
+      code_out << "      REDUCE_ASSERT(" << item.rhs.size() << ", " << item_number
+               << ", collected_nodes.size());\n";
+
+//      code_out << "      MANTA_REQUIRE(" << item.rhs.size() << " <= collected_nodes.size(), \"in reduction "
+//               << item_number << ", not enough nodes in the collect vector, needed at least "
+//               << item.rhs.size() << ", actual size was \" << collected_nodes.size());\n";
       auto function_name = "ReduceTo_" + node_type_name + "_ViaItem_" + std::to_string(item_number);
       code_out << "      LOG_SEV_TO(logger_, Debug) << \"Calling reduce function '" << function_name
                << "'.\";\n";
