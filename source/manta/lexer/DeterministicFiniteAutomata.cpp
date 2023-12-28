@@ -1,4 +1,6 @@
 #include "manta/lexer/DeterministicFiniteAutomata.hpp"
+// Other files.
+#include <limits>
 
 using namespace manta;
 
