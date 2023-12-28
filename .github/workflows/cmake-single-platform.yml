@@ -37,7 +37,7 @@ jobs:
     - name: Create default Conan profile
       run: |
         echo "Setting up a default conan profile."
-        conan profile detect
+        conan profile new default --detect
 
     - name: Conan configure remotes
       run:  |
