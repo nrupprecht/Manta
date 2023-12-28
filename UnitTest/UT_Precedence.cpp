@@ -8,6 +8,7 @@
 // Includes
 #include "manta/generator/ParserGenerator.h"
 #include "manta/parser/LALRParser.hpp"
+#include <cmath>
 
 using namespace manta;
 
