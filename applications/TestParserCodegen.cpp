@@ -9,6 +9,25 @@ int main(int argc, char** argv) {
   // Set up the global core to an OstreamSink.
   lightning::Global::GetCore()->AddSink(NewSink<lightning::UnlockedSink, lightning::OstreamSink>());
 
+  auto formatter = std::make_unique<formatting::FormatterBySeverity>();
+  auto default_fmt = MakeMsgFormatter("[{}] [{}] {}",
+                                      formatting::DateTimeAttributeFormatter{},
+                                      formatting::SeverityAttributeFormatter{},
+                                      formatting::MSG);
+  auto low_level_fmt = MakeMsgFormatter("[{}] [{}:{}] [{}] {}",
+                                        formatting::DateTimeAttributeFormatter{},
+                                        formatting::FileNameAttributeFormatter{false},
+                                        formatting::FileLineAttributeFormatter{},
+                                        formatting::SeverityAttributeFormatter{},
+                                        formatting::MSG);
+  formatter->SetDefaultFormatter(std::move(default_fmt));
+  for (auto severity: {Severity::Trace, Severity::Debug}) {
+    formatter->SetFormatterForSeverity(severity, low_level_fmt->Copy());
+  }
+  auto as_base = formatter->Copy();
+  lightning::Global::GetCore()->SetAllFormatters(as_base);
+
+
   ParserCodegen generator;
 
   LOG_SEV(Info) << "Done deducing types. Filling in type descriptions.";

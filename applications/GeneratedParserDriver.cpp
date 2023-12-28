@@ -9,7 +9,9 @@
 
 using namespace lightning;
 
+
 auto main() -> int {
+
   Global::GetCore()->AddSink(
       NewSink<UnlockedSink, OstreamSink>());
 
@@ -20,10 +22,17 @@ auto main() -> int {
   parser.SetLogger(logger);
 
   // parser.SetInput(manta::utility::IStreamContainer::OpenFile("../../examples/codefile.txt"));
-  parser.SetInput(manta::utility::IStreamContainer::OpenFile("../../examples/basic_parser_and_lexer.txt"));
+  parser.SetInput(manta::utility::IStreamContainer::OpenFile("../../examples/C-/C- code.cmm"));
 
-  manta::utility::Timer timer {};
-  auto node = parser.ParseInput();
+  manta::utility::Timer timer{};
+  std::shared_ptr<ASTNodeBase> node{};
+  try {
+    node = parser.ParseInput();
+  }
+  catch (const std::exception& ex) {
+    LOG_SEV_TO(logger, Fatal) << "Exception caught: " << ex.what();
+    return 1;
+  }
   timer.Stop();
 
   LOG_SEV_TO(logger, Info) << "Parse took " << timer.Time() << " seconds.";
