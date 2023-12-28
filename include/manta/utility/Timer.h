@@ -10,8 +10,7 @@ namespace manta::utility {
 
 //! \brief A utility class the measures the duration between times.
 class Timer {
-  using Duration =
-      std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<double>>;
+  using Duration = decltype(std::chrono::high_resolution_clock::now());
 
 public:
   Timer() { Start(); }
