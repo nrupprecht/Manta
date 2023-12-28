@@ -40,7 +40,6 @@ jobs:
     - name: Conan configure remotes
       run:  |
             conan remote add bincrafters https://api.bintray.com/conan/bincrafters/public-conan
-            conan remote add conancenter https://center.conan.io
             conan remote add conan-community https://api.bintray.com/conan/conan-community/conan
             conan config set general.revisions_enabled=1
 
