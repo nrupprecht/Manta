@@ -3,8 +3,10 @@
 //
 
 #include "manta/visualization/Display.hpp"
+// Other files.
+#include <cmath>
 
-using namespace manta;
+namespace manta {
 
 std::string Display::RenderParseTree(const std::shared_ptr<ParseNode>& node) {
   auto w = width(node);
@@ -113,4 +115,6 @@ std::size_t Display::maxTerminal(const std::shared_ptr<ParseNode>& node) {
   }
 
   return max_terminal;
+}
+
 }
