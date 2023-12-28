@@ -11,6 +11,8 @@
 #include <sstream>
 #include <fstream>
 #include <memory>
+#include <optional>
+#include <functional>
 
 namespace manta {
 
