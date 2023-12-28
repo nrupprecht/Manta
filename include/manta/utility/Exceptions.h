@@ -7,6 +7,7 @@
 #pragma once
 
 #include <exception>
+#include <stdexcept> // For std::runtime_error
 #include <string>
 
 //! \brief Macro alias for nodiscard specifier
