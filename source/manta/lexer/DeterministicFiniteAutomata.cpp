@@ -45,7 +45,7 @@ void FiniteAutomaton::SetContainer(utility::IStreamContainer& stream) {
   instream_ = stream;
 }
 
-std::optional<LexResult> FiniteAutomaton::LexNext() {
+std::optional<LexerResult> FiniteAutomaton::LexNext() {
   // If repeat_eof_ is true, we repeatedly return EOF when we hit the eof.
   if (!repeat_eof_) {
     if (status_flag_ == FAStatus::AcceptedEOF) {
@@ -66,7 +66,7 @@ std::optional<LexResult> FiniteAutomaton::LexNext() {
   //      status_flag_ = FAStatus::AcceptedEOF; // We have reached and consumed EOF.
   //
   //      // We have to check what state EOF is.
-  //      return LexResult({{0 /* EOF */, "EOF"}}, "\\0");
+  //      return LexerResult({{0 /* EOF */, "EOF"}}, "\\0");
   //    }
   //    else {
   //      status_flag_ = FAStatus::EndedNonAccepting;
@@ -75,6 +75,9 @@ std::optional<LexResult> FiniteAutomaton::LexNext() {
   //  }
 
   state_pointer_ = 0;  // Reset state pointer.
+
+  // Source position at the beginning of the lexeme.
+  auto initial_source_position = source_position_;
 
   // Store the literal string
   std::string literal;
@@ -92,9 +95,7 @@ std::optional<LexResult> FiniteAutomaton::LexNext() {
     }
   };  // Lambda function returns char(0) for eof.
   auto put_char = [&]() {
-    if (instream_->eof())
-      ;
-    else {
+    if (!instream_->eof()) {
       instream_->putback(c);
     }
   };
@@ -111,11 +112,10 @@ std::optional<LexResult> FiniteAutomaton::LexNext() {
 
     // Advance counters.
     if (c == '\n') {
-      ++line_;
-      character_ = 1;
+      source_position_.NewLine();
     }
     else {
-      ++character_;
+      source_position_.Advance();
     }
     get_char();
   }
@@ -134,7 +134,7 @@ std::optional<LexResult> FiniteAutomaton::LexNext() {
 
     // The DFA does not know the lexeme names, so they will have to be filled in by the
     // Lexer.
-    LexResult result({}, literal);
+    LexerResult result{{}, literal, initial_source_position};
     for (auto& [_, lexeme_id] : dfa_nodes_[final_state].accepting_states) {
       result.accepted_lexemes.emplace_back(lexeme_id, "?");
     }

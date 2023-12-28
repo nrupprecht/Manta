@@ -689,46 +689,86 @@ void ParserDataToTypeManager::createGeneralNode(const std::string& type_name,
   LOG_SEV(Debug) << "  * Creating general node for non terminal ID " << nonterminal_id << ", type name "
                  << formatting::CLBB(type_name) << ".";
 
-  int count = -1;
-  for (auto referenced_type : item.rhs) {
-    // Increment here so if we continue, we still always increment count.
-    ++count;
+  // Go through all items on the RHS first to make sure that there will not be duplicated names.
+  // For example, if there is something like A -> B * B, there would be two fields named B, which is not
+  // allowed.
 
+  LOG_SEV(Debug) << "  * Preprocessing fields for " << nonterminal_name << ".";
+
+  // Make sure that if there are duplicate names, they can be counted and then have a number appended to the name.
+  std::map<std::string, int> field_counts;
+  std::vector<std::string> field_names;
+  int index = -1;
+  for (auto referenced_type : item.rhs) {
+    ++index;
     auto& name = production_rules_data_->GetName(referenced_type);
 
     if (production_rules_data_->lexer_generator->IsReserved(name)) {
-      LOG_SEV(Debug) << "    >> Not creating a field for '" << name << "' since it is a literal.";
-
+      field_names.push_back(name);
       continue;  // Literal
     }
     auto target_field_name = field_name_sanitizer_(name);
     if (tag_generated_field_names_) {
-      target_field_name += "_" + std::to_string(count);
+      target_field_name += "_" + std::to_string(index);
     }
-
     if (production_rules_data_->IsNonTerminal(referenced_type)) {
       // Non-terminal
       if (generated_nodes_have_node_in_name_) {
         target_field_name += "_node";
       }
     }
-    else {
+    LOG_SEV(Debug) << "    >> Preprocessing field with candidate name '" << target_field_name << "'.";
+    ++field_counts[target_field_name];
+    field_names.push_back(target_field_name);
+  }
+  LOG_SEV(Debug) << "  * Done preprocessing fields for " << nonterminal_name << ", looking for duplicate field names.";
+
+  // Find any entries in field_counts where there were duplicates, as a set.
+  std::set < std::string > duplicate_field_names;
+  for (auto& [field_name, count] : field_counts) {
+    if (1 < count) {
+      duplicate_field_names.insert(field_name);
+    }
+  }
+  std::map<std::string, int> assigned_field_counts{};
+  if (!duplicate_field_names.empty()) {
+    LOG_SEV(Debug) << "Found " << duplicate_field_names.size() << " field names that would be duplicated, appending "
+                   << "a number to the end of the names.";
+    for (auto& field_name : field_names) {
+      if (duplicate_field_names.contains(field_name)) {
+        auto& count = assigned_field_counts[field_name];
+        field_name += "_" + std::to_string(count);
+        ++count;
+      }
+    }
+  }
+
+  LOG_SEV(Debug) << "  * Adding all fields to type " << formatting::CLBB(type_name) << ".";
+  for (auto i = 0; i < field_names.size(); ++i) {
+    auto& referenced_type = item.rhs[i];
+    auto& field_name = field_names[i];
+
+    if (production_rules_data_->lexer_generator->IsReserved(field_name)) {
+      LOG_SEV(Debug) << "    >> Not creating a field for '" << field_name << "' since it is a literal.";
+      continue;  // Literal
+    }
+
+    if (!production_rules_data_->IsNonTerminal(referenced_type)) {
       // Directly add the field, which is known to be a string.
       // TODO: Allow for other types of fields? The problem would be that, like llvm, we'd
       // need arbitrary precision numbers
       //  so we didn't lose information. Strings do not have this problem.
-      node_type_description->AddField(target_field_name, node_manager().GetStringType());
+      node_type_description->AddField(field_name, node_manager().GetStringType());
     }
 
-    LOG_SEV(Debug) << "    >> Target field will be named '" << target_field_name << "'.";
-
+    LOG_SEV(Debug) << "    >> Target field will be named '" << field_name << "'.";
     TypeRelationship relationship {static_cast<NonterminalID>(referenced_type),
                                    production_rules_data_->IsNonTerminal(referenced_type),
                                    {},  // No field access needed.
                                    node_type_description->type_name,
-                                   target_field_name,
+                                   field_name,
                                    CheckType::Field,
-                                   static_cast<int>(count),  // Position in the reduction.
+                                   static_cast<int>(i),  // Position in the reduction.
                                    item_number};
     relationships()[node_type_description->type_name].push_back(relationship);
   }

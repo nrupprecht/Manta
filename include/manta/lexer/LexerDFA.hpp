@@ -26,7 +26,7 @@ public:
   NO_DISCARD bool CheckAnyRemaining() const;
 
   //! \brief Get the next token from the stream.
-  std::optional<LexResult> LexNext();
+  std::optional<LexerResult> LexNext();
 
   //! \brief Get the total number of lexemes the Lexer recognizes.
   NO_DISCARD std::size_t GetNumLexemes() const;
@@ -51,6 +51,9 @@ public:
 
   //! \brief Get the character column number in the line that the lexer is currently on.
   NO_DISCARD int GetColumn() const;
+
+  //! \brief Get the source position of the lexer.
+  NO_DISCARD SourcePosition GetSourcePosition() const;
 
   //! \brief Set the repeat eof flag.
   void SetRepeatEOF(bool flag);

@@ -96,6 +96,9 @@ public:
   //! \brief Get the parser generation trace.
   std::string GetParserGenerationTrace() const;
 
+  //! \brief Get the parse table.
+  NO_DISCARD const std::vector<std::vector<Entry>>& GetParseTable() const;
+
   // ======================================================
   //  Exceptions
   // ======================================================

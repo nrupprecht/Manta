@@ -150,7 +150,7 @@ public:
   void SetContainer(utility::IStreamContainer& container);
 
   //! \brief Lex the next part of the input.
-  std::optional<LexResult> LexNext();
+  std::optional<LexerResult> LexNext();
 
   //! \brief Return a FiniteAutomaton from this (assumed to be) NFA.
   FiniteAutomaton NFAToDFA();
@@ -209,10 +209,12 @@ public:
   void SetRepeatEOF(bool flag);
 
   //! \brief Get the line number that the DFA is on.
-  NO_DISCARD int GetLine() const { return line_; }
+  NO_DISCARD int GetLine() const { return source_position_.line; }
 
   //! \brief Get the column in the line that the DFA is on.
-  NO_DISCARD int GetCharacter() const { return character_; }
+  NO_DISCARD int GetCharacter() const { return source_position_.column; }
+
+  NO_DISCARD auto& GetSourcePosition() const { return source_position_; }
 
   //! \brief Check whether the DFA's istreamcontainer is good.
   NO_DISCARD bool IsGood() const { return instream_.IsGood(); }
@@ -256,8 +258,7 @@ private:
   unsigned state_pointer_ = 0;
 
   //! \brief Keep track of what line and character (in the line) of the file we are in.
-  int line_ = 1;
-  int character_ = 1;
+  SourcePosition source_position_{1, 1};
 
   //! \brief If true, when the EOF is consumed, whenever a new token is asked for, another
   //! EOF token is returned instead of entering a failed state and returning a bad (-1)

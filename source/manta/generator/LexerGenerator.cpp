@@ -363,6 +363,13 @@ std::size_t LexerGenerator::GetNumLexemes() const {
   return all_lexemes_.size();
 }
 
+std::string LexerGenerator::GetLexemeName(int index) const {
+  if (index < 0 || all_lexemes_.size() <= index) {
+    return "";
+  }
+  return all_lexemes_[index];
+}
+
 bool LexerGenerator::IsReserved(const std::string& lexeme_name) const {
   return reserved_tokens_.contains(lexeme_name);
 }

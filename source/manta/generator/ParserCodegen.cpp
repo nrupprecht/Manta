@@ -66,7 +66,7 @@ void format_logstream(const TypeDescription& type_description, lightning::RefBun
 }  // namespace manta::typesystem
 
 void ParserCodegen::GenerateParserCode(std::ostream& code_out,
-                                       const std::shared_ptr<const ParserData>& parser_data) const {
+                                       const std::shared_ptr<const ParserData>& parser_data) {
   LOG_SEV(Info) << "Generating parser code. Creating relationships.";
 
   ParserDataToTypeManager manager(false, true);
@@ -140,8 +140,8 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
   code_out << "using manta::ItemID;\n\n";
 
   code_out << "#define REDUCE_ASSERT(count, item, size) \\\n"
-              "  MANTA_REQUIRE(count <= size, \"in reduction \" << item << \", not enough nodes in the "
-              "collect vector, needed at least \" << count << \", actual size was \" << size)\n\n";
+              "  MANTA_REQUIRE(count <= size, \"in reduction \"  #item  \", not enough nodes in the "
+              "collect vector, needed at least \" #count \", actual size was \" << size)\n\n";
 
   // Create the node class definitions.
   LOG_SEV(Info) << "Generating code for all AST node definitions.";
@@ -242,7 +242,7 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
           // Look up the item number.
           auto item_number = item_numbers.at(item);
 
-          code_out << "Entry(Item(" << item.produced_nonterminal << ", " << item.production_item_number << ", 0, {";
+          code_out << "Entry(Item(" << item.produced_nonterminal << ", " << *item.item_number << ", 0, {";
           for (auto i = 0u; i < item.rhs.size(); ++i) {
             if (i != 0)
               code_out << ", ";
@@ -420,12 +420,14 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
       }
       LOG_SEV(Debug) << "Done creating function arguments.";
       code_out << ") {\n";
-      code_out << "  auto new_node = std::make_shared<" << node_type_name << ">(" << item_number << ");\n\n";
-      code_out << "  // Set fields in the new node.\n";
 
-      // Get relationships for this node. We only keep the ones for this item number.
 
       if (auto it = relationships.find(node_type_name); it != relationships.end()) {
+        code_out << "  auto new_node = std::make_shared<" << node_type_name << ">(" << item_number << ");\n\n";
+        code_out << "  // Set fields in the new node.\n";
+
+        // Get relationships for this node. We only keep the ones for this item number.
+
         auto& relationships_for_node = it->second;
         std::sort(relationships_for_node.end(), relationships_for_node.end(), [](auto& l, auto& r) {
           return l.position < r.position;
@@ -471,12 +473,13 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
             }
           }
         }
+        code_out << "\n";
+        code_out << "  return new_node;\n";
       }
       else {
         LOG_SEV(Info) << "Node " << CLBB(node_type_name) << " has no relationships.";
+        code_out << "  return std::make_shared<" << node_type_name << ">(" << item_number << ");\n";
       }
-      code_out << "\n";
-      code_out << "  return new_node;\n";
       code_out << "}\n" << std::endl;
 
       LOG_SEV(Info) << "Done writing code for reduction of item " << item_number << ".";
@@ -520,10 +523,11 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
 
 void ParserCodegen::GenerateParserCode(std::ostream& code_out,
                                        std::istream& parser_description,
-                                       ParserType parser_type) const {
+                                       ParserType parser_type) {
   ParserGenerator generator(parser_type);
   generator.SetDescriptionParser(description_parser_);
-  GenerateParserCode(code_out, generator.CreateParserData(parser_description));
+  parser_data_ = generator.CreateParserData(parser_description);
+  GenerateParserCode(code_out, parser_data_);
 }
 
 TypeDescriptionStructure* ParserCodegen::createBaseVisitor(ASTNodeManager& node_manager) const {

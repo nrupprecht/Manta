@@ -15,7 +15,7 @@ namespace manta {
 
 template<typename NodeBase_t, typename LexemeNode_t, typename Parent_t>
 class ParserDriverBase {
-public:
+ public:
   //! \brief Set the lexer for the parser.
   void SetLexer(std::shared_ptr<LexerDFA> lexer) { lexer_ = std::move(lexer); }
 
@@ -23,7 +23,7 @@ public:
 
   void SetLogger(lightning::Logger logger) { logger_ = logger; }
 
-protected:
+ protected:
   std::shared_ptr<NodeBase_t> parse();
 
   //! \brief Convert an ID to a string. The ID may either be a lexeme, or terminal.
@@ -77,12 +77,15 @@ protected:
     std::string output;
     output.reserve(input.size());
     std::for_each(input.begin(), input.end(), [&](char c) {
-      if (c == '\n')
+      if (c == '\n') {
         output += "\\n";
-      else if (c == '\t')
+      }
+      else if (c == '\t') {
         output += "\\t";
-      else
+      }
+      else {
         output += c;
+      }
     });
     return output;
   }
@@ -167,7 +170,8 @@ ParserDriverBase<NodeBase_t, LexemeNode_t, Parent_t>::parse() {
 
       if (auto handler = logger_.Log(Severity::Debug)) {
         handler << "Lexed the literal \"" << CLBG(escape(result->literal))
-                << "\". Matched " << result->accepted_lexemes.size() << " lexeme(s):";
+                << "\", location " << result->source_position << ". Matched " << result->accepted_lexemes.size()
+                << " lexeme(s):";
         int i = 0;
         for (auto& [id, _] : result->accepted_lexemes) {
           if (i != 0) {
@@ -201,6 +205,7 @@ ParserDriverBase<NodeBase_t, LexemeNode_t, Parent_t>::parse() {
           for (auto& [lexeme_id, _] : result->accepted_lexemes) {
             handle << lightning::NewLineIndent << CLBB(idToString(lexeme_id));
           }
+          handle << lightning::NewLineIndent << "Token source location was " << result->source_position << ".";
         }
         printFatalParseError(state);
         break;
@@ -255,11 +260,8 @@ ParserDriverBase<NodeBase_t, LexemeNode_t, Parent_t>::parse() {
       int size = action.GetRule().Size();
       int production = action.GetRule().produced_nonterminal;
 
-      // Put (newly reduced) production onto the input stack.
-      incoming_deque.push_front(Token(production, ""));
-      // Create a parse node.
-      //      auto production_node =
-      //      std::make_shared<ParseNode>(inverse_nonterminal_map_.find(production)->second);
+      // Put (newly reduced) production Token onto the input stack.
+      incoming_deque.emplace_front(production, "");
 
       // Take nodes that are to be reduced off the stack, and temporarily store them in
       // the collect vector.
@@ -273,14 +275,15 @@ ParserDriverBase<NodeBase_t, LexemeNode_t, Parent_t>::parse() {
 
       // REDUCTION. This is carried out by the child classes.
 
-      // TODO: Get reduction ID.
-      auto reduction_id = action.GetRule().production_item_number;
-      MANTA_ASSERT(reduction_id, "reduction did not have its item number set");
+      auto reduction_id = action.GetRule().item_number;
+      MANTA_ASSERT(reduction_id,
+                   "reduction did not have its item number set, table entry was (state=" << state << ", symbol="
+                                                                                         << incoming_symbol << ")");
       LOG_SEV_TO(logger_, Debug)
           << "Reducing " << collect.size() << " collected nodes using item "
-          << reduction_id << ".";
+          << *reduction_id << ".";
 
-      auto production_node = static_cast<Parent_t*>(this)->reduce(reduction_id, collect);
+      auto production_node = static_cast<Parent_t*>(this)->reduce(*reduction_id, collect);
 
       // Clear collection vector.
       collect.clear();

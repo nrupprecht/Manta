@@ -10,7 +10,6 @@
 #include "manta/utility/Formatting.h"
 
 namespace manta {
-
 // ====================================================================================
 //  ProductionRulesBuilder.
 // ====================================================================================
@@ -24,6 +23,15 @@ int ProductionRulesBuilder::registerProduction(const std::string& production) {
     return production_rules_data_->num_productions--;
   }
   return it->second;
+}
+
+NonterminalID ProductionRulesBuilder::createHelperNonterminal(NonterminalID parent_id) {
+  // Helper nonterminals can't be referenced explicitly, since they are created by the parser generator, not
+  // by the user. Each one is unique. So we never have to check if on "already exists."
+  auto name = "SUPPORT_" + std::to_string(parent_id) + "_" + std::to_string(support_nonterminal_ids_.size());
+  auto id = production_rules_data_->num_productions--;
+  support_nonterminal_ids_.insert(id);
+  return id++;
 }
 
 void ProductionRulesBuilder::registerStartingProduction(int id) {
@@ -89,19 +97,20 @@ int ProductionRulesBuilder::getLexemeID(const std::string& lexeme_name) const {
 }
 
 Item& ProductionRulesBuilder::makeNextItem(int production_id) {
-  current_item_ = {production_id, next_production_label_++};
-  current_item_.item_number = item_number_++;
+  auto item_number = item_number_++;
+  current_item_ = {production_id, item_number};
+  current_item_.item_number = item_number;
   return current_item_;
 }
 
 void ProductionRulesBuilder::storeCurrentItem() {
-  auto production_id = current_item_.produced_nonterminal;
+  auto nonterminal_id = current_item_.produced_nonterminal;
 
   // Done finding the rule. Store the rule.
-  auto prod = production_rules_data_->productions_for.find(production_id);
+  auto prod = production_rules_data_->productions_for.find(nonterminal_id);
   if (prod == production_rules_data_->productions_for.end()) {
-    production_rules_data_->productions_for.emplace(production_id, State());
-    prod = production_rules_data_->productions_for.find(production_id);
+    production_rules_data_->productions_for.emplace(nonterminal_id, State{});
+    prod = production_rules_data_->productions_for.find(nonterminal_id);
   }
 
   // Add production to the productions for production_id
@@ -132,13 +141,15 @@ std::string HandWrittenDescriptionParser::findNextCommand(std::istream& stream) 
   // Find the .Parser indicator.
   stream.get(c);
   while (!stream.eof()) {
-    if (c == '#') {  // Pass comments
+    if (c == '#') {
+      // Pass comments
       stream.get(c);
       while (!stream.eof() and c != '\n') {
         stream.get(c);
       }
     }
-    else if (c == '.') {  // Command
+    else if (c == '.') {
+      // Command
       std::string command;
       stream.get(c);
       while (!stream.eof() && isalpha(c)) {
@@ -163,7 +174,7 @@ std::shared_ptr<ProductionRulesData> HandWrittenDescriptionParser::ParseDescript
   int pid;
 
   // Create the lexer. We always add @eof as a lexer item.
-  production_rules_data_->lexer_generator->CreateLexer(stream, false);  // Do not Clear old.
+  production_rules_data_->lexer_generator->CreateLexer(stream, false); // Do not Clear old.
 
   if (auto cmd = findNextCommand(stream); cmd != "Parser") {
     MANTA_THROW(UnexpectedInput, "expected a .Parser command, found a ." << cmd);
@@ -180,10 +191,10 @@ std::shared_ptr<ProductionRulesData> HandWrittenDescriptionParser::ParseDescript
   stream.get(c);
   while (!stream.eof()) {
     // Pass whitespaces.
-    if (isspace(c)) {
+    if (isspace(c)) {}
       // Start of production
-    }
     else if (isalpha(c)) {
+      // Get the production name.
       production_name.clear();
       do {
         production_name.push_back(c);
@@ -202,12 +213,14 @@ std::shared_ptr<ProductionRulesData> HandWrittenDescriptionParser::ParseDescript
       // Find '->'
       stream.get(c);
       while (c != '-' && !stream.eof()) {
-        if (!isspace(c)) {  // We expect there to only be spaces leading up to the equals sign.
+        if (!isspace(c)) {
+          // We expect there to only be spaces leading up to the equals sign.
           MANTA_THROW(UnexpectedInput, "expected a space, encountered '" << c << "'");
         }
         stream.get(c);
       }
-      if (stream.eof()) {  // We do not expect to hit EOF.
+      if (stream.eof()) {
+        // We do not expect to hit EOF.
         MANTA_THROW(UnexpectedInput, "encountered eof");
       }
       // Get the '>' part of the '->'
@@ -215,7 +228,8 @@ std::shared_ptr<ProductionRulesData> HandWrittenDescriptionParser::ParseDescript
       if (c != '>') {
         MANTA_THROW(UnexpectedInput, "expected a '>' from a \"->\", found a " << c);
       }
-      if (stream.eof()) {  // We do not expect to hit EOF.
+      if (stream.eof()) {
+        // We do not expect to hit EOF.
         MANTA_THROW(UnexpectedInput, "encountered eof");
       }
 
@@ -292,7 +306,6 @@ std::shared_ptr<ProductionRulesData> HandWrittenDescriptionParser::ParseDescript
   }
 
   // Get any additional information about visitor classes.
-
   if (auto cmd = findNextCommand(stream); cmd == "Data") {
     getData(stream);
   }
@@ -360,8 +373,7 @@ inline void HandWrittenDescriptionParser::getProductions(std::istream& in, int p
       acc.clear();
     }
 
-    // Start of a default lexer type (terminal), or the @null symbol.
-    // TODO: Redo this part.
+      // Start of a lexeme indicator.
     else if (c == '@') {
       in.get(c);
       while (!isspace(c) && !in.eof()) {
@@ -410,7 +422,7 @@ inline void HandWrittenDescriptionParser::getProductions(std::istream& in, int p
     }
     // Start of precedence section
     else if (c == '-') {
-      in.get(c);  // Expect a '>'
+      in.get(c); // Expect a '>'
       if (c != '>') {
         MANTA_THROW(UnexpectedInput, "expected a >, got " << c);
       }
@@ -423,7 +435,8 @@ inline void HandWrittenDescriptionParser::getProductions(std::istream& in, int p
       production.instructions = getInstructions(in, production_id);
       break;
     }
-    else if (c == '|') {  // Start of another production for the non-terminal. Put it back and return.
+    else if (c == '|') {
+      // Start of another production for the non-terminal. Put it back and return.
       in.putback(c);
       break;
     }
@@ -445,9 +458,9 @@ void HandWrittenDescriptionParser::findResInfo(std::istream& in, ResolutionInfo&
   in.get(c);
   std::string word;
   while (!in.eof()) {
-    if (c == ' ') {
-    }  // Pass spaces
-    else if (is_terminator(c)) {  // End of production. No instructions.
+    if (c == ' ') {} // Pass spaces
+    else if (is_terminator(c)) {
+      // End of production. No instructions.
       // Put the character back so the calling function will detect the end of the production
       in.putback(c);
       return;
@@ -500,7 +513,8 @@ void HandWrittenDescriptionParser::findResInfo(std::istream& in, ResolutionInfo&
         MANTA_THROW(UnexpectedInput, "in findResInfo, expected ')'");
       }
     }
-    else if (c == ':') {  // Start of the instruction section.
+    else if (c == ':') {
+      // Start of the instruction section.
       // Put the ':' back so the calling function will detect the start of the instruction section.
       in.putback(c);
       return;
@@ -597,7 +611,7 @@ std::shared_ptr<ParseNode> HandWrittenDescriptionParser::getInstructions(std::is
       do {
         acc.push_back(c);
         in.get(c);
-      } while (isalpha(c) || c == '_');  // letters or underscores
+      } while (isalpha(c) || c == '_'); // letters or underscores
 
       // Add a node.
       auto node = std::make_shared<ParseNode>(acc);
@@ -620,10 +634,10 @@ std::shared_ptr<ParseNode> HandWrittenDescriptionParser::getInstructions(std::is
       in.get(c);
       while (!in.eof() && c != ')') {
         // Pass spaces.
-        if (isspace(c))
-          ;
-        // The character '$' starts a node reference - that is, it refers to the nodes of the production
-        // the instruction corresponds to.
+        if (isspace(c)) {
+          // The character '$' starts a node reference - that is, it refers to the nodes of the production
+          // the instruction corresponds to.
+        }
         else if (c == '$') {
           in.get(c);
           if (!isdigit(c)) {
@@ -667,8 +681,7 @@ std::shared_ptr<ParseNode> HandWrittenDescriptionParser::getInstructions(std::is
           acc.clear();
         }
         // Argument separators.
-        else if (c == ',') {
-        };  // Put this on a separate line to silence a warning
+        else if (c == ',') {}; // Put this on a separate line to silence a warning
 
         // Get next character.
         in.get(c);
@@ -840,5 +853,4 @@ void HandWrittenDescriptionParser::bypassWhitespace(std::istream& stream) {
   }
   stream.putback(c);
 }
-
-}  // namespace manta
+} // namespace manta

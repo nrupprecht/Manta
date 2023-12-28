@@ -2,7 +2,7 @@
 // Other files.
 #include <Lightning/Lightning.h>
 
-using namespace manta;
+namespace manta {
 
 bool LexerDFA::SetFileToLex(const std::string& fileName) {
   std::ifstream fin(fileName);
@@ -27,14 +27,13 @@ bool LexerDFA::CheckAnyRemaining() const {
   return lexer_dfa_.AnyRemaining();
 }
 
-std::optional<LexResult> LexerDFA::LexNext() {
-  std::optional<LexResult> result;
+std::optional<LexerResult> LexerDFA::LexNext() {
+  std::optional<LexerResult> result;
   do {
     result = lexer_dfa_.LexNext();
     // Check status
     if (CheckStatus() != FAStatus::Valid && CheckStatus() != FAStatus::AcceptedEOF
-        || !result /* Failed to get anything */)
-    {
+        || !result /* Failed to get anything */) {
       return {};
     }
     // If all accepted states of the token (note that there are generally just one
@@ -66,7 +65,7 @@ std::vector<Token> LexerDFA::LexAll() {
   while (result) {
     // If it is a skip lexeme, skip it.
     if (!isSkip(result->accepted_lexemes[0].first)) {
-      output.emplace_back(result->accepted_lexemes[0].first, result->literal);
+      output.emplace_back(result->accepted_lexemes[0].first, result->literal, result->source_position);
     }
     // Get the next lexeme.
     result = LexNext();
@@ -102,6 +101,10 @@ int LexerDFA::GetColumn() const {
   return lexer_dfa_.GetCharacter();
 }
 
+SourcePosition LexerDFA::GetSourcePosition() const {
+  return lexer_dfa_.GetSourcePosition();
+}
+
 void LexerDFA::SetRepeatEOF(bool flag) {
   lexer_dfa_.SetRepeatEOF(flag);
 }
@@ -113,3 +116,5 @@ bool LexerDFA::IsGood() const {
 bool LexerDFA::isSkip(int lexeme_id) const {
   return skip_lexemes_.contains(lexeme_id);
 }
+
+} // namespace manta

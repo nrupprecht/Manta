@@ -1,7 +1,6 @@
 #include "manta/parser/LALRParser.hpp"
 // Other files
 #include <string_view>
-
 #include "manta/utility/Formatting.h"
 
 using namespace manta;
@@ -193,7 +192,7 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
         working_stack_types.pop_back();  // For debugging.
       }
 
-      LOG_SEV_TO(logger_, Debug) << "Reducing " << collect.size() << " collected nodes";
+      LOG_SEV_TO(logger_, Debug) << "Reducing " << collect.size() << " collected nodes, checking for instructions.";
 
       // Carry out reduction instructions.
       auto instructions = action.GetRule().instructions;
@@ -209,7 +208,7 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
             instructionNode(production_node, instruction->children[0]->designator);
             LOG_SEV_TO(logger_, Debug) << "Executing NODE instruction.";
           }
-          // Add a child to the node.
+            // Add a child to the node.
           else if (functionName == "add") {
             MANTA_ASSERT(!instruction->children.empty(),
                          "instruction must not have no children");
@@ -219,7 +218,7 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
             }
             LOG_SEV_TO(logger_, Debug) << "Executing ADD instruction.";
           }
-          // Add all the children of the specified token to the node.
+            // Add all the children of the specified token to the node.
           else if (functionName == "adopt") {
             MANTA_ASSERT(!instruction->children.empty(),
                          "instruction must not have no children");
@@ -229,7 +228,7 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
             }
             LOG_SEV_TO(logger_, Debug) << "Executing ADOPT instruction.";
           }
-          // Replace the new node with one of the tokens.
+            // Replace the new node with one of the tokens.
           else if (functionName == "replace") {
             MANTA_ASSERT(!instruction->children.empty(),
                          "instruction must not have no children");
@@ -240,8 +239,8 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
             }
             LOG_SEV_TO(logger_, Debug) << "Executing REPLACE instruction.";
           }
-          // Add a named node as a child to this node, adding the children of a node to
-          // the new node
+            // Add a named node as a child to this node, adding the children of a node to
+            // the new node
           else if (functionName == "push") {
             MANTA_ASSERT(1 < instruction->children.size(),
                          "instruction must have at least two children");
@@ -267,8 +266,9 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
 
       // Record the reduction occurring.
       LOG_SEV_TO(logger_, Debug)
-          << "REDUCE by " << size << ". Reduce to a " << production
-          << " via:" << NewLineIndent << entryToString(action) << ".";
+          << "REDUCE " << size << " collected node. Reduce to a '" << inverse_production_map_.at(production)
+          << "' (non-terminal " << production << ") via item " << action.GetRule().item_number.value_or(-1) << ":"
+          << NewLineIndent << entryToString(action) << ".";
     }
     else if (action.IsAccept()) {
       // Set start node to be the parsed program.
@@ -360,7 +360,7 @@ std::string LALRParser::PrintTable() const {
   for (std::size_t j = 0; j < max_size; ++j) {
     str += "     |";
     for (std::size_t k = 0; k < total_symbols_; ++k) {
-      str += "    " + std::string {buffered_names[k][j]};
+      str += "    " + std::string{buffered_names[k][j]};
       if (k == lexer_->GetNumLexemes() - 1) {
         str += "  |";
       }

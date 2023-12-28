@@ -7,6 +7,7 @@
 #pragma once
 
 #include <exception>
+#include <string>
 
 //! \brief Macro alias for nodiscard specifier
 #define NO_DISCARD [[nodiscard]]
@@ -37,13 +38,38 @@
     const std::string message_; \
   };
 
+namespace manta {
+
+class MantaException : public std::runtime_error {
+ public:
+  explicit MantaException(std::string message, const char* file, int line)
+      : std::runtime_error(formatMessage(message, file, line)), file_(file), line_(line) {}
+
+  NO_DISCARD const std::string& File() const {
+    return file_;
+  }
+
+  NO_DISCARD int Line() const {
+    return line_;
+  }
+
+ private:
+  //! \brief Create the exception message from the input message, file, and line.
+  std::string formatMessage(const std::string& message, const std::string& file, int line);
+
+  std::string file_;
+  int line_;
+};
+
+} // namespace manta
+
 //! \brief Contract macro for function preconditions.
 #define MANTA_REQUIRE(condition, message) \
   { \
     if (!(condition)) { \
       std::ostringstream _strm_; \
       _strm_ << message; \
-      throw std::runtime_error(_strm_.str()); \
+      throw ::manta::MantaException(_strm_.str(), __FILE__, __LINE__); \
     } \
   }
 
@@ -53,7 +79,7 @@
     if (!(condition)) { \
       std::ostringstream _strm_; \
       _strm_ << message; \
-      throw std::runtime_error(_strm_.str()); \
+      throw ::manta::MantaException(_strm_.str(), __FILE__, __LINE__); \
     } \
   }
 
@@ -62,7 +88,7 @@
   { \
     std::ostringstream _strm_; \
     _strm_ << message; \
-    throw std::runtime_error(_strm_.str()); \
+    throw ::manta::MantaException(_strm_.str(), __FILE__, __LINE__); \
   }
 
 //! \brief Macro for raising a specific type of error.
@@ -70,5 +96,5 @@
   { \
     std::ostringstream _strm_; \
     _strm_ << message; \
-    throw exception_type(_strm_.str()); \
+    throw ::manta::MantaException(_strm_.str(), __FILE__, __LINE__); \
   }

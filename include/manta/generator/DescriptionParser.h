@@ -8,7 +8,6 @@
 #include "manta/utility/ParserUtility.hpp"
 
 namespace manta {
-
 struct VisitorData {
   //! \brief Definition for a single visitor.
   struct Visitor {
@@ -46,10 +45,10 @@ struct FileData {
 //!
 struct ProductionRulesData {
   ProductionRulesData()
-      : lexer_generator(std::make_shared<LexerGenerator>()) {}
+    : lexer_generator(std::make_shared<LexerGenerator>()) {}
 
   //! \brief A lexer_generator generator.
-  std::shared_ptr<LexerGenerator> lexer_generator {};
+  std::shared_ptr<LexerGenerator> lexer_generator{};
 
   //! \brief Maps non-terminal names to non-terminal numbers.
   std::map<std::string, NonterminalID> nonterminal_map;
@@ -57,9 +56,11 @@ struct ProductionRulesData {
   //! \brief Maps non-terminal numbers to non-terminal names.
   std::map<NonterminalID, std::string> inverse_nonterminal_map;
 
+  // TODO: Do we need to do anything to keep track of support non-terminals?
+
   //! \brief The productions for each non-terminal. A State (here) is essentially a set of
   //! production rules.
-  std::map<NonterminalID , State> productions_for;
+  std::map<NonterminalID, State> productions_for;
 
   //! \brief All the productions, for all non-terminals.
   std::vector<Item> all_productions;
@@ -84,7 +85,7 @@ struct ProductionRulesData {
   std::map<ItemID, std::string> reduction_code;
 
   //! \brief Data about any visitors that should be generated.
-  VisitorData visitor_data {};
+  VisitorData visitor_data{};
 
   //! brief Data about any files that should be generated.
   FileData file_data{};
@@ -129,15 +130,21 @@ public:
 class ProductionRulesBuilder {
 public:
   ProductionRulesBuilder()
-      : production_rules_data_(std::make_shared<ProductionRulesData>()) {}
+    : production_rules_data_(std::make_shared<ProductionRulesData>()) {}
 
   //! \brief Get the production rules data that has been built.
   std::shared_ptr<ProductionRulesData> GetProductionRulesData() { return production_rules_data_; }
 
+  //! \brief Reset the production rules data, creating a new one.
+  void ResetProductionRulesData() { production_rules_data_ = std::make_shared<ProductionRulesData>(); }
+
 protected:
   //! \brief Get the production number associated with a production name, registering it
   //! if it has not already been registered.
-  int registerProduction(const std::string& production);
+  NonterminalID registerProduction(const std::string& production);
+
+  //! \brief Create a new helper nonterminal.
+  NonterminalID createHelperNonterminal(NonterminalID parent_id);
 
   //! \brief Register a production as starting production.
   void registerStartingProduction(int id);
@@ -162,18 +169,20 @@ protected:
   std::optional<unsigned> getCurrentItemNumber() const;
 
   //! \brief The current item being built.
-  Item current_item_ {};
+  Item current_item_{};
 
-  //! \brief Keep track of the next production item.
-  unsigned item_number_ = 0;
+  //! \brief Keep track of the next production item's ID.
+  ItemID item_number_ = 0;
+
+  //! \brief Keep track of which non-terminals are support non-terminals.
+  std::set<NonterminalID> support_nonterminal_ids_{};
 
   //! \brief The description of the lexer and parser to create.
-  std::shared_ptr<ProductionRulesData> production_rules_data_ {};
+  std::shared_ptr<ProductionRulesData> production_rules_data_{};
 
-  //! \brief The number to assign to the next production.
-  //!
-  //! Note: To keep things easy to compare, right now we are starting productions at 1.
-  int next_production_label_ = 1;
+  //! \brief Items currently being constructed. There will be more than one item in the stack if there are
+  //! special patterns in the grammar, like optional or repeating patterns.
+  std::stack<Item> item_stack_{};
 };
 
 //! \brief Class that can parse the description of a lexer and a parser from a stream.
@@ -183,7 +192,7 @@ protected:
 //!
 class HandWrittenDescriptionParser
     : public DescriptionParser
-    , public ProductionRulesBuilder {
+      , public ProductionRulesBuilder {
 public:
   //! \brief Parse the description of a parser from a stream, creating the
   //! ProductionRulesData that can be used to to make the parser.
@@ -227,5 +236,4 @@ private:
   //! \brief Bypass white spaces in a stream.
   static void bypassWhitespace(std::istream& stream);
 };
-
-}  // namespace manta
+} // namespace manta

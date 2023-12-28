@@ -58,8 +58,7 @@ std::shared_ptr<class LALRParser> ParserGenerator::CreateParserFromString(const 
 
 std::shared_ptr<LALRParser> ParserGenerator::CreateParserFromStream(std::istream& stream) {
   auto parser_data = CreateParserData(stream);
-
-  // Note - this uses a private constructor.
+  // NOTE: this uses a private constructor.
   return std::shared_ptr<LALRParser>(new LALRParser(parser_data));
 }
 
@@ -144,6 +143,10 @@ void ParserGenerator::WriteStates(std::ostream& out) const {
 
 std::string ParserGenerator::GetParserGenerationTrace() const {
   return parser_generation_trace_.str();
+}
+
+const std::vector<std::vector<Entry>>& ParserGenerator::GetParseTable() const {
+  return parse_table_;
 }
 
 std::string ParserGenerator::nameOf(int id) const {

@@ -55,8 +55,7 @@ public:
   int AddLexeme(const std::string& lexeme, const std::string& regex, int precedence = 1);
 
   //! \brief Get all the lexeme names and definitions, in order by their ID.
-  std::vector<std::tuple<std::string, std::string, int>> GetOrderedLexemeDefinitions()
-      const;
+  std::vector<std::tuple<std::string, std::string, int>> GetOrderedLexemeDefinitions() const;
 
   //! \brief Get the names of all the skip lexemes.
   std::vector<std::string> GetSkipLexemeNames() const;
@@ -66,6 +65,9 @@ public:
 
   //! \brief Get the total number of lexemes.
   NO_DISCARD std::size_t GetNumLexemes() const;
+
+  //! \brief Get the name of the index-th lexeme.
+  NO_DISCARD std::string GetLexemeName(int index) const;
 
   //! \brief Check if a lexeme is a reserved token.
   bool IsReserved(const std::string& lexeme_name) const;

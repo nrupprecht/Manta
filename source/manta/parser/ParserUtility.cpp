@@ -1,12 +1,10 @@
-
-
 #include "manta/utility/ParserUtility.hpp"
-// Other files
+// Other files.
 #include <utility>
 
 #include "manta/parser/LALRParser.hpp"
 
-using namespace manta;
+namespace manta {
 
 void ProductionRule::AddToProduction(int r) {
   rhs.push_back(r);
@@ -165,8 +163,6 @@ bool Entry::IsAccept() const {
   return action == Action::Accept;
 }
 
-namespace manta {
-
 bool operator==(const State& s1, const State& s2) {
   return s1.item_set == s2.item_set;
 }
@@ -220,7 +216,7 @@ std::string Entry::Write(int length) const {
   std::string str;
   switch (action) {
     case Action::Error: {
-      str = " ";  // x
+      str = " "; // x
       break;
     }
     case Action::Shift: {
@@ -228,7 +224,7 @@ std::string Entry::Write(int length) const {
       break;
     }
     case Action::Reduce: {
-      str = "R" + std::to_string(rule.production_item_number);
+      str = "R" + std::to_string(*rule.item_number);
       break;
     }
     case Action::Accept: {
@@ -274,5 +270,4 @@ std::ostream& operator<<(std::ostream& out, const Entry& entry) {
 
   return out;
 }
-
-}  // namespace manta
+} // namespace manta

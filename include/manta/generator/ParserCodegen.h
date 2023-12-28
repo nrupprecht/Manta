@@ -10,12 +10,12 @@ namespace manta {
 //! lexer.
 //!
 class ParserCodegen {
-public:
-  void GenerateParserCode(std::ostream& code_out, const std::shared_ptr<const ParserData>& parser_data) const;
+ public:
+  void GenerateParserCode(std::ostream& code_out, const std::shared_ptr<const ParserData>& parser_data);
 
   void GenerateParserCode(std::ostream& code_out,
                           std::istream& parser_description,
-                          ParserType parser_type) const;
+                          ParserType parser_type);
 
   [[maybe_unused]] void SetTagGeneratedFieldNames(bool flag) { tag_generated_field_names = flag; }
 
@@ -27,7 +27,10 @@ public:
     description_parser_ = std::move(description_parser);
   }
 
-private:
+  //! \brief Get the parser data created while parsing the description of the parser.
+  std::shared_ptr<const ParserData> GetParserData() const { return parser_data_; }
+
+ private:
   //! \brief Set up the base visitor class.
   TypeDescriptionStructure* createBaseVisitor(ASTNodeManager& node_manager) const;
 
@@ -46,8 +49,7 @@ private:
   //!
   bool tag_generated_field_names = false;
 
-  //! \brief If true, generated field names for shared pointers to AST nodes will have a "_node" suffix
-  //! attached.
+  //! \brief If true, generated field names for shared pointers to AST nodes will have a "_node" suffix attached.
   //!
   //! This is useful if there is a non-terminal and a lexeme with the same name in a single reduction.
   //!
@@ -56,6 +58,10 @@ private:
   //! \brief The description parser that will be used to parse the description of the parser.
   //!
   std::shared_ptr<DescriptionParser> description_parser_ = std::make_shared<HandWrittenDescriptionParser>();
+
+  //! \brief Parser data created while parsing the description of the parser. Used to create diagnostics.
+  //!
+  std::shared_ptr<ParserData> parser_data_{};
 };
 
 }  // namespace manta

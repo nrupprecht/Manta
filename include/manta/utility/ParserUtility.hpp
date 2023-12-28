@@ -36,17 +36,16 @@ struct ResolutionInfo {
   bool operator==(const ResolutionInfo& rhs) const {
     return precedence == rhs.precedence && assoc == rhs.assoc;
   }
+
   bool operator!=(const ResolutionInfo& rhs) const { return !(*this == rhs); }
 };
 
-constexpr ResolutionInfo NullResolutionInfo {};
+constexpr ResolutionInfo NullResolutionInfo{};
 
 //! \brief Encode a production rule, like A -> a X b, etc.
 struct ProductionRule {
   explicit ProductionRule(NonterminalID production, int label, const std::vector<int> rhs = {})
-      : produced_nonterminal(production)
-      , production_item_number(label)
-      , rhs(rhs) {}
+      : produced_nonterminal(production), production_item_number(label), rhs(rhs) {}
 
   //! \brief Create an empty production rule.
   ProductionRule() = default;
@@ -58,6 +57,7 @@ struct ProductionRule {
 
   //! \brief Get the i-th element of the RHS of the production.
   NO_DISCARD int& At(int i);
+
   NO_DISCARD int At(int i) const;
 
   //! \brief Get the number of elements in the RHS of the production.
@@ -75,19 +75,19 @@ struct ProductionRule {
 
   // NOTE(Nate): Check how production and production_label differ - can we consolidate?
 
-  //! \brief The nonterminal sybol, by ID, that this is a rule for. I.e., the left hand side of a
+  //! \brief The non-terminal symbol, by ID, that this is a rule for. I.e., the left hand side of a
   //! production rule.
   NonterminalID produced_nonterminal = -1;
 
   //! \brief A number for the production, i.e. this is the n-th item.
-  ItemID production_item_number {};
+  ItemID production_item_number{};
 
   //! \brief The right hand side of the production.
   std::vector<int> rhs;
 
   //! \brief Instructions associated with the state.
   //!
-  //! TODO: Keep these in a better, dedicted structure.
+  //! TODO: Keep these in a better, dedicated structure.
   std::shared_ptr<class ParseNode> instructions = nullptr;
 
   //! \brief Resolution info - this encodes the precedence and associativity of a
@@ -107,9 +107,7 @@ struct Item : public ProductionRule {
        int bookmark = 0,
        const std::vector<int>& rhs = {},
        std::optional<unsigned> item_number = {})
-      : ProductionRule(production, label, rhs)
-      , item_number(item_number)
-      , bookmark(bookmark) {}
+      : ProductionRule(production, label, rhs), item_number(item_number), bookmark(bookmark) {}
 
   //! \brief Create an empty item.
   Item() = default;
@@ -131,8 +129,7 @@ struct Item : public ProductionRule {
   //! \brief Make a new identical Item without any instructions or resolution info
   Item WithoutInstructions() const;
 
-  //! \brief If the bookmark is at the end, returns {}, otherwise, returns the terminal or
-  //! nonterminal immediately following the bookmark.
+  //! \brief If the bookmark is at the end, returns {}, otherwise, returns the terminal or nonterminal immediately following the bookmark.
   std::optional<int> GetElementFollowingBookmark() const;
 
   friend bool operator<(const Item& a, const Item& b);
@@ -144,9 +141,8 @@ struct Item : public ProductionRule {
   //  Data
   // =====================================================================================
 
-  //! \brief What the item number for this item is. Used e.g. to find the correct item
-  //! reduction function.
-  std::optional<ItemID> item_number {};
+  //! \brief What the item number for this item is. Used e.g. to find the correct item reduction function.
+  std::optional<ItemID> item_number{};
 
   //! \brief The location of the bookmark.
   //!
@@ -169,20 +165,15 @@ struct State {
 
   // Set the bookmarks in all the items in this state to be fresh.
   void zero_bookmarks();
-
   NO_DISCARD bool contains(const Item& item) const;
-
   friend std::ostream& operator<<(std::ostream& out, const State& state);
-
   NO_DISCARD int size() const;
   NO_DISCARD bool empty() const;
-
   std::set<Item>::iterator begin();
   std::set<Item>::iterator end();
   NO_DISCARD std::set<Item>::iterator begin() const;
   NO_DISCARD std::set<Item>::iterator end() const;
   std::set<Item>::iterator find(const Item& item);
-
   friend bool operator==(const State& s1, const State& s2);
 
   //! \brief True if there exists an Item in the set that is a null production, A -> null
@@ -226,10 +217,13 @@ inline std::string ToString(Action action) {
 struct Entry {
   //! Create entry as an error
   Entry();
+
   //! Create entry as a shift.
-  explicit Entry(int s, const ResolutionInfo& res_info = ResolutionInfo {});
+  explicit Entry(int s, const ResolutionInfo& res_info = ResolutionInfo{});
+
   //! Create entry as a reduce.
   explicit Entry(Item r);
+
   //! \brief Create entry as an accept.
   explicit Entry(bool);
 
@@ -240,18 +234,14 @@ struct Entry {
 
   //! \brief Get the ResolutionInfo for the production rule associated with this entry.
   const ResolutionInfo& GetResInfo() const { return rule.res_info; }
-
   Action GetAction() const { return action; }
   StateID GetState() const { return state; }
   const Item& GetRule() const { return rule; }
-
   std::string Write(int length) const;
-
   friend std::ostream& operator<<(std::ostream&, const Entry&);
-
   bool operator==(const Entry& rhs) const;
 
-private:
+ private:
   //! \brief The action.
   Action action = Action::Error;
 

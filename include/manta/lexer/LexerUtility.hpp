@@ -11,22 +11,52 @@
 
 namespace manta {
 
+struct SourcePosition {
+  SourcePosition() = default;
+
+  SourcePosition(int l, int c)
+      : line(l), column(c) {}
+
+  std::string ToString() const {
+    return std::to_string(line) + ":" + std::to_string(column);
+  }
+
+  void NewLine() {
+    ++line;
+    column = 1;
+  }
+
+  void Advance() {
+    ++column;
+  }
+
+  //! \brief One-based line number.
+  unsigned line = 0;
+  //! \brief One-based column number.
+  unsigned column = 0;
+};
+
+//! \brief Convert a SourcePosition to a string. This function will allow it to stream into lightning logging for free.
+inline std::string to_string(const SourcePosition& pos) {
+  return pos.ToString();
+}
+
 struct Token {
-  //! \brief Constructor.
-  Token(int ty, std::string lit)
-      : type(ty)
-      , literal(std::move(lit)) {};
-  Token(int ty, int st)
-      : type(ty)
-      , state(st) {};
-  Token(int s)
-      : state(s) {};
   Token() = default;
+
+  Token(int type, std::string literal, const SourcePosition& source_position = {})
+      : type(type), literal(std::move(literal)), source_position(source_position) {};
+
+  Token(int type, int state)
+      : type(type), state(state) {};
+
+  Token(int state)
+      : state(state) {};
 
   //! \brief Pretty print the literal.
   std::string ToString() {
     std::string out;
-    for (char c : literal) {
+    for (char c: literal) {
       if (c == '\n')
         out += "\\n";
       else if (c == '\r')
@@ -47,6 +77,9 @@ struct Token {
 
   //! \brief The state - for parsing only.
   int state = -1;
+
+  //! \brief The source position of the token.
+  SourcePosition source_position;
 };
 
 //! \brief Represents the result of lexing. Naively (and inn the simple case), we expect
@@ -56,20 +89,17 @@ struct Token {
 //! accept "mine". The lexer can inspect all the accepted lexemes and see which results in
 //! a valid move, allowing both the lexer and parser to have more flexibility.
 //!
-struct LexResult {
-  LexResult() = default;
-
-  LexResult(std::vector<std::pair<int, std::string>> accepted, std::string lit)
-      : accepted_lexemes(std::move(accepted))
-      , literal(std::move(lit)) {}
-
+struct LexerResult {
   //! \brief The lexeme(s) that were accepted, listed as a lexeme id and lexeme name.
   //!
   //!   Results are listed in order of precedence.
-  std::vector<std::pair<int, std::string>> accepted_lexemes;
+  std::vector<std::pair<int, std::string>> accepted_lexemes{};
 
   //! \brief The string literal that was lexed.
-  std::string literal;
+  std::string literal{};
+
+  //! \brief The source position of the start of the token.
+  SourcePosition source_position{};
 };
 
 }  // namespace manta
