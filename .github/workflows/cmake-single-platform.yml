@@ -32,6 +32,18 @@ jobs:
         echo "Conan version:"
         echo "${{ steps.conan.outputs.version }}"
 
+    - name: Create default Conan profile
+      run: |
+        echo "Setting up a default conan profile."
+        conan profile new default --detect
+
+    - name: Conan configure remotes
+      run:  |
+            conan remote add bincrafters https://api.bintray.com/conan/bincrafters/public-conan
+            conan remote add conancenter https://center.conan.io
+            conan remote add conan-community https://api.bintray.com/conan/conan-community/conan
+            conan config set general.revisions_enabled=1
+
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
