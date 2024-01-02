@@ -18,7 +18,7 @@
 
 //! \brief Define the "what" function of an exception
 #define EXCEPTION_WHAT(message) \
-  [[nodiscard]] const char* what() CONSTNOEXCEPT override { \
+  NO_DISCARD const char* what() CONSTNOEXCEPT override { \
     return (message); \
   }
 
@@ -41,61 +41,77 @@
 
 namespace manta {
 
+//! \brief Exception class for Manta. These record the line and file that caused the exception.
 class MantaException : public std::runtime_error {
  public:
-  explicit MantaException(std::string message, const char* file, int line)
-      : std::runtime_error(formatMessage(message, file, line)), file_(file), line_(line) {}
+  explicit MantaException(std::string message, const char* file, const std::string& function_name, int line)
+      : std::runtime_error(formatMessage(message, file, function_name, line))
+        , file_(file)
+        , function_name_(function_name)
+        , line_(line) {}
 
-  NO_DISCARD const std::string& File() const {
-    return file_;
-  }
-
-  NO_DISCARD int Line() const {
-    return line_;
-  }
+  NO_DISCARD const std::string& GetFileName() const { return file_; }
+  NO_DISCARD const std::string GetFunctionName() const { return function_name_; }
+  NO_DISCARD int GetLine() const { return line_; }
 
  private:
   //! \brief Create the exception message from the input message, file, and line.
-  std::string formatMessage(const std::string& message, const std::string& file, int line);
+  static std::string formatMessage(const std::string& message,
+                                   const std::string& file,
+                                   const std::string& function_name,
+                                   int line);
 
-  std::string file_;
-  int line_;
+  const std::string file_{};
+  const std::string function_name_{};
+  const int line_;
 };
 
 } // namespace manta
 
+
+//! \brief Macro for getting the function name.
+// TODO: This needs work, since things like __PRETTY_FUNCTION__ are not macros, so we actually can't do this this way.
+#ifdef __PRETTY_FUNCTION__
+#   define __FUNCTION_NAME__ __PRETTY_FUNCTION__
+#endif
+#ifndef __FUNCTION_NAME__
+#   ifdef __FUNCSIG__
+#     define __FUNCTION_NAME__ __FUNCSIG__
+#   endif
+#endif
+#ifndef __FUNCTION_NAME__
+#   ifdef __FUNCTION__
+#     define __FUNCTION_NAME__ __FUNCTION__
+#   endif
+#endif
+#ifndef __FUNCTION_NAME__
+#   ifdef __func__
+#     define __FUNCTION_NAME__ __func__
+#   endif
+#endif
+#ifndef __FUNCTION_NAME__
+#   define __FUNCTION_NAME__ "<unknown function>"
+#endif
+
+#define __MANTA_EXCEPTION(message) { \
+  std::ostringstream _strm_; \
+  _strm_ << message; \
+  throw ::manta::MantaException(_strm_.str(), __FILE_NAME__, __FUNCTION_NAME__, __LINE__); \
+}
+
 //! \brief Contract macro for function preconditions.
-#define MANTA_REQUIRE(condition, message) \
-  { \
-    if (!(condition)) { \
-      std::ostringstream _strm_; \
-      _strm_ << message; \
-      throw ::manta::MantaException(_strm_.str(), __FILE__, __LINE__); \
-    } \
-  }
+#define MANTA_REQUIRE(condition, message) if (!(condition)) __MANTA_EXCEPTION(message)
 
 //! \brief Macro for general condition checking.
-#define MANTA_ASSERT(condition, message) \
-  { \
-    if (!(condition)) { \
-      std::ostringstream _strm_; \
-      _strm_ << message; \
-      throw ::manta::MantaException(_strm_.str(), __FILE__, __LINE__); \
-    } \
-  }
+#define MANTA_ASSERT(condition, message) if (!(condition)) __MANTA_EXCEPTION(message)
 
 //! \brief Macro for raising a runtime error.
-#define MANTA_FAIL(message) \
-  { \
-    std::ostringstream _strm_; \
-    _strm_ << message; \
-    throw ::manta::MantaException(_strm_.str(), __FILE__, __LINE__); \
-  }
+#define MANTA_FAIL(message) __MANTA_EXCEPTION(message)
 
 //! \brief Macro for raising a specific type of error.
 #define MANTA_THROW(exception_type, message) \
   { \
     std::ostringstream _strm_; \
     _strm_ << message; \
-    throw ::manta::MantaException(_strm_.str(), __FILE__, __LINE__); \
+    throw std::runtime_error(_strm_.str()); \
   }

@@ -8,8 +8,11 @@
 
 namespace manta {
 
-std::string MantaException::formatMessage(const std::string& message, const std::string& file, int line) {
-  return lightning::formatting::Format("exception raised from {}:{}:\n{}", file_, line_, message);
+std::string MantaException::formatMessage(const std::string& message,
+                                          const std::string& file,
+                                          const std::string& function_name,
+                                          int line) {
+  return lightning::formatting::Format("exception raised from {}:{}, {}\n{}", file, line, function_name, message);
 }
 
 } // namespace manta
