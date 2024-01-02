@@ -5,6 +5,7 @@
 #pragma once
 
 #include <utility>
+#include <deque>
 
 #include <Lightning/Lightning.h>
 
