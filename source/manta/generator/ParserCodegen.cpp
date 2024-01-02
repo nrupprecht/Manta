@@ -534,29 +534,26 @@ TypeDescriptionStructure* ParserCodegen::createBaseVisitor(ASTNodeManager& node_
   auto visitor = node_manager.GetVisitorStructure();
   auto& all_node_types = node_manager.GetAllNodeTypesForNonterminals();
 
+  auto accept_signature = FunctionType{}.WithArguments({ElaboratedType{visitor, false, true}});
+
   // Create base function in ASTNode base.
-  StructureFunction accept_function {"Accept",
-                                     StructureFunction::Signature {{StructureFunction::Argument {
-                                         ElaboratedType {visitor, false, true}, "visitor"}}},
-                                     {} /* Virtual function <=> no body */};
-  node_manager.GetASTNodeBase()->AddFunction(accept_function);
+  auto accept_function = StructureFunction{}
+      .WithName("Accept")
+      .WithType(accept_signature)
+      .WithArgumentNames({"visitor"})
+      .BindToStructure(node_manager.GetASTNodeBase(), false, false);
 
   auto create_visitor_functions = [&](TypeDescriptionStructure* visitable_type) {
-    // Add accept function.
-    StructureFunction accept_function {"Accept",
-                                       StructureFunction::Signature {{StructureFunction::Argument {
-                                           ElaboratedType {visitor, false, true}, "visitor"}}},
-                                       "visitor.Visit(*this);" /* Function body */,
-                                       true /* Is override */};
-
-    visitable_type->AddFunction(accept_function);
+    // Add the accept function to the visitable type.
+    accept_function.WithBody("visitor.Visit(*this);").BindToStructure(visitable_type, false, true);
 
     // Add the visitor's visit function.
-    StructureFunction visit_function {"Visit",
-                                      StructureFunction::Signature {{StructureFunction::Argument {
-                                          ElaboratedType {visitable_type, false, true}, "object"}}},
-                                      {} /* Virtual function <=> no body */};
-    visitor->AddFunction(visit_function);
+    auto visit_signature = FunctionType{}.WithArguments({ElaboratedType{visitable_type, false, true}});
+    StructureFunction{}
+        .WithName("Visit")
+        .WithType(visit_signature)
+        .WithArgumentNames({"object"})
+        .BindToStructure(visitor, false, false);
   };
 
   for (auto& [_, node_types] : all_node_types) {
@@ -624,12 +621,13 @@ TypeDescriptionStructure* ParserCodegen::createPrintingVisitor(ASTNodeManager& n
     // Un-indent
     body += "indentation = std::max(0, indentation - 2);\n";
 
-    StructureFunction visit_function {"Visit",
-                                      StructureFunction::Signature {{StructureFunction::Argument {
-                                          ElaboratedType {visitable_type, false, true}, "object"}}},
-                                      body,
-                                      true};
-    printing_visitor->AddFunction(visit_function);
+    auto visit_signature = FunctionType{}.WithArguments({ElaboratedType{visitable_type, false, true}});
+    StructureFunction{}
+        .WithName("Visit")
+        .WithType(visit_signature)
+        .WithArgumentNames({"object"})
+        .WithBody(body)
+        .BindToStructure(printing_visitor, false /* is const */, true /* is override */);
   };
   for (auto& [_, node_types] : all_node_types) {
     for (auto& [name, child_type] : node_types.child_types) {
@@ -695,12 +693,13 @@ TypeDescriptionStructure* ParserCodegen::createVisitorFromTemplate(
       body += "}\n";  // End the switch statement.
     }
 
-    StructureFunction visit_function {"Visit",
-                                      StructureFunction::Signature {{StructureFunction::Argument {
-                                          ElaboratedType {structure_type, false, true}, "object"}}},
-                                      body,
-                                      true};
-    visitor->AddFunction(visit_function);
+    auto visit_signature = FunctionType{}.WithArguments({ElaboratedType{structure_type, false, true}});
+    StructureFunction{}
+        .WithName("Visit")
+        .WithType(visit_signature)
+        .WithArgumentNames({"object"})
+        .WithBody(body)
+        .BindToStructure(visitor, false /* is const */, true /* is override */);
   }
 
   // TODO: Create visitor functions for all base node types.
@@ -714,23 +713,24 @@ TypeDescriptionStructure* ParserCodegen::createVisitorFromTemplate(
         continue;  // No base type, just a single type so no base type is needed.
       }
 
-      StructureFunction visit_function {"Visit",
-                                        StructureFunction::Signature {{StructureFunction::Argument {
-                                            ElaboratedType {base_type, false, true}, "object"}}},
-                                        "",
-                                        true};
-      visitor->AddFunction(visit_function);
+      auto visit_signature = FunctionType{}.WithArguments({ElaboratedType{base_type, false, true}});
+      StructureFunction{}
+          .WithName("Visit")
+          .WithType(visit_signature)
+          .WithArgumentNames({"object"})
+          .WithEmptyBody()
+          .BindToStructure(visitor, false /* is const */, true /* is override */);
     }
   }
 
   // Create visitor for ASTLexeme.
-  StructureFunction visit_function {
-      "Visit",
-      StructureFunction::Signature {{StructureFunction::Argument {
-          ElaboratedType {node_manager.GetASTLexeme(), false, true}, "object"}}},
-      "" /* Empty function, not abstract function */,
-      true};
-  visitor->AddFunction(visit_function);
+  auto visit_signature = FunctionType{}.WithArguments({ElaboratedType{node_manager.GetASTLexeme(), false, true}});
+  StructureFunction{}
+      .WithName("Visit")
+      .WithType(visit_signature)
+      .WithArgumentNames({"object"})
+      .WithEmptyBody()
+      .BindToStructure(visitor, false /* is const */, true /* is override */);
 
   // Add any ad-hoc code.
   visitor->adhoc_code = visitor_data.other_definitions;
@@ -775,12 +775,13 @@ TypeDescriptionStructure* ParserCodegen::createTreePrintVisitor(ASTNodeManager& 
       }
     }
 
-    StructureFunction visit_function {"Visit",
-                                      StructureFunction::Signature {{StructureFunction::Argument {
-                                          ElaboratedType {visitable_type, false, true}, "object"}}},
-                                      body,
-                                      true};
-    tree_length->AddFunction(visit_function);
+    auto visit_signature = FunctionType{}.WithArguments({ElaboratedType{visitable_type, false, true}});
+    StructureFunction{}
+        .WithName("Visit")
+        .WithType(visit_signature)
+        .WithArgumentNames({"object"})
+        .WithBody(body)
+        .BindToStructure(tree_length, false /* is const */, true /* is override */);
   };
   for (auto& [_, node_types] : all_node_types) {
     for (auto& [name, child_type] : node_types.child_types) {

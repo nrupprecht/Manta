@@ -96,7 +96,7 @@ class MantaException : public std::runtime_error {
 #define __MANTA_EXCEPTION(message) { \
   std::ostringstream _strm_; \
   _strm_ << message; \
-  throw ::manta::MantaException(_strm_.str(), __FILE_NAME__, __FUNCTION_NAME__, __LINE__); \
+  throw ::manta::MantaException(_strm_.str(), __FILE__, __FUNCTION_NAME__, __LINE__); \
 }
 
 //! \brief Contract macro for function preconditions.

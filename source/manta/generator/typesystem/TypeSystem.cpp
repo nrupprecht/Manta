@@ -107,12 +107,14 @@ void TypeDescriptionStructure::AddConstructor(const StructureConstructor& constr
   constructors.push_back(constructor);
 }
 
-void TypeDescriptionStructure::AddFunction(const StructureFunction& function) {
+StructureFunction& TypeDescriptionStructure::AddFunction(const StructureFunction& function) {
+  function.Validate();
   if (function.is_override) {
     // TODO: Check that the structure has a parent that has a virtual or override function matching this
     //  function.
   }
   functions.push_back(function);
+  return functions.back();
 }
 
 std::string TypeDescriptionStructure::Write() const {

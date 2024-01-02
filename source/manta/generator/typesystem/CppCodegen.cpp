@@ -141,23 +141,24 @@ void CppCodeGen::WriteDefinition(std::ostream& out, const TypeDescriptionStructu
     if (function.IsVirtual()) {
       out << "virtual ";
     }
-    if (function.function_signature.return_type) {
-      out << WriteName(*function.function_signature.return_type);
+    if (function.function_type.return_type) {
+      out << WriteName(*function.function_type.return_type);
     }
     else {
       out << "void";
     }
     out << " " << function.function_name << "(";
     int count = 0;
-    for (auto& arg : function.function_signature.arguments) {
+    for (auto& argument_name : function.argument_names) {
       if (count != 0) {
         out << ", ";
       }
-      out << WriteName(arg.arg_type) << " " << arg.argument_name;
+      out << WriteName(function.function_type.arguments[count]) << " " << argument_name;
+      // out << WriteName(function.function_type.arguments[count].arg_type) << " " << argument_name;
       ++count;
     }
     out << ")";
-    if (function.function_signature.is_const) {
+    if (function.is_const_function) {
       out << " const";
     }
     if (function.is_override) {

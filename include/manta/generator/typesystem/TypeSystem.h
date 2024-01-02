@@ -22,7 +22,8 @@ enum class TSGeneralType
   Float,
   SharedPointer,
   Structure,
-  Enumeration
+  Enumeration,
+  Function,
 };
 
 //! \brief Function to serialize a TSGeneralType enum to a string.
@@ -125,41 +126,156 @@ struct StructureConstructor {
   StructureConstructor& WithAdditionalInitializations(std::vector<std::pair<FieldName, Value>> inits);
 };
 
-//! \brief A structure that represents a function of a record or structure.
+//! \brief Type description for a function.
+struct FunctionType : public TypeDescription {
+  FunctionType() : TypeDescription(TSGeneralType::Function) {}
+
+  //! \brief The function's arguments.
+  std::vector<ElaboratedType> arguments{};
+
+  //! \brief The return type of the function, or nothing (for "void").
+  std::optional<ElaboratedType> return_type{};
+
+  bool IsValid() const {
+    for (const auto& arg : arguments) {
+      if (!arg.arg_type) return false;
+    }
+    if (return_type && !return_type->arg_type) {
+      return false;
+    }
+    return true;
+  }
+
+  // =====================================================================================
+  //  Builder functions
+  // =====================================================================================
+
+  FunctionType& WithArguments(std::vector<ElaboratedType> args) {
+    arguments = std::move(args);
+    return *this;
+  }
+
+  FunctionType& WithReturnType(std::optional<ElaboratedType> ret) {
+    return_type = std::move(ret);
+    return *this;
+  }
+};
+
+// Forward declare for StructureFunction
+class StructureFunction;
+
+//! \brief Base class for bound and unbound function values. This includes the function's body, which is written in an
+//! arbitrary language.
 //!
-struct StructureFunction {
-  struct Argument {
-    ElaboratedType arg_type {};
-    std::string argument_name {};
-  };
-
-  struct Signature {
-    //! \brief The function's arguments.
-    std::vector<Argument> arguments {};
-
-    //! \brief The return type of the function, or nothing (for "void").
-    std::optional<ElaboratedType> return_type {};
-
-    //! \brief Whether the function is a constant function.
-    bool is_const {};
-  };
-
+//! This base class, by itself, represents an unbound function.
+struct FunctionValue {
   //! \brief The function's name.
-  std::string function_name {};
+  std::string function_name{};
 
-  //! \brief The function signature.
-  Signature function_signature {};
+  //! \brief The function's type.
+  FunctionType function_type{};
+
+  //! \brief The names of the function's arguments. There must be as many arguments as there are function arguments, and
+  //! the names must be unique if they are not empty.
+  std::vector<std::string> argument_names;
 
   //! \brief Contents of the function (if not virtual). I don't have a "language independent" way of doing
   //! this right now, so I am just assuming this is literally the code that should go into the function.
   //! If nullopt, this is a virtual function.
-  std::optional<std::string> function_body {};
+  std::optional<std::string> function_body{};
+
+  //! \brief Check whether the function is virtual. NOTE: This only really makes sense for StructureFunction.
+  bool IsVirtual() const { return !function_body; }
+
+  virtual const FunctionValue& Validate() const {
+    MANTA_REQUIRE(argument_names.size() == function_type.arguments.size(),
+                  "mismatch between number of argument names and number of arguments");
+    MANTA_REQUIRE(function_type.IsValid(), "invalid function type");
+    MANTA_REQUIRE(!function_name.empty(), "function name cannot be empty");
+    return *this;
+  }
+
+  //! \brief Create a copy of the function and bind it to the structure. Adds the function to the structure, and sets
+  //! the structure as the binder in the StructureFunction instance. Returns a reference to the newly created bound
+  //! function value inside the structure.
+  StructureFunction& BindToStructure(class TypeDescriptionStructure* structure, bool is_const, bool is_override);
+
+  // =====================================================================================
+  //  Builder functions
+  // =====================================================================================
+
+  FunctionValue& WithName(std::string name) {
+    function_name = std::move(name);
+    return *this;
+  }
+
+  FunctionValue& WithType(FunctionType type) {
+    function_type = std::move(type);
+    return *this;
+  }
+
+  FunctionValue& WithArgumentNames(std::vector<std::string> names) {
+    argument_names = std::move(names);
+    return *this;
+  }
+
+  //! \brief Explicitly set the body of the function to be non-existent, indicating that it is virtual.
+  //! This is the default anyways.
+  FunctionValue& WithBody(std::string body) {
+    function_body = std::move(body);
+    return *this;
+  }
+
+  FunctionValue& WithEmptyBody() {
+    function_body = ""; // Non-null (not virtual), but empty.
+    return *this;
+  }
+};
+
+//! \brief A structure that represents a function of a record or structure, a bound function.
+//!
+struct StructureFunction : public FunctionValue {
+  StructureFunction() = default;
+  StructureFunction(FunctionValue value) {
+    function_name = std::move(value.function_name);
+    function_type = std::move(value.function_type);
+    argument_names = std::move(value.argument_names);
+    function_body = std::move(value.function_body);
+  }
+
+//! \brief The structure that the function is bound to.
+  class TypeDescriptionStructure* binding_structure{};
+
+  //! \brief Whether the function is a constant function.
+  bool is_const_function{false};
 
   //! \brief Whether the function overrides another function.
-  bool is_override {};
+  bool is_override{false};
 
-  //! \brief Check whether the function is virtual.
-  bool IsVirtual() const { return !function_body; }
+  const StructureFunction& Validate() const override {
+    FunctionValue::Validate();
+    MANTA_REQUIRE(binding_structure, "function must be bound to a structure");
+    return *this;
+  }
+
+  // =====================================================================================
+  //  Builder functions
+  // =====================================================================================
+
+  StructureFunction& WithConst(bool is_const) {
+    is_const_function = is_const;
+    return *this;
+  }
+
+  StructureFunction& AsVirtual() {
+    function_body = std::nullopt;
+    return *this;
+  }
+
+  StructureFunction& WithIsOverride(bool set_is_override) {
+    is_override = set_is_override;
+    return *this;
+  }
 };
 
 //! \brief  Type description for a structure, or compound type.
@@ -169,6 +285,7 @@ struct StructureFunction {
 struct TypeDescriptionStructure : public TypeDescription {
   explicit TypeDescriptionStructure(std::string name);
 
+  //! \brief Add a field to the structure.
   void AddField(const std::string& field_name, const TypeDescription* field_type);
   //! \brief Remove a field from a structure. Returns true if the field was there to be removed.
   bool RemoveField(const std::string& field_name);
@@ -178,7 +295,8 @@ struct TypeDescriptionStructure : public TypeDescription {
 
   void AddConstructor(const StructureConstructor& constructor);
 
-  void AddFunction(const StructureFunction& function);
+  //! \brief Add a bound method to the object.
+  StructureFunction& AddFunction(const StructureFunction& function);
 
   NO_DISCARD std::string Write() const override;
 
@@ -198,16 +316,27 @@ struct TypeDescriptionStructure : public TypeDescription {
   //! \brief The set of base classes of the structure.
   std::set<const TypeDescriptionStructure*> parent_classes;
 
-  //! \brief Constructors for the structure.
-  std::vector<StructureConstructor> constructors;
+  //! \brief Constructors for the structure. Storing as a deque so that we don't invalidate pointers.
+  std::deque<StructureConstructor> constructors;
 
-  //! \brief Functions for the structure.
-  std::vector<StructureFunction> functions;
+  //! \brief Functions for the structure. Storing as a deque so that we don't invalidate pointers.
+  std::deque<StructureFunction> functions;
 
   //! \brief Field for injecting arbitrary user defined code into the structure. This could include things
   //! like additional function or variable definitions.
   std::string adhoc_code {};
 };
+
+inline StructureFunction& FunctionValue::BindToStructure(class TypeDescriptionStructure* structure,
+                                                         bool is_const,
+                                                         bool is_override) {
+  StructureFunction function{*this};
+  function.is_const_function = is_const;
+  function.is_override = is_override;
+  function.binding_structure = structure;
+  return structure->AddFunction(function);
+}
+
 
 //! \brief Represents a vector or ordered collection of objects of some other type.
 struct TypeDescriptionVector : public BasicTypeDescription {
