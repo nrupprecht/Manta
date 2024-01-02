@@ -16,17 +16,14 @@ int main(int argc, char** argv) {
                                       formatting::MSG);
   auto low_level_fmt = MakeMsgFormatter("[{}] [{}:{}] [{}] {}",
                                         formatting::DateTimeAttributeFormatter{},
-                                        formatting::FileNameAttributeFormatter{false},
+                                        formatting::FileNameAttributeFormatter{},
                                         formatting::FileLineAttributeFormatter{},
                                         formatting::SeverityAttributeFormatter{},
                                         formatting::MSG);
-  formatter->SetDefaultFormatter(std::move(default_fmt));
-  for (auto severity: {Severity::Trace, Severity::Debug}) {
-    formatter->SetFormatterForSeverity(severity, low_level_fmt->Copy());
-  }
+  formatter->SetDefaultFormatter(std::move(default_fmt))
+      .SetFormatterForSeverity(LoggingSeverity < Severity::Info, *low_level_fmt);
   auto as_base = formatter->Copy();
-  lightning::Global::GetCore()->SetAllFormatters(as_base);
-
+  lightning::Global::GetCore()->SetAllFormatters(*formatter);
 
   ParserCodegen generator;
 
