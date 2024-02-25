@@ -1,11 +1,11 @@
 // Code example from: http://marvin.cs.uidaho.edu/Teaching/CS445/c-Grammar.pdf
+// Note: Very lightly modified for formatting.
 
-char zev[10]:"corgis";
+char zev[10]: "corgis";
 char yurt[20];
 int x:42, y:666;
 
-int ant(int bat, cat[]; bool dog, elk; int fox; char gnu)
-{
+int ant(int bat, cat[]; bool dog, elk; int fox; char gnu) {
     int goat, hog[100];
     gnu = 'W';
     goat = hog[2] = 3*cat; // hog is 3 times the size of array passed to cat
@@ -26,7 +26,9 @@ int ant(int bat, cat[]; bool dog, elk; int fox; char gnu)
     yurt[3] = zev[?*zev];
     return (fox+bat*cat[bat])/-fox;
 }
+
 // note that functions are defined using a statement
 int max(int a, b) if a>b then return a; else return b;
+
 // use the max operator
 int max3(int a, b, c) return a :>: b :>: c;

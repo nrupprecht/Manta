@@ -1,13 +1,15 @@
 .Lexer
     @special_symbol:  r`.\@+`
     @lexeme_name: r`@(\@ | _)+`
-    @semicolon: r`:`
+    @colon: r`:`
     @identifier: r`( \@ | _ )+`
     @regex: r` r \` ( \\ \` | [~ \`] )* \` `
     @literal: r` " ( \\" | [~"] )* " `
     @or: r`\|`
     @pos_arg: r`$ \d+`
     @comment: r`# [~\n]* \n`
+
+    @code: r` % \{ [~%\}]* %\} `
 
     @spaces: r`\s+`
     @newlines: r`\n+`
@@ -20,7 +22,15 @@
 
     .Start start
 
-    start -> lexer_block @newlines parser_block @eof                          : field($0), field($2)
+    start -> lexer_block @newlines parser_block @eof : field($0), field($2) %ParserGenerator{
+        LOG_SEV(Info) << "Starting to parse the description.";
+        Visit(*object.lexer_block);
+        Visit(*object.parser_block);
+
+        // Shift productions, so all terminals and nonterminals have positive numbers.
+        shiftProductionNumbers();
+        findStartProduction();
+    %}
 
     # ========================================================
     #  Utility
@@ -34,53 +44,126 @@
     #  Lexer
     # ========================================================
 
-    lexer_block -> ".Lexer" newlines lexer_definitions newlines ".End"  : field($2.definitions)
+    lexer_block -> ".Lexer" newlines lexer_definitions newlines ".End"  : field($2.definitions) %ParserGenerator{
+        LOG_SEV(Info) << "Getting definitions.";
+        for (auto& definition : object.definitions) {
+          definition->Accept(*this);
+        }
+    %}
 
-    lexer_definitions -> lexer_definitions newlines lexeme_line         : append($0.definitions, "definitions"), push($2, "definitions")
-        | lexeme_line                                                   : push($0, "definitions")
+    lexer_definitions -> lexer_definitions newlines lexeme_line : append($0.definitions, "definitions"), push($2, "definitions")
+        | lexeme_line : push($0, "definitions")
 
-    lexeme_line -> lexeme_definition                                        : node("Lexeme"), field($0.name), field($0.regex)
+    lexeme_line -> lexeme_definition : node("Lexeme"), field($0.name), field($0.regex)
+        | skip_indicator : node("Skip"), field($0.identifier)
 
-    lexeme_definition -> @lexeme_name @semicolon @regex                     : field($0, "name"), field($2, "regex")
+    lexeme_definition -> @lexeme_name @colon @regex : field($0, "name"), field($2, "regex") %ParserGenerator{
+                production_rules_data_->lexer_generator->AddLexeme(object.name, object.regex);
+            %}
+
+    skip_indicator -> ".Skip" @identifier : field($1, "identifier") %ParserGenerator{
+                production_rules_data_->lexer_generator->AddSkip(object.identifier);
+            %}
 
     # ========================================================
     #  Parser
     # ========================================================
 
-    parser_block -> ".Parser" newlines start_indicator newlines parser_definitions newlines ".End"  : node("Parser"), field($2.start_name), field($4.definitions, "definition")
+    parser_block -> ".Parser" newlines start_indicator newlines parser_definitions newlines ".End"  : node("Parser"), field($2.start_name, "start_name"), field($4.definitions, "definition") %ParserGenerator{
+        // Set the start production name.
+        auto id = registerProduction(object.start_name);
+        registerStartingProduction(id);
+        LOG_SEV(Info) << "Setting production start name to "
+                      << manta::formatting::CLM(production_rules_data_->start_nonterminal_name) << ".";
+        for (auto& definition : object.definition) {
+          definition->Accept(*this);
+        }
+    %}
 
-    start_indicator -> ".Start" @identifier                             : field($1, "start_name")
+    start_indicator -> ".Start" @identifier     : field($1, "start_name") %ParserGenerator{
+        // Set the start non-terminal
+        production_rules_data_->start_nonterminal_name = object.start_name;
+    %}
 
-    parser_definitions -> parser_definitions newlines parser_definition : append($0.definitions, "definitions"), push($2, "definitions")
-        | parser_definition                                             : push($0, "definitions")
+    parser_definitions -> parser_definitions newlines parser_definition : append($0.definitions, "definitions"), push($2, "definitions") %ParserGenerator{
+            // Redirect to base.
+            Visit(static_cast<ASTNodeBase_parser_definitions&>(object));
+        %}
+        | parser_definition : push($0, "definitions") %ParserGenerator{
+            // Redirect to base.
+            Visit(static_cast<ASTNodeBase_parser_definitions&>(object));
+        %}
 
-    parser_definition -> @identifier "->" production_lines : field($0, "nonterminal_name"), field($2.productions)
+    parser_definition -> @identifier "->" production_lines : field($0, "nonterminal_name"), field($2.productions) %ParserGenerator{
+        LOG_SEV(Info) << "Reading definition for non-terminal " << manta::formatting::CLY(object.nonterminal_name)
+                          << ", there are " << object.productions.size() << " productions.";
 
+        auto pid = registerProduction(object.nonterminal_name);
+        makeNextItem(pid);  // Create the item for this production.
+        for (auto& production : object.productions) {
+          production->Accept(*this);
+        }
+        storeCurrentItem(); // Done creating the item, store it.
+    %}
+
+    # TODO Will be able to do:  production_and_data ( or production_and_data )*
     production_lines -> production_and_data         : node("options"), push($0, "productions")
         | production_lines or production_and_data   : node("options"), append($0.productions, "productions"), push($2, "productions")
 
     or -> @or
 
-    production_and_data -> production_atoms     : field($0.atoms)
-        | production_atoms @semicolon actions   : field($0.atoms), field($2.actions, "actions")
+    production_and_data -> production_atoms     : field($0.atoms) %ParserGenerator{
+            // Production and data with no actions.
+            // TODO: Find a way to combine this with an actions node, just with an empty actions vector.
+            Visit(static_cast<ASTNodeBase_production_and_data&>(object));
+        %}
+        | production_atoms @colon actions   : field($0.atoms), field($2.actions, "actions") %ParserGenerator{
+            Visit(static_cast<ASTNodeBase_production_and_data&>(object));
+
+            LOG_SEV(Info) << "There are " << object.actions.size() << " actions.";
+            for (auto& action : object.actions) {
+              action->Accept(*this);
+            }
+        %}
 
     production_atoms -> production_atoms production_atom    : node("production_atoms"), append($0.atoms, "atoms"), push($1, "atoms")
         | production_atom                                   : node("production_atoms"), push($0, "atoms")
 
-    production_atom -> @identifier : node("identifier")
-        | @literal : node("literal")
+    production_atom -> @identifier : node("identifier") %ParserGenerator{
+            // Indicates a non-terminal.
+            LOG_SEV(Info) << "Identifier: '" << object.identifier << "'";
+            registerProduction(object.identifier);
+        %}
+        | @literal : node("literal") %ParserGenerator{
+            int id = production_rules_data_->lexer_generator->AddReserved(object.literal);
+            // Add to the current item.
+            current_item_.AddToProduction(id);
+        %}
         | @lexeme_name : node("lexeme_name")
 
     actions -> actions "," action : node("actions"), append($0.actions, "actions"), push($2, "actions")
         | action                  : node("actions"), push($0, "actions")
 
-    action -> @identifier "(" args ")"          : node("action"), field($0, "fn_name"), field($2, "arguments")
+    action -> @identifier "(" args ")" : node("action"), field($0, "fn_name"), field($2, "arguments")
 
     args -> args "," arg : node("arguments"), append($0.arguments, "arguments"), push($2, "arguments")
         | arg : node("arguments"), push($0, "arguments")
 
-    arg -> @pos_arg : node("PosArg"), field($0, "pos")
-        | @pos_arg "." @identifier : node("PosArg"), field($0, "pos"), field($2, "field_name")
-        | @literal  : node("StringArg"), field($0, "argument")
+    arg -> @pos_arg : node("PosArg"), field($0, "pos"), %ParserGenerator{ // Came from pos arg 1 %}
+        | @pos_arg "." @identifier : node("PosArg"), field($0, "pos"), field($2, "field_name"), %ParserGenerator{ // Came from pos arg 2 %}
+        | @literal  : node("StringArg"), field($0, "argument"), %ParserGenerator{ // Came from literal %}
+        | "$null"   : node("NullArg")
 
+.End
+
+.Data
+    @import manta/generator/DescriptionParser.h
+    @import manta/utility/Formatting.h
+
+    code ParserGenerator %{
+        ParserGenerator() = default;
+    %}
+
+    inherits ParserGenerator manta::DescriptionParser
+    inherits ParserGenerator manta::ProductionRulesBuilder
 .End

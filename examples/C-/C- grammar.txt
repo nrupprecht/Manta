@@ -1,4 +1,4 @@
-# Grammer for the "C-" language, from here: http://marvin.cs.uidaho.edu/Teaching/CS445/c-Grammar.pdf
+# Grammar for the "C-" language, from here: http://marvin.cs.uidaho.edu/Teaching/CS445/c-Grammar.pdf
 
 .Lexer
     @ID:  r`\@ (\@ | \d)*`

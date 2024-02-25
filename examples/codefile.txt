@@ -1,0 +1,21 @@
+// =============================================================================
+// Can parsed by the grammar in config/code_rules.txt
+//
+// =============================================================================
+
+fn my_function(x: int, y: int, y: string) -> * {
+    hello(x, y, z);
+
+    let x = 2;
+    let y: vector::<int> = 4;
+    let z = Data{ a: MyClass{ x: 2, y: 3 } };
+
+    there().first + 16;
+
+    let my_lambda = fn (x: int) -> int {
+        let x = 3 + 4 * 5 + 6;
+
+        return fn (x: int) -> int { let var = y; };
+    };
+
+}

@@ -14,8 +14,7 @@ using NonterminalID = int;
 namespace manta::typesystem {
 
 //! \brief Enumerate what types of relationships between node structures must be checked.
-enum class CheckType
-{
+enum class CheckType {
   Field,
   Append,
   Push
@@ -63,8 +62,8 @@ struct TypeRelationship {
   //!
   //! Field check:    <no additional checks>
   //! Append check:   The type must be a vector type.
-  //! Push check:     The type of target_field_name must be a vector type, whose vector
-  //! type matches that of the pushed node or node field.
+  //! Push check:     The type of target_field_name must be a vector type, whose vector type matches that of the pushed
+  //!     node or node field.
   CheckType check_type = CheckType::Field;
 
   //! \brief What position is the target in the RHS of the item that created this

@@ -9,28 +9,34 @@
 using namespace manta;
 using namespace lightning;
 
-void compareParsers(const std::string& rulesFilepath) {
+//! \brief Function that does some comparisons between parsers, looking at how their parse tables differ.
+void compareParsers(const std::string& rules_filepath) {
   ParserGenerator slr(ParserType::SLR);
   ParserGenerator lalr(ParserType::LALR);
 
-  auto slr_parser = slr.CreateParserFromFile(rulesFilepath);
-  auto lalr_parser = lalr.CreateParserFromFile(rulesFilepath);
+  const auto slr_parser = slr.CreateParserFromFile(rules_filepath);
+  const auto lalr_parser = lalr.CreateParserFromFile(rules_filepath);
 
   CompareParsers(*slr_parser, *lalr_parser);
 }
 
 void testParser(const std::string& rules_filepath, const std::string& code_filepath) {
-  lightning::Logger logger;
-  logger.GetCore()->AddSink(NewSink<lightning::UnlockedSink, lightning::OstreamSink>());
+  Logger logger;
 
-  // Parser
+  std::filesystem::create_directory("logs");
+
+  std::string file_name = "logs/ParserTest.log";
+  logger.GetCore()->AddSink(NewSink<StdoutSink>()).AddSink(NewSink<FileSink>(file_name));
+
+  // Generate a LALR parser from the grammar description.
   ParserGenerator generator(ParserType::LALR);
   LOG_SEV(Info) << "Parsing rules from \"" << rules_filepath << "\"";
   std::shared_ptr<LALRParser> parser;
   try {
     parser = generator.CreateParserFromFile(rules_filepath);
-  } catch (const std::exception& ex) {
-    LOG_SEV(Error) << "Exception parsing rules:" << lightning::NewLineIndent << ex.what();
+  }
+  catch (const std::exception& ex) {
+    LOG_SEV(Fatal) << "Exception parsing rules:" << NewLineIndent << ex.what();
     return;
   }
 
@@ -47,10 +53,17 @@ void testParser(const std::string& rules_filepath, const std::string& code_filep
     // Set the logger in the parser.
     parser->SetLogger(logger);
 
+    std::ofstream fout("logs/ParserTable.txt");
+
     // Print out the transition table.
     std::cout << "\n";
     generator.WriteStates(std::cout);
     std::cout << "\n" << parser->PrintTable() << "\n\n";
+
+    generator.WriteStates(fout);
+    fout << "\n" << parser->PrintTable() << "\n\n";
+    fout.close();
+
     LOG_SEV(Info) << "Description parse successful.\n\n";
     std::shared_ptr<ParseNode> program;
     try {
@@ -64,6 +77,7 @@ void testParser(const std::string& rules_filepath, const std::string& code_filep
     }
     if (program) {
       LOG_SEV(Info) << "Parse took " << parser->NumParseSteps() << " steps.";
+      // Print out a very pretty ascii tree.
       std::cout << Display::RenderParseTree(program);
     }
     else {
@@ -78,9 +92,10 @@ void testParser(const std::string& rules_filepath, const std::string& code_filep
 }
 
 int main(int argc, char** argv) {
-  lightning::Global::GetCore()->AddSink(NewSink<lightning::UnlockedSink, lightning::OstreamSink>());
+  Global::GetCore()->AddSink(NewSink<StdoutSink>());
 
-  testParser("../../examples/C-/C- grammer.txt", "../../examples/C-/C- code.cmm");
+  // testParser("../../examples/C-/C- grammar.txt", "../../examples/C-/C- code.cmm");
+  testParser("../../config/code_rules.txt", "../../examples/codefile.txt");
 
   return 0;
 }

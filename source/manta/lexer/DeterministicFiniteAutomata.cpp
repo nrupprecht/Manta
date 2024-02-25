@@ -2,7 +2,7 @@
 // Other files.
 #include <limits>
 
-using namespace manta;
+namespace manta {
 
 bool FiniteAutomatonNode::WillAccept(const char c) const {
   return std::any_of(transitions.begin(),
@@ -96,11 +96,7 @@ std::optional<LexerResult> FiniteAutomaton::LexNext() {
       }
     }
   };  // Lambda function returns char(0) for eof.
-  auto put_char = [&]() {
-    if (!instream_->eof()) {
-      instream_->putback(c);
-    }
-  };
+  auto put_char = [&]() { if (!instream_->eof()) instream_->putback(c); };
   // Get characters as long as we can.
   get_char();
   while (tryAccept(c)) {
@@ -131,11 +127,9 @@ std::optional<LexerResult> FiniteAutomaton::LexNext() {
 
   // Check if we are able to extract any token and ended in an accepting state.
   if (!literal.empty() && dfa_nodes_[final_state].IsAccepting()) {
-    status_flag_ =
-        (instream_->eof() && !put_back_eof) ? FAStatus::AcceptedEOF : FAStatus::Valid;
+    status_flag_ = (instream_->eof() && !put_back_eof) ? FAStatus::AcceptedEOF : FAStatus::Valid;
 
-    // The DFA does not know the lexeme names, so they will have to be filled in by the
-    // Lexer.
+    // The DFA does not know the lexeme names, so they will have to be filled in by the Lexer.
     LexerResult result{{}, literal, initial_source_position};
     for (auto& [_, lexeme_id] : dfa_nodes_[final_state].accepting_states) {
       result.accepted_lexemes.emplace_back(lexeme_id, "?");
@@ -151,21 +145,19 @@ std::optional<LexerResult> FiniteAutomaton::LexNext() {
 FiniteAutomaton FiniteAutomaton::NFAToDFA() {
   // States are sets of NFA states.
   std::vector<std::set<int>> dfa_states;
-  dfa_states.push_back(std::set {0});  // Starting state just contains 0.
+  dfa_states.push_back(std::set{0});  // Starting state just contains 0.
 
   // New dfa.
   auto dfa = FiniteAutomaton();
 
-  // New states to process - stores the (DFA) state number and the set of NDFA states that
-  // makes up this state.
+  // New states to process - stores the (DFA) state number and the set of NDFA states that makes up this state.
   std::deque<std::pair<int, std::set<int>>> working_stack;
   // Start with the initial state on the stack.
   working_stack.emplace_back(0, dfa_states[0]);
   dfa.AddNode();
-  // If the node is accepting, or can make a lambda (null) transition to an accepting
-  // state, this state (the initial state) is accepting.
-  dfa.dfa_nodes_[0].accepting_states =
-      acceptingStateLambda(0);  // Node zero can also be accepting.
+  // If the node is accepting, or can make a lambda (null) transition to an accepting state, this state (the initial
+  // state) is accepting.
+  dfa.dfa_nodes_[0].accepting_states = acceptingStateLambda(0);  // Node zero can also be accepting.
 
   // Process the stack until it is empty.
   while (!working_stack.empty()) {
@@ -207,8 +199,7 @@ void FiniteAutomaton::AddTransition(
     if (ce != std::numeric_limits<char>::max()) {
       AddTransition(
           source,
-          TransitionType(
-              dest, static_cast<char>(ce + 1), std::numeric_limits<char>::max()));
+          TransitionType(dest, static_cast<char>(ce + 1), std::numeric_limits<char>::max()));
     }
   }
   else {
@@ -224,8 +215,7 @@ void FiniteAutomaton::AddTransition(int source, int dest, char c, bool complemen
     if (c != std::numeric_limits<char>::max()) {
       AddTransition(
           source,
-          TransitionType(
-              dest, static_cast<char>(c + 1), std::numeric_limits<char>::max()));
+          TransitionType(dest, static_cast<char>(c + 1), std::numeric_limits<char>::max()));
     }
   }
   else {
@@ -310,8 +300,7 @@ void FiniteAutomaton::SetRepeatEOF(bool flag) {
 
 inline bool FiniteAutomaton::tryAccept(char c) {
   auto& transitions = dfa_nodes_[state_pointer_].transitions;
-  auto it = std::find_if(
-      transitions.begin(), transitions.end(), [=](const auto& t) { return t.Accept(c); });
+  auto it = std::find_if(transitions.begin(), transitions.end(), [=](const auto& t) { return t.Accept(c); });
   if (it != transitions.end()) {
     state_pointer_ = it->transition_state;
     return true;
@@ -343,9 +332,7 @@ inline std::vector<std::pair<int, int>> FiniteAutomaton::acceptingStateLambda(
     unsigned node_id = lambda_stack.front();
     // Check all transitions in this node, looking for
     for (const auto& transition : dfa_nodes_[node_id].transitions) {
-      if (transition.IsNullTransition()
-          && !SetContains(lambda_set, transition.transition_state))
-      {
+      if (transition.IsNullTransition() && !SetContains(lambda_set, transition.transition_state)) {
         auto& node = dfa_nodes_[transition.transition_state];
         // Add any accepting lexemes from this node.
         if (node.IsAccepting()) {
@@ -365,7 +352,7 @@ inline std::vector<std::pair<int, int>> FiniteAutomaton::acceptingStateLambda(
   // Not an accepting state, and not lambda transitionable to an accepting state.
   std::sort(accepting_states.begin(),
             accepting_states.end(),
-            std::greater<std::pair<int, int>> {});
+            std::greater<std::pair<int, int>>{});
   return accepting_states;
 }
 
@@ -377,8 +364,7 @@ inline void FiniteAutomaton::computeGoto(
     FiniteAutomaton& dfa) {
   // Lambda for checking whether a set is contained in dfa_states.
   auto contains = [&](const std::set<int>& state_set_1) {
-    return std::find(dfa_states.begin(), dfa_states.end(), state_set_1)
-        != dfa_states.end();
+    return std::find(dfa_states.begin(), dfa_states.end(), state_set_1) != dfa_states.end();
   };
 
   // Map from state to vector of char range that will transition to that state.
@@ -413,19 +399,17 @@ inline void FiniteAutomaton::computeGoto(
       std::vector<std::pair<Precedence, int>> accepting_states;
       for (auto node_id : transition_set) {
         auto accepting = acceptingStateLambda(node_id);
-        accepting_states.insert(
-            accepting_states.end(), accepting.begin(), accepting.end());
+        accepting_states.insert(accepting_states.end(), accepting.begin(), accepting.end());
       }
       std::sort(accepting_states.begin(),
                 accepting_states.end(),
-                std::greater<std::pair<int, int>> {});
+                std::greater<std::pair<int, int>>{});
 
       // Add a state to the dfa.
       dfa.AddNode(FiniteAutomatonNode(accepting_states));
       // Add the transition from the current state (state_id) to the new state
       // (new_state_id).
-      dfa.AddTransition(state_id,
-                        TransitionType {new_state_id, range_initial, range_final});
+      dfa.AddTransition(state_id, TransitionType{new_state_id, range_initial, range_final});
       dfa_states.push_back(transition_set);
       // Add the new state to the working stack.
       working_stack.emplace_back(new_state_id, transition_set);
@@ -458,7 +442,7 @@ inline void FiniteAutomaton::computeTransitions(
     int next_node = static_cast<int>(transition.transition_state);
     // Transition range.
     char transition_initial = transition.range_initial,
-         transition_final = transition.range_final;
+        transition_final = transition.range_final;
     // Only need to check if the node we could transition to is not already in the
     // transition set.
     if (transition_ranges.count(next_node) == 0) {
@@ -470,8 +454,7 @@ inline void FiniteAutomaton::computeTransitions(
         }
       }
       else {
-        transition_ranges.emplace(
-            next_node, vpair {{transition.range_initial, transition.range_final}});
+        transition_ranges.emplace(next_node, vpair{{transition.range_initial, transition.range_final}});
       }
     }
     // If not a lambda transition, add/combine character ranges.
@@ -480,7 +463,7 @@ inline void FiniteAutomaton::computeTransitions(
       // different one, or if it can be combined with existing transitions.
       bool combined = false;
       for (auto& range : transition_ranges[next_node]) {
-        char &range_initial = range.first, &range_final = range.second;
+        char& range_initial = range.first, & range_final = range.second;
         // Adjust range min.
         if (transition_initial < range_initial && range_initial <= transition_final + 1) {
           range_initial = std::min(range_initial, transition_initial);
@@ -529,8 +512,7 @@ inline void FiniteAutomaton::createTransitionSets(
 
   // Create transition sets.
   std::set<int> current_states;
-  bool last_bool = true, first_time = true;
-  ;
+  bool last_bool = true, first_time = true;;
   char last_char = -1;
   for (auto p = order_structure.begin(); p != order_structure.end(); ++p) {
     auto [character, ends, state] = *p;
@@ -540,16 +522,13 @@ inline void FiniteAutomaton::createTransitionSets(
       if (!first_time && character - 1 != last_char && !current_states.empty()) {
         all_transition_sets.emplace_back(current_states, last_char, character - 1);
       }
-      else
-        first_time = false;
+      else { first_time = false; }
       last_char = character;
       // Find all ranges that start at this character.
       current_states.insert(std::get<2>(*p));
       auto q = p;
       ++q;
-      while (q != order_structure.end() && std::get<0>(*q) == character
-             && std::get<1>(*q) == ends)
-      {
+      while (q != order_structure.end() && std::get<0>(*q) == character && std::get<1>(*q) == ends) {
         ++p;  // p and q now match.
         current_states.insert(std::get<2>(*p));
         ++q;
@@ -570,9 +549,7 @@ inline void FiniteAutomaton::createTransitionSets(
       current_states.erase(std::get<2>(*p));
       auto q = p;
       ++q;
-      while (q != order_structure.end() && std::get<0>(*q) == character
-             && std::get<1>(*q) == ends)
-      {
+      while (q != order_structure.end() && std::get<0>(*q) == character && std::get<1>(*q) == ends) {
         ++p;  // p and q now match.
         current_states.erase(std::get<2>(*p));
         ++q;
@@ -580,4 +557,6 @@ inline void FiniteAutomaton::createTransitionSets(
       last_bool = false;
     }
   }
+}
+
 }

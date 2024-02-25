@@ -30,8 +30,7 @@ public:
   std::shared_ptr<LexerDFA> CreateLexer();
 
   //! \brief Get the regex string that defines each lexeme.
-  const std::map<std::string, std::pair<std::string, int>>& GetDefiningExpressions()
-      const;
+  const std::map<std::string, std::pair<std::string, int>>& GetDefiningExpressions() const;
 
   //! \brief Check if a string would be accepted by the lexer_generator.
   NO_DISCARD int Accepts(const std::string& word) const;

@@ -1,0 +1,122 @@
+# =============================================================================
+# Can be used to parse examples/codefile.txt
+#
+# =============================================================================
+
+.Lexer
+    @identifier:  r`(\@ | _ ) (\@ | _ | \d)*`
+    @type_name:  r`\@ (\@ | \d)*`
+    @integer: r`\d+`
+    @float: r`\d+.\d*`
+
+    @comment: r`// [~\n]* \n`
+
+    @spaces: r`\s+`
+    @newlines: r`\n+`
+
+    .Skip spaces
+    .Skip newlines
+    .Skip comment
+.End
+
+.Parser
+.Start start
+
+    start -> functions
+
+    functions -> functions function
+        | function
+
+    function -> declaration code_block
+
+    declaration -> "fn" @identifier "(" arguments ")" "->" type_declaration
+
+    type_declaration -> @type_name
+        | arithmetic_type
+        | "(" ")"  # Void type
+        | function_type_definition
+        | "*"   # Auto type
+        | "[" type_declaration "]"  # Array
+
+    arithmetic_type -> @type_name "::<" type_list ">"
+        | @type_name "::<" ">"
+        | tuple_type
+
+    tuple_type -> "(" type_list ")"
+
+    function_type_definition -> type_declaration "->" type_declaration
+
+    type_list -> type_list "," type_declaration
+        | type_declaration
+
+    arguments -> arguments "," argument
+        | argument
+
+    argument -> @identifier ":" @type_name
+
+    code_block -> "{" code_lines "}"
+
+    code_lines -> code_lines code_line
+        | code_line
+
+    code_line -> statement ";"
+
+    statement -> assignment
+        | term
+        | return_statement
+
+    assignment -> "let" optionally_typed_id "=" assignable
+
+    optionally_typed_id -> @identifier
+        | @identifier ":" type_declaration
+
+    assignable -> term
+        | lambda_function
+
+    fncall -> @identifier "(" ")"
+        | @identifier "(" call_args ")"
+
+    call_args -> call_args "," term
+        | term
+
+    term -> number | qualified_s
+
+    qualified_s -> qualified_s "." qualified
+        | qualified
+
+    qualified -> @identifier
+        | data_literal
+        | fncall
+
+    number -> @integer | @float
+
+    data_literal -> @identifier data_assign
+
+    data_assign -> "{" "}"
+        | "{" literal_assigns "}"
+
+    literal_assigns -> literal_assigns "," literal_assign
+        | literal_assign
+
+    literal_assign -> @identifier ":" term
+
+    lambda_function -> lambda_declaration code_block
+
+    lambda_declaration -> "fn" "(" arguments ")" "->" type_declaration
+        | "fn" "(" ")" "~" type_declaration
+        | "fn"
+
+    return_statement -> "return" assignable
+
+
+    term -> @identifier
+        | number
+        | data_literal
+        | term "+" term -> prec(1) assoc(Left)
+        | term "-" term -> prec(1) assoc(Left)
+        | term "*" term -> prec(2) assoc(Left)
+        | term "/" term -> prec(2) assoc(Left)
+        | term "^" term -> prec(3) assoc(Right)
+        | "(" term ")"
+
+.End

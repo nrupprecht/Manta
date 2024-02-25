@@ -37,7 +37,7 @@ public:
   //! \brief Get the enum that enumerate all the non-terminals.
   NO_DISCARD TypeDescriptionEnum* GetNonterminalEnum() const;
 
-  //! \brief Get the ItemID "structucture" type.
+  //! \brief Get the ItemID "structure" type.
   NO_DISCARD TypeDescriptionStructure* GetItemID() const;
 
   TypeDescriptionStructure* GetNodeDescription(const std::string& type_name, NonterminalID nonterminal_id);

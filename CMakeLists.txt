@@ -57,7 +57,7 @@ add_conan_remote(conan-community https://api.bintray.com/conan/conan-community/c
 FetchContent_Declare(
         Lightning
         GIT_REPOSITORY https://github.com/nrupprecht/Lightning.git
-        GIT_TAG        main
+        GIT_TAG        9b2760c
 )
 FetchContent_MakeAvailable(Lightning)
 include_directories(${Lightning_SOURCE_DIR}/include)

@@ -17,6 +17,7 @@ ASTNodeManager::ASTNodeManager() {
   nonterminal_enum_->AddOption("Terminal");  // Actually not a non-terminal
 
   // In real code, this is actually a typedef for an integer.
+  // TODO: Change to Integer type.
   item_id_type_ = type_system_.Structure("ItemID");
 
   // Create node base structure.

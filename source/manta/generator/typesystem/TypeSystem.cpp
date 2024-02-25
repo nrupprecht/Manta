@@ -23,6 +23,10 @@ std::string to_string(TSGeneralType type) {
       return "Integer";
     case TSGeneralType::Float:
       return "Float";
+    case TSGeneralType::Function:
+      return "Function";
+    case TSGeneralType::Custom:
+      return "Custom";
     default:
       MANTA_FAIL("unrecogmized TSGeneralType");
   }
@@ -294,5 +298,13 @@ TypeDescriptionStructure* TypeSystem::Structure(const std::string& type_name) {
   auto [it, _] = types_.emplace(hash, std::move(ptr));
   return dynamic_cast<TypeDescriptionStructure*>(it->second.get());
 }
+
+const TypeDescriptionCustom* TypeSystem::Custom(const std::string& type_declaration) {
+  auto custom_type = std::make_shared<TypeDescriptionCustom>(type_declaration);
+  auto it = types_.emplace(custom_type->HashID(), custom_type);
+  // In case the type already exists, emplace will not have overwritten the old entry.
+  return reinterpret_cast<const TypeDescriptionCustom*>(it.first->second.get());
+}
+
 
 }  // namespace manta

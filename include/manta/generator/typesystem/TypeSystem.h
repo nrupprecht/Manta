@@ -25,6 +25,7 @@ enum class TSGeneralType
   Structure,
   Enumeration,
   Function,
+  Custom,
 };
 
 //! \brief Function to serialize a TSGeneralType enum to a string.
@@ -67,6 +68,10 @@ struct ElaboratedType {
   const TypeDescription* arg_type {};
   bool is_const {};
   bool is_ref {};
+
+  bool operator<(const ElaboratedType& other) const {
+    return std::tie(arg_type, is_const, is_ref) < std::tie(other.arg_type, other.is_const, other.is_ref);
+  }
 };
 
 //! \brief Type description for a "basic" type. Basic types will be mapped to types in
@@ -147,6 +152,10 @@ struct FunctionType : public TypeDescription {
     return true;
   }
 
+  bool operator<(const FunctionType& other) const {
+    return std::tie(arguments, return_type) < std::tie(other.arguments, other.return_type);
+  }
+
   // =====================================================================================
   //  Builder functions
   // =====================================================================================
@@ -200,6 +209,11 @@ struct FunctionValue {
   //! the structure as the binder in the StructureFunction instance. Returns a reference to the newly created bound
   //! function value inside the structure.
   StructureFunction& BindToStructure(class TypeDescriptionStructure* structure, bool is_const, bool is_override);
+
+  bool operator<(const FunctionValue& other) const {
+    return std::tie(function_name, function_type, argument_names, function_body)
+           < std::tie(other.function_name, other.function_type, other.argument_names, other.function_body);
+  }
 
   // =====================================================================================
   //  Builder functions
@@ -374,13 +388,9 @@ struct TypeDescriptionEnum : public BasicTypeDescription {
   explicit TypeDescriptionEnum(const std::string& enum_name);
 
   NO_DISCARD std::string Write() const override;
-
   NO_DISCARD std::size_t HashStructure() const override;
-
   NO_DISCARD std::size_t HashID() const override;
-
   static std::size_t PotentialHashID(const std::string& name);
-
   NO_DISCARD const std::string& GetName() const;
   void AddOption(const std::string& enum_option);
 
@@ -413,6 +423,21 @@ struct TypeDescriptionFloat : public TypeDescription {
       : TypeDescription(TSGeneralType::Float) {}
 };
 
+//! \brief Represents some custom, user defined type. This is useful for things like defining functions in arbitrary
+//! code, like reduction functions, that return some language specific type.
+struct TypeDescriptionCustom : public TypeDescription {
+  explicit TypeDescriptionCustom(const std::string& type_declaration) noexcept
+      : TypeDescription(TSGeneralType::Custom)
+        , type_declaration(type_declaration) {}
+
+  NO_DISCARD virtual std::string Write() const override { return type_declaration; }
+  NO_DISCARD virtual std::size_t HashStructure() const override { return HashID(); }
+  NO_DISCARD std::size_t HashID() const override { return std::hash<std::string>{}(type_declaration); }
+
+  //! \brief The declaration of the type in the native language.
+  std::string type_declaration;
+};
+
 //! \brief A class that manages a universe of type. Allows for the creation of types,
 //! generally by composing other types from the TypeSystem into new types, like vectors of
 //! types, pointers to types, structures with other types as fields, etc.
@@ -439,6 +464,9 @@ public:
   //! \brief Get a structure type.
   TypeDescriptionStructure* Structure(const std::string& type_name);
 
+  //! \brief Create a custom type.
+  const TypeDescriptionCustom* Custom(const std::string& type_declaration);
+
 private:
   //! \brief The string type.
   const TypeDescriptionString string_type_;
@@ -451,7 +479,7 @@ private:
   std::map<std::size_t, std::shared_ptr<TypeDescription>> types_;
 };
 
-//! \brief Add a little color formatter for TypeDescriptions.
+//! \brief Add a little color formatter for logging TypeDescriptions.
 inline void format_logstream(const TypeDescription& type_description, lightning::RefBundle& handler) {
   handler << lightning::AnsiColor8Bit(type_description.Write(),
                                       lightning::formatting::AnsiForegroundColor::BrightBlue);
