@@ -1,5 +1,6 @@
 #include "manta/generator/ParserCodegen.h"
 #include <Lightning/Lightning.h>
+#include <filesystem>
 
 using namespace manta;
 using namespace lightning;
