@@ -5,33 +5,34 @@
 namespace manta {
 
 using NonterminalID = int;
-using ItemID = int;
-using StateID = int;
+using ItemID        = int;
+using StateID       = int;
 
 //! \brief Enum for the associativity of an operator/production rule.
 enum class Associativity {
-  Left,
-  Right,
-  None
+  LEFT,
+  RIGHT,
+  NONE
 };
 
 inline std::string to_string(Associativity assoc) {
   switch (assoc) {
-    case Associativity::Left:
+    using enum Associativity;
+    case LEFT:
       return "Left";
-    case Associativity::Right:
+    case RIGHT:
       return "Right";
-    case Associativity::None:
+    case NONE:
       return "None";
     default:
-      throw std::exception();
+      MANTA_FAIL("unrecognized Associativity");
   }
 }
 
 //! \brief Encodes the precedence and associativity of an operator/production rule.
 struct ResolutionInfo {
-  double precedence = 0.;
-  Associativity assoc = Associativity::None;
+  double precedence   = 0.;
+  Associativity assoc = Associativity::NONE;
 
   bool operator==(const ResolutionInfo& rhs) const {
     return precedence == rhs.precedence && assoc == rhs.assoc;
@@ -40,12 +41,14 @@ struct ResolutionInfo {
   bool operator!=(const ResolutionInfo& rhs) const { return !(*this == rhs); }
 };
 
-constexpr ResolutionInfo NullResolutionInfo{};
+constexpr ResolutionInfo NullResolutionInfo {};
 
 //! \brief Encode a production rule, like A -> a X b, etc.
 struct ProductionRule {
   explicit ProductionRule(NonterminalID production, int label, const std::vector<int> rhs = {})
-      : produced_nonterminal(production), production_item_number(label), rhs(rhs) {}
+      : produced_nonterminal(production)
+      , production_item_number(label)
+      , rhs(rhs) {}
 
   //! \brief Create an empty production rule.
   ProductionRule() = default;
@@ -63,12 +66,8 @@ struct ProductionRule {
   //! \brief Get the number of elements in the RHS of the production.
   NO_DISCARD int Size() const;
 
-  bool operator<(const ProductionRule& rule) const {
-    return std::tie(produced_nonterminal, rhs) < std::tie(rule.produced_nonterminal, rule.rhs);
-  }
-
-  bool operator==(const ProductionRule& rule) {
-    return std::tie(produced_nonterminal, rhs) == std::tie(rule.produced_nonterminal, rule.rhs);
+  auto operator<=>(const ProductionRule& rule) const {
+    return std::tie(produced_nonterminal, rhs) <=> std::tie(rule.produced_nonterminal, rule.rhs);
   }
 
   // --- Data items ---
@@ -80,7 +79,7 @@ struct ProductionRule {
   NonterminalID produced_nonterminal = -1;
 
   //! \brief A number for the production, i.e. this is the n-th item.
-  ItemID production_item_number{};
+  ItemID production_item_number {};
 
   //! \brief The right hand side of the production.
   std::vector<int> rhs;
@@ -90,9 +89,9 @@ struct ProductionRule {
   //! TODO: Keep these in a better, dedicated structure.
   std::shared_ptr<class ParseNode> instructions = nullptr;
 
-  //! \brief Resolution info - this encodes the precedence and associativity of a
-  //! production. This is actualized by resolving shift/reduce conflicts such that parsing
-  //! works.
+  //! \brief Resolution info, this encodes the precedence and associativity of a  production.
+  //!
+  //! This is actualized by resolving shift/reduce conflicts such that parsing works.
   ResolutionInfo res_info;
 };
 
@@ -104,10 +103,12 @@ struct ProductionRule {
 struct Item : public ProductionRule {
   Item(NonterminalID production,
        int label,
-       int bookmark = 0,
-       const std::vector<int>& rhs = {},
+       int bookmark                        = 0,
+       const std::vector<int>& rhs         = {},
        std::optional<unsigned> item_number = {})
-      : ProductionRule(production, label, rhs), item_number(item_number), bookmark(bookmark) {}
+      : ProductionRule(production, label, rhs)
+      , item_number(item_number)
+      , bookmark(bookmark) {}
 
   //! \brief Create an empty item.
   Item() = default;
@@ -122,14 +123,15 @@ struct Item : public ProductionRule {
   //! this item.
   Item MakeReducibleForm() const;
 
-  //! \brief Create a new Item where the bookmark has advanced by one. If the bookmark is
-  //! at the end already, returns nullopt.
+  //! \brief Create a new Item where the bookmark has advanced by one. If the bookmark is at the end already,
+  //!        returns nullopt.
   std::optional<Item> AdvanceDot() const;
 
   //! \brief Make a new identical Item without any instructions or resolution info
   Item WithoutInstructions() const;
 
-  //! \brief If the bookmark is at the end, returns {}, otherwise, returns the terminal or nonterminal immediately following the bookmark.
+  //! \brief If the bookmark is at the end, returns {}, otherwise, returns the terminal or nonterminal
+  //!        immediately following the bookmark.
   std::optional<int> GetElementFollowingBookmark() const;
 
   friend bool operator<(const Item& a, const Item& b);
@@ -142,7 +144,7 @@ struct Item : public ProductionRule {
   // =====================================================================================
 
   //! \brief What the item number for this item is. Used e.g. to find the correct item reduction function.
-  std::optional<ItemID> item_number{};
+  std::optional<ItemID> item_number {};
 
   //! \brief The location of the bookmark.
   //!
@@ -185,25 +187,25 @@ struct State {
 
 //! \brief Table entry action types.
 enum class Action {
-  Error,
-  Shift,
-  Reduce,
-  Accept
+  ERROR,
+  SHIFT,
+  REDUCE,
+  ACCEPT
 };
 
 //! \brief Write an action as a string.
 inline std::string ToString(Action action) {
   switch (action) {
-    case Action::Error:
-      return "Error";
-    case Action::Shift:
-      return "Shift";
-    case Action::Reduce:
-      return "Reduce";
-    case Action::Accept:
-      return "Accept";
+    case Action::ERROR:
+      return "ERROR";
+    case Action::SHIFT:
+      return "SHIFT";
+    case Action::REDUCE:
+      return "REDUCE";
+    case Action::ACCEPT:
+      return "ACCEPT";
     default:
-      throw std::exception();
+      MANTA_FAIL("unrecognized Action");
   }
 }
 
@@ -219,7 +221,7 @@ struct Entry {
   Entry();
 
   //! Create entry as a shift.
-  explicit Entry(int s, const ResolutionInfo& res_info = ResolutionInfo{});
+  explicit Entry(int s, const ResolutionInfo& res_info = ResolutionInfo {});
 
   //! Create entry as a reduce.
   explicit Entry(Item r);
@@ -241,9 +243,9 @@ struct Entry {
   friend std::ostream& operator<<(std::ostream&, const Entry&);
   bool operator==(const Entry& rhs) const;
 
- private:
+private:
   //! \brief The action.
-  Action action = Action::Error;
+  Action action = Action::ERROR;
 
   //! \brief The state to transition to.
   StateID state = 0;

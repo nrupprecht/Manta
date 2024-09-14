@@ -489,13 +489,13 @@ void HandWrittenDescriptionParser::findResInfo(std::istream& in, ResolutionInfo&
         word.clear();
         not_eof = getWord(in, word);
         if (word == "Left") {
-          res_info.assoc = Associativity::Left;
+          res_info.assoc = Associativity::LEFT;
         }
         else if (word == "Right") {
-          res_info.assoc = Associativity::Right;
+          res_info.assoc = Associativity::RIGHT;
         }
         else if (word == "None") {
-          res_info.assoc = Associativity::None;
+          res_info.assoc = Associativity::NONE;
         }
         else {
           MANTA_THROW(UnexpectedInput,
@@ -552,7 +552,7 @@ std::shared_ptr<ParseNode> HandWrittenDescriptionParser::getInstructions(std::is
       break;
     }
     // Reduction / visitor code.
-    else if (c == '%') {
+    if (c == '%') {
       MANTA_ASSERT(!in.eof(), "unexpected eof while getting reduction code");
 
       // Get what type of code this is for, a visitor, or a function to be called upon the REDUCE.
@@ -681,7 +681,7 @@ std::shared_ptr<ParseNode> HandWrittenDescriptionParser::getInstructions(std::is
           acc.clear();
         }
         // Argument separators.
-        else if (c == ',') {}; // Put this on a separate line to silence a warning
+        else if (c == ',') {} // Put this on a separate line to silence a warning
 
         // Get next character.
         in.get(c);
@@ -691,6 +691,7 @@ std::shared_ptr<ParseNode> HandWrittenDescriptionParser::getInstructions(std::is
     // Get the next character.
     in.get(c);
   }
+
   // Return the instruction.
   return instruction;
 }
@@ -714,9 +715,8 @@ void HandWrittenDescriptionParser::getData(std::istream& stream) {
       if (word == "End") {
         return;
       }
-      else {
-        MANTA_THROW(UnexpectedInput, "in getData, expected a .End command, found a ." << word);
-      }
+      MANTA_THROW(UnexpectedInput, "in getData, expected a .End command, found a ." << word);
+
     }
     // Module import.
     else if (c == '@') {
@@ -853,4 +853,5 @@ void HandWrittenDescriptionParser::bypassWhitespace(std::istream& stream) {
   }
   stream.putback(c);
 }
+
 } // namespace manta

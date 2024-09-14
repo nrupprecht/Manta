@@ -16,8 +16,7 @@ std::string escape(const std::string& input) {
   std::string output;
   output.reserve(input.size());
   std::for_each(input.begin(), input.end(), [&output](auto c) {
-    if (c == '\\' || c == '"')
-      output.push_back('\\');
+    if (c == '\\' || c == '"') output.push_back('\\');
     output.push_back(c);
   });
   return output;
@@ -129,7 +128,7 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
   codegen.WriteHeader(code_out);
 
   // Write any user specified imports.
-  for (auto& name : parser_data->production_rules_data->file_data.import_names) {
+  for (const auto& name : parser_data->production_rules_data->file_data.import_names) {
     codegen.WriteImport(code_out, name, false);
   }
 
@@ -166,12 +165,12 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
               "Parser> {\n";
   code_out << "  friend class manta::ParserDriverBase<ASTNodeBase, ASTLexeme, Parser>;\n";
   code_out << "public:\n";
-  code_out << "  //! \\brief Constructor, initializes the parser.\n  //!\n";
+  code_out << "  //! \\brief Constructor, initializes the parser.\n";
   code_out << "  Parser();\n\n";
-  code_out << "  //! \\brief Function to parse the input.\n  //!\n";
+  code_out << "  //! \\brief Function to parse the input.\n";
   code_out << "  std::shared_ptr<ASTNodeBase> ParseInput();\n\n";
   code_out << "protected:\n";
-  code_out << "  //! \\brief Function that sets up the lexer.\n  //!\n";
+  code_out << "  //! \\brief Function that sets up the lexer.\n";
   code_out << "  void createLexer();\n\n";
   code_out << "  //! \\brief The reduce function, which allows this parser to "
               "call the reduction functions.\n";
@@ -192,8 +191,7 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
       LOG_SEV(Debug) << "Writing declaration for item " << item_number << ": "
                      << CLBG(to_string(item, false));
       for (auto id : item.rhs) {
-        if (i != 0)
-          code_out << ",";
+        if (i != 0) code_out << ",";
         if (parser_data->production_rules_data->IsNonTerminal(id)) {
           // Get the base type for this non-terminal.
           auto& base_type = deduced_types.GetBaseTypeName(id);
@@ -220,7 +218,8 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
     item_numbers.emplace(item, item_numbers.size());
   }
 
-  code_out << "Parser::Parser() {\n";
+  // Note - making this function inline, since right now, these definitions are going into the header.
+  code_out << "inline Parser::Parser() {\n";
   code_out << "  using namespace manta;\n\n";
   code_out << "  start_nonterminal_ = " << parser_data->production_rules_data->start_nonterminal << ";\n";
   code_out << "  // Allocate space for the parser table.\n";
@@ -244,8 +243,7 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
 
           code_out << "Entry(Item(" << item.produced_nonterminal << ", " << *item.item_number << ", 0, {";
           for (auto i = 0u; i < item.rhs.size(); ++i) {
-            if (i != 0)
-              code_out << ", ";
+            if (i != 0) code_out << ", ";
             code_out << item.rhs[i];
           }
           code_out << "}, " << item_number << "));  // Reduce\n";
@@ -267,7 +265,7 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
 
   // Create the inverse production map.
   code_out << "  // Create inverse non-terminal map.\n";
-  for (auto& [id, name] : parser_data->production_rules_data->inverse_nonterminal_map) {
+  for (auto const& [id, name] : parser_data->production_rules_data->inverse_nonterminal_map) {
     code_out << "  inverse_nonterminal_map_.emplace(" << id << ", \"" << name << "\");\n";
   }
   code_out << "\n";
@@ -275,16 +273,18 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
   code_out << "  createLexer();\n";
   code_out << "}\n\n";
 
-  code_out << "std::shared_ptr<ASTNodeBase> Parser::ParseInput() {\n  return parse();\n}\n\n";
+  // Note - making this function inline, since right now, these definitions are going into the header.
+  code_out << "inline std::shared_ptr<ASTNodeBase> Parser::ParseInput() {\n  return parse();\n}\n\n";
 
   // Generate the code to create the lexer.
-  code_out << "void Parser::createLexer() {\n";
+  // Note - making this function inline, since right now, these definitions are going into the header.
+  code_out << "inline void Parser::createLexer() {\n";
   auto& lex_gen = parser_data->GetLexerGenerator();
   code_out << "  auto lexer_generator = std::make_shared<manta::LexerGenerator>();\n\n";
 
   auto&& defining_expressions = lex_gen.GetDefiningExpressions();
-  auto&& ordered_definitions = lex_gen.GetOrderedLexemeDefinitions();
-  int count_lexemes = 0;
+  auto&& ordered_definitions  = lex_gen.GetOrderedLexemeDefinitions();
+  int count_lexemes           = 0;
   for (auto& [lexeme_name, regex, prec] : ordered_definitions) {
     if (lexeme_name == "eof") {
       code_out << "  // Lexeme \"eof\" will be automatically added as the first (0-th) "
@@ -322,7 +322,8 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
   code_out << "  lexer_ = lexer_generator->CreateLexer();\n";
   code_out << "}\n\n";
 
-  code_out << "std::shared_ptr<ASTNodeBase> Parser::reduce(unsigned "
+  // Note - making this function inline, since right now, these definitions are going into the header.
+  code_out << "inline std::shared_ptr<ASTNodeBase> Parser::reduce(unsigned "
               "reduction_id, const std::vector<std::shared_ptr<ASTNodeBase>>& "
               "collected_nodes) {\n";
 
@@ -340,17 +341,17 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
       code_out << "      REDUCE_ASSERT(" << item.rhs.size() << ", " << item_number
                << ", collected_nodes.size());\n";
 
-//      code_out << "      MANTA_REQUIRE(" << item.rhs.size() << " <= collected_nodes.size(), \"in reduction "
-//               << item_number << ", not enough nodes in the collect vector, needed at least "
-//               << item.rhs.size() << ", actual size was \" << collected_nodes.size());\n";
+      //      code_out << "      MANTA_REQUIRE(" << item.rhs.size() << " <= collected_nodes.size(), \"in
+      //      reduction "
+      //               << item_number << ", not enough nodes in the collect vector, needed at least "
+      //               << item.rhs.size() << ", actual size was \" << collected_nodes.size());\n";
       auto function_name = "ReduceTo_" + node_type_name + "_ViaItem_" + std::to_string(item_number);
       code_out << "      LOG_SEV_TO(logger_, Debug) << \"Calling reduce function '" << function_name
                << "'.\";\n";
       code_out << "      return " << function_name << "(";
       auto i = 0;
       for (auto id : item.rhs) {
-        if (i != 0)
-          code_out << ",";
+        if (i != 0) code_out << ",";
         if (parser_data->production_rules_data->IsNonTerminal(id)) {
           // Get the base type for this non-terminal.
           code_out << "\n          std::reinterpret_pointer_cast<";
@@ -382,7 +383,8 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
     for (auto& item : parser_data->production_rules_data->all_productions) {
       auto& node_type_name = node_types_for_item.at(item_number);
 
-      code_out << "std::shared_ptr<" << node_type_name << ">\n";
+      // Note - making this function inline, since right now, these definitions are going into the header.
+      code_out << "inline std::shared_ptr<" << node_type_name << ">\n";
       auto function_name =
           parser_class_name + "::ReduceTo_" + node_type_name + "_ViaItem_" + std::to_string(item_number);
       code_out << function_name;
@@ -413,6 +415,7 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
                          << CLBB(base_type) << ".";
         }
         else {
+          // NOTE: Potentially better to use string_view here.
           LOG_SEV(Debug) << "  * Argument " << i << " is a terminal. Parameter will be a std::string.";
           code_out << "\n    [[maybe_unused]] const std::string& argument_" << i;
         }
@@ -423,7 +426,8 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
 
 
       if (auto it = relationships.find(node_type_name); it != relationships.end()) {
-        code_out << "  auto new_node = std::make_shared<" << node_type_name << ">(" << item_number << ");\n\n";
+        code_out << "  auto new_node = std::make_shared<" << node_type_name << ">(" << item_number
+                 << ");\n\n";
         code_out << "  // Set fields in the new node.\n";
 
         // Get relationships for this node. We only keep the ones for this item number.
@@ -440,13 +444,13 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
           }
           auto&& field_name = rel.target_field_name;
           switch (rel.check_type) {
-            case CheckType::Push: {
+            case CheckType::PUSH: {
               LOG_SEV(Debug) << "  * PUSH relationship for arg " << rel.position << " into field named '"
                              << field_name << "'.";
               code_out << "  new_node->" << field_name << ".push_back(argument_" << rel.position << ");\n";
               break;
             }
-            case CheckType::Append: {
+            case CheckType::APPEND: {
               const std::string arg_name = "argument_" + std::to_string(rel.position);
 
               LOG_SEV(Debug) << "  * APPEND relationship for arg " << rel.position << " into field named '"
@@ -458,7 +462,7 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
                        << *rel.source_field_name << ".cend());\n";
               break;
             }
-            case CheckType::Field: {
+            case CheckType::FIELD: {
               LOG_SEV(Debug) << "  * FIELD relationship for arg " << rel.position << " into field named '"
                              << field_name << "'.";
 
@@ -531,25 +535,25 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
 }
 
 TypeDescriptionStructure* ParserCodegen::createBaseVisitor(ASTNodeManager& node_manager) const {
-  auto visitor = node_manager.GetVisitorStructure();
+  auto visitor         = node_manager.GetVisitorStructure();
   auto& all_node_types = node_manager.GetAllNodeTypesForNonterminals();
 
-  auto accept_signature = FunctionType{}.WithArguments({ElaboratedType{visitor, false, true}});
+  auto accept_signature = FunctionType {}.WithArguments({ElaboratedType {visitor, false, true}});
 
   // Create base function in ASTNode base.
-  auto accept_function = StructureFunction{}
-      .WithName("Accept")
-      .WithType(accept_signature)
-      .WithArgumentNames({"visitor"})
-      .BindToStructure(node_manager.GetASTNodeBase(), false, false);
+  auto accept_function = StructureFunction {}
+                             .WithName("Accept")
+                             .WithType(accept_signature)
+                             .WithArgumentNames({"visitor"})
+                             .BindToStructure(node_manager.GetASTNodeBase(), false, false);
 
   auto create_visitor_functions = [&](TypeDescriptionStructure* visitable_type) {
     // Add the accept function to the visitable type.
     accept_function.WithBody("visitor.Visit(*this);").BindToStructure(visitable_type, false, true);
 
     // Add the visitor's visit function.
-    auto visit_signature = FunctionType{}.WithArguments({ElaboratedType{visitable_type, false, true}});
-    StructureFunction{}
+    auto visit_signature = FunctionType {}.WithArguments({ElaboratedType {visitable_type, false, true}});
+    StructureFunction {}
         .WithName("Visit")
         .WithType(visit_signature)
         .WithArgumentNames({"object"})
@@ -568,8 +572,8 @@ TypeDescriptionStructure* ParserCodegen::createBaseVisitor(ASTNodeManager& node_
 }
 
 TypeDescriptionStructure* ParserCodegen::createPrintingVisitor(ASTNodeManager& node_manager) const {
-  auto& type_system = node_manager.GetTypeSystem();
-  auto visitor = node_manager.GetVisitorStructure();
+  auto& type_system    = node_manager.GetTypeSystem();
+  auto visitor         = node_manager.GetVisitorStructure();
   auto& all_node_types = node_manager.GetAllNodeTypesForNonterminals();
 
   auto printing_visitor = type_system.Structure("PrintingVisitor");
@@ -586,8 +590,7 @@ TypeDescriptionStructure* ParserCodegen::createPrintingVisitor(ASTNodeManager& n
 
     // If this is a child type, visit the parent.
     for (auto& parent : visitable_type->parent_classes) {
-      if (parent->type_name == "ASTNodeBase")
-        continue;
+      if (parent->type_name == "ASTNodeBase") continue;
       body += "Visit(static_cast<" + parent->type_name + "&>(object));\n";
     }
 
@@ -621,8 +624,8 @@ TypeDescriptionStructure* ParserCodegen::createPrintingVisitor(ASTNodeManager& n
     // Un-indent
     body += "indentation = std::max(0, indentation - 2);\n";
 
-    auto visit_signature = FunctionType{}.WithArguments({ElaboratedType{visitable_type, false, true}});
-    StructureFunction{}
+    auto visit_signature = FunctionType {}.WithArguments({ElaboratedType {visitable_type, false, true}});
+    StructureFunction {}
         .WithName("Visit")
         .WithType(visit_signature)
         .WithArgumentNames({"object"})
@@ -671,34 +674,35 @@ TypeDescriptionStructure* ParserCodegen::createVisitorFromTemplate(
   // gave rise to the node.
   // Go through all the structures that need visit functions, adding the sections of code.
   for (auto& [structure_type, items] : node_types_to_items) {
-    std::string body {};
+    std::ostringstream body {};
     for (auto item_id : items) {
       auto it = visitor_data.code.find(item_id);
       if (it == visitor_data.code.end()) {
         continue;
       }
 
-      if (body.empty()) {
-        body += "switch (object.item_id) {";
+      if (body.str().empty()) {
+        body << "switch (object.item_id) {";
       }
 
-      body += "\n  case " + std::to_string(item_id) + ": {\n";
+      body << "\n  case " + std::to_string(item_id) + ": {\n";
       // TODO: Sanitize? Detect special requests for type names?
-      body += it->second;
-      body += "\n    break;\n  }";
+      // Make sure indentation is correct.
+      HandleIndentation(body, it->second, 4, true, true, true, true);
+      body << "\n    break;\n  }";
     }
 
-    if (!body.empty()) {
-      body += "\n  default: {};\n";
-      body += "}\n";  // End the switch statement.
+    if (!body.str().empty()) {
+      body << "\n  default: {};\n";
+      body << "}\n";  // End the switch statement.
     }
 
-    auto visit_signature = FunctionType{}.WithArguments({ElaboratedType{structure_type, false, true}});
-    StructureFunction{}
+    auto visit_signature = FunctionType {}.WithArguments({ElaboratedType {structure_type, false, true}});
+    StructureFunction {}
         .WithName("Visit")
         .WithType(visit_signature)
         .WithArgumentNames({"object"})
-        .WithBody(body)
+        .WithBody(body.str())
         .BindToStructure(visitor, false /* is const */, true /* is override */);
   }
 
@@ -713,8 +717,8 @@ TypeDescriptionStructure* ParserCodegen::createVisitorFromTemplate(
         continue;  // No base type, just a single type so no base type is needed.
       }
 
-      auto visit_signature = FunctionType{}.WithArguments({ElaboratedType{base_type, false, true}});
-      StructureFunction{}
+      auto visit_signature = FunctionType {}.WithArguments({ElaboratedType {base_type, false, true}});
+      StructureFunction {}
           .WithName("Visit")
           .WithType(visit_signature)
           .WithArgumentNames({"object"})
@@ -724,8 +728,9 @@ TypeDescriptionStructure* ParserCodegen::createVisitorFromTemplate(
   }
 
   // Create visitor for ASTLexeme.
-  auto visit_signature = FunctionType{}.WithArguments({ElaboratedType{node_manager.GetASTLexeme(), false, true}});
-  StructureFunction{}
+  auto visit_signature =
+      FunctionType {}.WithArguments({ElaboratedType {node_manager.GetASTLexeme(), false, true}});
+  StructureFunction {}
       .WithName("Visit")
       .WithType(visit_signature)
       .WithArgumentNames({"object"})
@@ -746,8 +751,8 @@ TypeDescriptionStructure* ParserCodegen::createVisitorFromTemplate(
 }
 
 TypeDescriptionStructure* ParserCodegen::createTreePrintVisitor(ASTNodeManager& node_manager) const {
-  auto& type_system = node_manager.GetTypeSystem();
-  auto visitor = node_manager.GetVisitorStructure();
+  auto& type_system    = node_manager.GetTypeSystem();
+  auto visitor         = node_manager.GetVisitorStructure();
   auto& all_node_types = node_manager.GetAllNodeTypesForNonterminals();
 
   auto tree_length = type_system.Structure("TreeLengthVisitor");
@@ -761,8 +766,7 @@ TypeDescriptionStructure* ParserCodegen::createTreePrintVisitor(ASTNodeManager& 
 
     // If this is a child type, visit the parent.
     for (auto& parent : visitable_type->parent_classes) {
-      if (parent->type_name == "ASTNodeBase")
-        continue;
+      if (parent->type_name == "ASTNodeBase") continue;
       body += "    Visit(static_cast<" + parent->type_name + "&>(object));";
     }
 
@@ -775,8 +779,8 @@ TypeDescriptionStructure* ParserCodegen::createTreePrintVisitor(ASTNodeManager& 
       }
     }
 
-    auto visit_signature = FunctionType{}.WithArguments({ElaboratedType{visitable_type, false, true}});
-    StructureFunction{}
+    auto visit_signature = FunctionType {}.WithArguments({ElaboratedType {visitable_type, false, true}});
+    StructureFunction {}
         .WithName("Visit")
         .WithType(visit_signature)
         .WithArgumentNames({"object"})

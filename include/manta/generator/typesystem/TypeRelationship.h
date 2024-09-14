@@ -15,20 +15,20 @@ namespace manta::typesystem {
 
 //! \brief Enumerate what types of relationships between node structures must be checked.
 enum class CheckType {
-  Field,
-  Append,
-  Push
+  FIELD,
+  APPEND,
+  PUSH
 };
 
 //! \brief To-string function for CheckType.
 inline std::string to_string(CheckType type) {
   switch (type) {
-    case CheckType::Field:
-      return "CheckType::Field";
-    case CheckType::Append:
-      return "CheckType::Append";
-    case CheckType::Push:
-      return "CheckType::Push";
+    case CheckType::FIELD:
+      return "CheckType::FIELD";
+    case CheckType::APPEND:
+      return "CheckType::APPEND";
+    case CheckType::PUSH:
+      return "CheckType::PUSH";
     default:
       MANTA_FAIL("unrecognized CheckType");
   }
@@ -46,9 +46,8 @@ struct TypeRelationship {
 
   //! \brief The type which requested the data.
   //!
-  //! Items for different productions of the same non-terminal may or may not have the
-  //! same type, so we use the name of the actual type, not item ID or the non terminal
-  //! ID.
+  //! Items for different productions of the same non-terminal may or may not have the  same type, so we use
+  //! the name of the actual type, not item ID or the non terminal ID.
   std::string referencing_type {};
 
   //! \brief The field name in the node for the reducing item.
@@ -60,14 +59,13 @@ struct TypeRelationship {
   //! sub-types of referenced_id must be of the same type, and any source_field_name must
   //! exist in each non-terminal sub-type.
   //!
-  //! Field check:    <no additional checks>
-  //! Append check:   The type must be a vector type.
-  //! Push check:     The type of target_field_name must be a vector type, whose vector type matches that of the pushed
-  //!     node or node field.
-  CheckType check_type = CheckType::Field;
+  //!  - Field check:  <no additional checks>
+  //!  - Append check: The type must be a vector type.
+  //!  - Push check:   The type of target_field_name must be a vector type, whose vector type matches that of
+  //!                  the pushed node or node field.
+  CheckType check_type = CheckType::FIELD;
 
-  //! \brief What position is the target in the RHS of the item that created this
-  //! relationship.
+  //! \brief What position is the target in the RHS of the item that created this relationship.
   int position {};
 
   //! \brief What item this relationships is from.

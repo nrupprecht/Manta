@@ -9,6 +9,7 @@
 #include <exception>
 #include <stdexcept> // For std::runtime_error
 #include <string>
+#include <Lightning/Lightning.h>
 
 //! \brief Macro alias for nodiscard specifier
 #define NO_DISCARD [[nodiscard]]
@@ -93,11 +94,11 @@ class MantaException : public std::runtime_error {
 #   define __FUNCTION_NAME__ "<unknown function>"
 #endif
 
-#define __MANTA_EXCEPTION(message) { \
+#define __MANTA_EXCEPTION(message) do { \
   std::ostringstream _strm_; \
   _strm_ << message; \
   throw ::manta::MantaException(_strm_.str(), __FILE__, __FUNCTION_NAME__, __LINE__); \
-}
+} while (false)
 
 //! \brief Contract macro for function preconditions.
 #define MANTA_REQUIRE(condition, message) if (!(condition)) __MANTA_EXCEPTION(message)
@@ -115,3 +116,26 @@ class MantaException : public std::runtime_error {
     _strm_ << message; \
     throw std::runtime_error(_strm_.str()); \
   }
+
+namespace std {
+
+inline void format_logstream(const exception& ex, lightning::RefBundle& handler) {
+  using namespace lightning;
+  using namespace lightning::formatting;
+
+  handler << NewLineIndent
+          << AnsiColor8Bit(R"(""")", AnsiForegroundColor::Red)
+          << AnsiColorSegment(AnsiForegroundColor::Yellow); // Exception in yellow.
+  const char* begin = ex.what(), *end = ex.what();
+  while (*end) {
+    for (; *end && *end != '\n'; ++end); // Find next newline.
+    handler << NewLineIndent << string_view(begin, end - begin);
+    for (; *end && *end == '\n'; ++end); // Pass any number of newlines.
+    begin = end;
+  }
+  handler << AnsiResetSegment
+          << NewLineIndent // Reset colors to default.
+          << AnsiColor8Bit(R"(""")", AnsiForegroundColor::Red);
+}
+
+} // namespace std

@@ -61,6 +61,11 @@ StructureConstructor& StructureConstructor::WithAdditionalInitializations(
   return *this;
 }
 
+StructureConstructor& StructureConstructor::WithBody(std::string_view body) {
+  function_body = body;
+  return *this;
+}
+
 // =======================================================================================
 //  StructureConstructor
 // =======================================================================================

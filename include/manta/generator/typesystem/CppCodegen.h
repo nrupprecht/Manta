@@ -16,6 +16,8 @@ public:
 
   void WriteDefinition(std::ostream& out, const TypeDescriptionEnum* enumeration) const override;
 
+  using CodeGen::WriteDefinition;
+
   void GenerateEnumToStringFunction(std::ostream& out, const TypeDescriptionEnum* enumeration) const override;
 
   std::string WriteName(const TypeDescription* type) const override;
@@ -30,6 +32,29 @@ public:
                   bool newline = true) const override;
 
   void AddBreak(std::ostream& out) const override;
+
+protected:
+  // =========================================================================================================
+  // Protected implementations.
+  // =========================================================================================================
+
+  void writeFreeFunctionDefinition(std::ostream& out, const FunctionValue* function) const override;
+  void writeStructureFunctionDefinition(std::ostream& out, const StructureFunction* function) const override;
+
+private:
+  // =========================================================================================================
+  // Private helper functions.
+  // =========================================================================================================
+
+  //! \brief Helper function to write either a free or bound function.
+  //!
+  //! Whether the function is free or bound is determined by whether the structure name is empty or not.
+  void writeFunction(std::ostream& out,
+                     const FunctionValue* function,
+                     std::string_view structure_name = {},
+                     bool is_const                   = false) const;
+
+  void writeBody(std::ostream& out, std::string_view body) const;
 };
 
 }  // namespace manta

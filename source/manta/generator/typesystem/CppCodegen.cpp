@@ -4,11 +4,11 @@
 
 #include "manta/generator/typesystem/CppCodegen.h"
 // Other files.
+#include "manta/utility/Formatting.h"
 
 using namespace std::literals;
 
 namespace manta {
-
 void CppCodeGen::WriteHeader(std::ostream& out) const {
   out << "#pragma once\n\n";
 }
@@ -57,8 +57,7 @@ void CppCodeGen::WriteDefinition(std::ostream& out, const TypeDescriptionStructu
     out << structure->type_name << "(";
     auto i = 0u;
     for (auto& [type, arg_name] : constructor.arguments) {
-      if (i != 0)
-        out << ", ";
+      if (i != 0) out << ", ";
       out << "const " << WriteName(type) << "& " << arg_name;
       ++i;
     }
@@ -69,13 +68,13 @@ void CppCodeGen::WriteDefinition(std::ostream& out, const TypeDescriptionStructu
       has_list_init = true;
       out << "    : ";
       i = 0;
-      for (auto& pconst : constructor.parent_constructors) {
+      for (auto& [name, arguments] : constructor.parent_constructors) {
         if (i != 0) {
           out << ", ";
         }
-        out << WriteName(pconst.first) << "(";
+        out << WriteName(name) << "(";
         int j = 0;
-        for (auto& arg : pconst.second) {
+        for (auto& arg : arguments) {
           if (j != 0) {
             out << ", ";
           }
@@ -83,8 +82,7 @@ void CppCodeGen::WriteDefinition(std::ostream& out, const TypeDescriptionStructu
             out << std::get<0>(arg);
           }
           else {
-            // TODO: Way to change values into code in target language other than
-            // "printing" them.
+            // TODO: Way to change values into code in target language other than "printing" them.
             out << std::get<1>(arg).literal;
           }
           ++j;
@@ -99,10 +97,9 @@ void CppCodeGen::WriteDefinition(std::ostream& out, const TypeDescriptionStructu
       else
         out << ", ";
       has_list_init = true;
-      i = 0;
+      i             = 0;
       for (auto& [arg_name, field_name] : constructor.list_initialized_args) {
-        if (i != 0)
-          out << ", ";
+        if (i != 0) out << ", ";
         out << field_name << "(" << arg_name << ")";
         ++i;
       }
@@ -114,8 +111,7 @@ void CppCodeGen::WriteDefinition(std::ostream& out, const TypeDescriptionStructu
         out << ", ";
       i = 0;
       for (auto& [field_name, value] : constructor.additional_initializations) {
-        if (i != 0)
-          out << ", ";
+        if (i != 0) out << ", ";
         // TODO: Way to change values into code in target language other than "printing"
         // them.
         out << field_name << "(" << value.literal << ")";
@@ -169,7 +165,7 @@ void CppCodeGen::WriteDefinition(std::ostream& out, const TypeDescriptionStructu
     }
     else {
       if (function.function_body->empty()) {
-        out << " {}\n";
+        out << " { /* No body defined */ }\n";
       }
       else {
         out << " {\n";
@@ -190,7 +186,8 @@ void CppCodeGen::WriteDefinition(std::ostream& out, const TypeDescriptionStructu
 
   if (!structure->adhoc_code.empty()) {
     out << "\n  // Ad-hoc code.\n";
-    out << structure->adhoc_code;
+    // Format the code so it is indented correctly.
+    writeBody(out, structure->adhoc_code);
     out << "\n  // End ad-hoc code.\n";
   }
 
@@ -248,6 +245,10 @@ std::string CppCodeGen::WriteName(const TypeDescription* type) const {
       auto etype = dynamic_cast<const TypeDescriptionEnum*>(type);
       return etype->GetName();
     }
+    case TSGeneralType::Custom: {
+      auto ctype = dynamic_cast<const TypeDescriptionCustom*>(type);
+      return ctype->type_declaration;
+    }
     default: {
       MANTA_FAIL("unrecognized type description general type");
     }
@@ -288,6 +289,55 @@ void CppCodeGen::AddComment(std::ostream& out,
 
 void CppCodeGen::AddBreak(std::ostream& out) const {
   out << "\n";
+}
+
+void CppCodeGen::writeFreeFunctionDefinition(std::ostream& out, const FunctionValue* function) const {
+  writeFunction(out, function);
+}
+
+void CppCodeGen::writeStructureFunctionDefinition(std::ostream& out,
+                                                  const StructureFunction* function) const {
+  writeFunction(out, function, function->binding_structure->type_name, function->is_const_function);
+}
+
+void CppCodeGen::writeFunction(std::ostream& out,
+                               const FunctionValue* function,
+                               std::string_view structure_name,
+                               bool is_const) const {
+  function->Validate();
+
+  if (auto type = function->function_type.return_type) {
+    out << WriteName(*function->function_type.return_type);
+  }
+  else {
+    out << "void";
+  }
+  out << " ";
+  if (!structure_name.empty()) {
+    // Qualify name by class.
+    out << structure_name << "::";
+  }
+  out << function->function_name << "(";
+  for (auto i = 0; i < function->GetArity(); ++i) {
+    if (i != 0) {
+      out << ", ";
+    }
+    out << WriteName(function->function_type.arguments[i]) << " " << function->argument_names[i];
+  }
+  out << ")";
+  if (!structure_name.empty() && is_const) {
+    out << " const";
+  }
+  out << " {";
+  if (function->function_body && !function->function_body->empty()) {
+    out << "\n";
+    writeBody(out, *function->function_body);
+  }
+  out << "\n}";
+}
+
+void CppCodeGen::writeBody(std::ostream& out, std::string_view body) const {
+  formatting::HandleIndentation(out, body, 2, true, true, true, true);
 }
 
 }  // namespace manta

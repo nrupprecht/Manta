@@ -8,6 +8,7 @@
 #include "manta/utility/ParserUtility.hpp"
 
 namespace manta {
+
 struct VisitorData {
   //! \brief Definition for a single visitor.
   struct Visitor {
@@ -18,7 +19,7 @@ struct VisitorData {
     std::string name;
 
     //! \brief Code to inject into the body of the visitor class, could be data definitions or additional
-    //! functions.
+    //!        functions.
     std::string other_definitions;
 
     //! \brief Additional base classes for the visitor.
@@ -29,8 +30,8 @@ struct VisitorData {
   std::map<std::string, Visitor> visitors;
 
   void SetBodyForItem(const std::string& visitor_name, unsigned item_number, const std::string& body) {
-    auto& visitor = visitors[visitor_name];
-    visitor.name = visitor_name;
+    auto& visitor             = visitors[visitor_name];
+    visitor.name              = visitor_name;
     visitor.code[item_number] = body;
   }
 };
@@ -40,15 +41,12 @@ struct FileData {
   std::vector<std::string> import_names;
 };
 
-//! \brief Object that contains the definition of a lexer and the productions that make up
-//! a grammar.
-//!
+//! \brief Object that contains the definition of a lexer and the productions that make up a grammar.
 struct ProductionRulesData {
-  ProductionRulesData()
-    : lexer_generator(std::make_shared<LexerGenerator>()) {}
+  ProductionRulesData() : lexer_generator(std::make_shared<LexerGenerator>()) {}
 
   //! \brief A lexer_generator generator.
-  std::shared_ptr<LexerGenerator> lexer_generator{};
+  std::shared_ptr<LexerGenerator> lexer_generator {};
 
   //! \brief Maps non-terminal names to non-terminal numbers.
   std::map<std::string, NonterminalID> nonterminal_map;
@@ -58,8 +56,7 @@ struct ProductionRulesData {
 
   // TODO: Do we need to do anything to keep track of support non-terminals?
 
-  //! \brief The productions for each non-terminal. A State (here) is essentially a set of
-  //! production rules.
+  //! \brief The productions for each non-terminal. A State (here) is essentially a set of production rules.
   std::map<NonterminalID, State> productions_for;
 
   //! \brief All the productions, for all non-terminals.
@@ -77,18 +74,18 @@ struct ProductionRulesData {
   //! \brief The name of the start non-terminal. By default, this is "start."
   std::string start_nonterminal_name = "start";
 
-  //! \brief The total number of lexer ids (terminals) plus non-terminal symbols. This is
-  //! the number of columns in the parse_table_.
+  //! \brief The total number of lexer ids (terminals) plus non-terminal symbols. This is the number of
+  //!        columns in the parse_table_.
   int total_symbols = 0;
 
   //! \brief Code that should be injected after an item reduce occurs.
   std::map<ItemID, std::string> reduction_code;
 
   //! \brief Data about any visitors that should be generated.
-  VisitorData visitor_data{};
+  VisitorData visitor_data {};
 
   //! brief Data about any files that should be generated.
-  FileData file_data{};
+  FileData file_data {};
 
   // ============================================================================
   //  Helper functions.
@@ -115,22 +112,22 @@ struct ProductionRulesData {
 };
 
 //! \brief Base class for objects that can parse a stream and produce a description of a parser described by
-//! the stream.
+//!        the stream.
 //!
 //! Note that each description parser, as a parser, accepts its own specific language.
-//!
 class DescriptionParser {
 public:
-  //! \brief Parse the description of a parser from a stream, creating the
-  //! ProductionRulesData that can be used to to make the parser.
+  virtual ~DescriptionParser() = default;
+
+  //! \brief Parse the description of a parser from a stream, creating the ProductionRulesData that can be
+  //!        used to to make the parser.
   virtual std::shared_ptr<ProductionRulesData> ParseDescription(std::istream& stream) = 0;
 };
 
 //! \brief Class that contains common functionality for building production rules data.
 class ProductionRulesBuilder {
 public:
-  ProductionRulesBuilder()
-    : production_rules_data_(std::make_shared<ProductionRulesData>()) {}
+  ProductionRulesBuilder() : production_rules_data_(std::make_shared<ProductionRulesData>()) {}
 
   //! \brief Get the production rules data that has been built.
   std::shared_ptr<ProductionRulesData> GetProductionRulesData() { return production_rules_data_; }
@@ -139,8 +136,8 @@ public:
   void ResetProductionRulesData() { production_rules_data_ = std::make_shared<ProductionRulesData>(); }
 
 protected:
-  //! \brief Get the production number associated with a production name, registering it
-  //! if it has not already been registered.
+  //! \brief Get the production number associated with a production name, registering it if it has not already
+  //!        been registered.
   NonterminalID registerProduction(const std::string& production);
 
   //! \brief Create a new helper nonterminal.
@@ -149,8 +146,8 @@ protected:
   //! \brief Register a production as starting production.
   void registerStartingProduction(int id);
 
-  //! \brief Shifts the production numbers from being negative to being positive numbers
-  //! after the last lexer token number.
+  //! \brief Shifts the production numbers from being negative to being positive numbers after the last lexer
+  //!        token number.
   void shiftProductionNumbers();
 
   //! \brief Find the ID for a lexeme, by the lexeme's name.
@@ -169,41 +166,41 @@ protected:
   std::optional<unsigned> getCurrentItemNumber() const;
 
   //! \brief The current item being built.
-  Item current_item_{};
+  Item current_item_ {};
 
   //! \brief Keep track of the next production item's ID.
   ItemID item_number_ = 0;
 
   //! \brief Keep track of which non-terminals are support non-terminals.
-  std::set<NonterminalID> support_nonterminal_ids_{};
+  std::set<NonterminalID> support_nonterminal_ids_ {};
 
   //! \brief The description of the lexer and parser to create.
-  std::shared_ptr<ProductionRulesData> production_rules_data_{};
+  std::shared_ptr<ProductionRulesData> production_rules_data_ {};
 
   //! \brief Items currently being constructed. There will be more than one item in the stack if there are
-  //! special patterns in the grammar, like optional or repeating patterns.
-  std::stack<Item> item_stack_{};
+  //!        special patterns in the grammar, like optional or repeating patterns.
+  std::stack<Item> item_stack_ {};
 };
 
 //! \brief Class that can parse the description of a lexer and a parser from a stream.
+//!
 //! Written "by hand," not produced by Manta itself. You have to have a parser to make a parser generator...
 //!
 //! Note that this is, itself, a specific type of parser.
-//!
-class HandWrittenDescriptionParser
+class HandWrittenDescriptionParser final
     : public DescriptionParser
-      , public ProductionRulesBuilder {
+    , public ProductionRulesBuilder {
 public:
-  //! \brief Parse the description of a parser from a stream, creating the
-  //! ProductionRulesData that can be used to to make the parser.
+  //! \brief Parse the description of a parser from a stream, creating the ProductionRulesData that can be
+  //!        used to to make the parser.
   std::shared_ptr<ProductionRulesData> ParseDescription(std::istream& stream);
 
-  //! \brief An exception class that represents encountering an unexpected character type
-  //! or state while parsing.
+  //! \brief An exception class that represents encountering an unexpected character type or state while
+  //!        parsing.
   EXCEPTION_MESSAGE_CTOR(UnexpectedInput);
 
-  //! \brief An exception class the signals that a lexeme type (@...) was not recognized
-  //! by the lexer generator.
+  //! \brief An exception class the signals that a lexeme type (@...) was not recognized by the lexer
+  //!        generator.
   EXCEPTION_MESSAGE_CTOR(UnrecognizedLexerItem);
 
 private:
@@ -225,15 +222,18 @@ private:
   //! \brief Get additional data, including visitor related data and module import data.
   void getData(std::istream& in);
 
-  //! \brief Get all alphabetical characters and put them into a word. Returns true if the
-  //! word was *not* terminated by the EOF. Does not Clear word at any point.
+  //! \brief Get all alphabetical characters and put them into a word.
+  //!
+  //! \return Returns true if the word was *not* terminated by the EOF. Does not Clear word at any point.
   static bool getWord(std::istream& in, std::string& word);
 
-  //! Get all numeric characters and put them into a word. Returns true if the word was
-  //! *not* terminated by the EOF. Does not Clear word at any point.
+  //! Get all numeric characters and put them into a word.
+  //!
+  //! \return Returns true if the word was *not* terminated by the EOF. Does not Clear word at any point.
   static bool getInteger(std::istream& in, std::string& word);
 
   //! \brief Bypass white spaces in a stream.
   static void bypassWhitespace(std::istream& stream);
 };
-} // namespace manta
+
+}  // namespace manta

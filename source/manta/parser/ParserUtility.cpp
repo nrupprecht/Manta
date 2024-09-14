@@ -133,34 +133,34 @@ std::set<Item>::iterator State::find(const Item& item) {
 Entry::Entry() = default;
 
 Entry::Entry(int s, const ResolutionInfo& res_info)
-    : action(Action::Shift)
+    : action(Action::SHIFT)
     , state(s) {
   // Store the resolution info in the rule, even though the rule is empty.
   rule.res_info = res_info;
 };
 
 Entry::Entry(Item r)
-    : action(Action::Reduce)
+    : action(Action::REDUCE)
     , state(0)
     , rule(std::move(r)) {};
 
 Entry::Entry(bool)
-    : action(Action::Accept) {};
+    : action(Action::ACCEPT) {};
 
 bool Entry::IsError() const {
-  return action == Action::Error;
+  return action == Action::ERROR;
 }
 
 bool Entry::IsShift() const {
-  return action == Action::Shift;
+  return action == Action::SHIFT;
 }
 
 bool Entry::IsReduce() const {
-  return action == Action::Reduce;
+  return action == Action::REDUCE;
 }
 
 bool Entry::IsAccept() const {
-  return action == Action::Accept;
+  return action == Action::ACCEPT;
 }
 
 bool operator==(const State& s1, const State& s2) {
@@ -215,19 +215,19 @@ std::string to_string(const Item& item, bool print_marker) {
 std::string Entry::Write(int length) const {
   std::string str;
   switch (action) {
-    case Action::Error: {
+    case Action::ERROR: {
       str = " "; // x
       break;
     }
-    case Action::Shift: {
+    case Action::SHIFT: {
       str = "S" + std::to_string(state);
       break;
     }
-    case Action::Reduce: {
+    case Action::REDUCE: {
       str = "R" + std::to_string(*rule.item_number);
       break;
     }
-    case Action::Accept: {
+    case Action::ACCEPT: {
       str = "A";
       break;
     }
@@ -246,19 +246,19 @@ bool Entry::operator==(const Entry& rhs) const {
 
 std::ostream& operator<<(std::ostream& out, const Entry& entry) {
   switch (entry.GetAction()) {
-    case Action::Error: {
+    case Action::ERROR: {
       out << "x";
       break;
     }
-    case Action::Shift: {
+    case Action::SHIFT: {
       out << "S: " << entry.GetState();
       break;
     }
-    case Action::Reduce: {
+    case Action::REDUCE: {
       out << "R: " << entry.GetRule();
       break;
     }
-    case Action::Accept: {
+    case Action::ACCEPT: {
       out << "A";
       break;
     }

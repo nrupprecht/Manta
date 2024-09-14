@@ -26,7 +26,7 @@ class LALRParser;
 
 //! \brief Class that can read a description of a parser and create from that a table-driven LALRParser.
 //!
-//!     The start of the parser description with be the indicator ".Parser"
+//! The start of the parser description with be the indicator ".Parser"
 class ParserGenerator {
 public:
   //! \brief Create a parser generator of the specified type.
@@ -35,8 +35,8 @@ public:
   //! \brief Mutator to set the description_parser_.
   void SetDescriptionParser(std::shared_ptr<DescriptionParser> description_parser);
 
-  //! \brief Read the description of a Parser from a stream and create all the data necessary to
-  //! run that parser.
+  //! \brief Read the description of a Parser from a stream and create all the data necessary to run that
+  //!        parser.
   std::shared_ptr<ParserData> CreateParserData(std::istream& stream);
 
   //! \brief Parse a description of a grammar from a file to create a parser.
@@ -104,11 +104,11 @@ public:
   // ======================================================
 
   //! \brief An exception class that represents encountering an unexpected character type or state while
-  //! parsing.
+  //!        parsing.
   EXCEPTION_MESSAGE_CTOR(UnexpectedInput);
 
   //! \brief An exception class the signals that a lexeme type (@...) was not recognized by the lexer
-  //! generator.
+  //!        generator.
   EXCEPTION_MESSAGE_CTOR(UnrecognizedLexerItem);
 
 private:
@@ -155,8 +155,8 @@ private:
   //! \brief Fill in the rest of the parser table, calculating the reductions.
   void completeTable();
 
-  //! \brief Set an entry in the parse table. If there is no entry, we set it. If there is
-  //! already an entry, resolution is attempted.
+  //! \brief Set an entry in the parse table. If there is no entry, we set it. If there is already an entry,
+  //!        resolution is attempted.
   void assertEntry(int state, int symbol, const Entry& action);
 
   //! \brief Step in LALR parser generation to compute the LALR propagation graph and follow sets.
@@ -165,8 +165,8 @@ private:
   //! \brief Create the LALR propagation graph and initial follow sets.
   void buildItemForPropGraph();
 
-  //! \brief Propagate the initial follow sets through the LALR propagation graph to get the complete
-  //! follow sets.
+  //! \brief Propagate the initial follow sets through the LALR propagation graph to get the complete follow
+  //!        sets.
   void evalItemForPropGraph();
 
   //! \brief Fill out a row in the parser table.
@@ -178,16 +178,17 @@ private:
   //! \brief Tries to find a state in all_states_. Returns -1 for failure.
   int findState(const State& items) const;
 
-  //! \brief The internal implementation of the first set calculation. Uses a vector
-  //! to keep track of which symbols were already visited by the first calculation.
+  //! \brief The internal implementation of the first set calculation.
+  //!
+  //! Uses a vector to keep track of which symbols were already visited by the first calculation.
   std::set<int> internalFirst(int symbol, std::vector<bool>& visited);
 
   //! \brief A function that is called recursively in the compute follow set algorithm.
+  //!
   //! Uses a vector to keep track of which symbols were already visited by the follow calculation.
   std::set<int> internalFollow(int symbol, std::vector<bool>& visited);
 
-  //! \brief Returns whether the entire tail of a vector of production symbols can derive
-  //! the empty symbol.
+  //! \brief Returns whether the entire tail of a vector of production symbols can derive the empty symbol.
   NO_DISCARD bool allDeriveEmpty(const std::vector<int>& rhs, std::size_t start_index) const;
 
   //! \brief Check whether a state can derive empty.
@@ -207,10 +208,9 @@ private:
   //!
   //! The pair is [ action, state ].
   //!
-  //! Note: It is of course possible to have a more concise representation of this table, however, I
-  //! am primarily concerned right now with just playing around and getting things to work, not making
-  //! this into a full production quality product.
-  //!
+  //! Note: It is of course possible to have a more concise representation of this table, however, I am
+  //! primarily concerned right now with just playing around and getting things to work, not making this into
+  //! a full production quality product.
   std::vector<std::vector<Entry>> parse_table_;
 
   //! \brief All the different states.
