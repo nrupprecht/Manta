@@ -41,7 +41,7 @@ void CppCodeGen::WriteDefinition(std::ostream& out, const TypeDescriptionStructu
         out << " ";
       }
       out << (count == 0 ? ": " : ", ");
-      out << "public " << WriteName(parent);
+      out << WriteName(parent);
       ++count;
     }
   }
@@ -121,6 +121,12 @@ void CppCodeGen::WriteDefinition(std::ostream& out, const TypeDescriptionStructu
 
     out << " {}\n";
   }
+
+  // Add a virtual destructor. For now, adding to all structs that do not inherit from other structs.
+  if (structure->parent_classes.empty()) {
+    out << "  virtual ~" << structure->type_name << "() = default;\n";
+  }
+
   if (!structure->constructors.empty()) {
     AddBreak(out);
   }
@@ -205,7 +211,8 @@ void CppCodeGen::WriteDefinition(std::ostream& out, const TypeDescriptionEnum* e
 
 void CppCodeGen::GenerateEnumToStringFunction(std::ostream& out,
                                               const TypeDescriptionEnum* enumeration) const {
-  out << "inline std::string to_string(" << enumeration->GetName() << " type) {\n";
+  // TODO: Could express this as an actual function objects, is that better?
+  out << "inline const char* to_string(" << enumeration->GetName() << " type) {\n";
   out << "  switch (type) {\n";
   for (auto& option : enumeration->GetOptions()) {
     out << "  case " << enumeration->GetName() << "::" << option << ":\n";

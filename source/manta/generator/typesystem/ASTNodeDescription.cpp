@@ -122,41 +122,34 @@ void ASTNodeManager::CreateAllDefinitions(std::ostream& out, const CodeGen& code
 
   // Write the AST node type enum definitions.
   code_gen.AddComment(out, "! \\brief Define the enums for each node type.");
-  code_gen.AddComment(out, "!");
   code_gen.WriteDefinition(out, node_enum_);
   code_gen.AddBreak(out); // Break
 
   // Write the node type enum's to_string function.
   code_gen.AddComment(out, "! \\brief Define function to write AST node type enums.");
-  code_gen.AddComment(out, "!");
   code_gen.GenerateEnumToStringFunction(out, node_enum_);
   code_gen.AddBreak(out); // Break
 
   // Write the enum definitions.
   code_gen.AddComment(out, "! \\brief Define the enums for each non-terminal type.");
-  code_gen.AddComment(out, "!");
   code_gen.WriteDefinition(out, nonterminal_enum_);
   code_gen.AddBreak(out); // Break
 
   // Write the non-terminal type enum's to_string function.
   code_gen.AddComment(out, "! \\brief Define function to write the non-terminal type enum.");
-  code_gen.AddComment(out, "!");
   code_gen.GenerateEnumToStringFunction(out, nonterminal_enum_);
   code_gen.AddBreak(out); // Break
 
   // Write the visitor.
   code_gen.AddComment(out, "! \\brief Base visitor class.");
-  code_gen.AddComment(out, "!");
   code_gen.WriteDefinition(out, visitor_type_);
   code_gen.AddBreak(out); // Break
 
   code_gen.AddComment(out, "! \\brief Define the base node type for all AST nodes.");
-  code_gen.AddComment(out, "!");
   code_gen.WriteDefinition(out, node_base_);
   code_gen.AddBreak(out); // Break
 
   code_gen.AddComment(out, "! \\brief Node for basic lexemes.");
-  code_gen.AddComment(out, "!");
   code_gen.WriteDefinition(out, lexeme_node_);
   code_gen.AddBreak(out); // Break
 
@@ -174,7 +167,7 @@ void ASTNodeManager::CreateAllDefinitions(std::ostream& out, const CodeGen& code
                     << nonterminal_types.base_type->type_name << "'.";
       code_gen.AddComment(out,
                           "! \\brief Parent type for non-terminal type " + std::to_string(nonterminal_id));
-      code_gen.AddComment(out, "!");
+      
     }
 
     // Write all child types.
