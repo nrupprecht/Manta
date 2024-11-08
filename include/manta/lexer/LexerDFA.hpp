@@ -35,7 +35,7 @@ public:
   std::vector<Token> LexAll();
 
   //! \brief Return the number of states in the underlying FiniteAutomaton.
-  NO_DISCARD int size() const;
+  NO_DISCARD int Size() const;
 
   //! \brief Reset the status of the underlying FiniteAutomaton.
   void ResetStatus();
@@ -45,6 +45,9 @@ public:
 
   //! \brief Return the name of a lexeme.
   NO_DISCARD std::string LexemeName(int index) const;
+
+  //! \brief Get the lexeme ID of a lexeme name.
+  NO_DISCARD std::optional<int> LexemeID(const std::string& name) const;
 
   //! \brief Get the line that the lexer is currently on.
   NO_DISCARD int GetLine() const;
@@ -58,6 +61,7 @@ public:
   //! \brief Set the repeat eof flag.
   void SetRepeatEOF(bool flag);
 
+  //! \brief Checks whether the lexer DFA is in a good state.
   bool IsGood() const;
 
 private:
@@ -65,14 +69,14 @@ private:
   friend class LexerGenerator;
 
   //! \brief Private constructor.
-  LexerDFA(FiniteAutomaton& dfa,
+  LexerDFA(FiniteAutomaton dfa,
            std::vector<std::string> lexemes,
            std::map<std::string, int> reserved,
            std::set<int> skips)
-      : lexer_dfa_(dfa)
-      , all_lexemes_(std::move(lexemes))
+      : all_lexemes_(std::move(lexemes))
+      , reserved_tokens_(std::move(reserved))
       , skip_lexemes_(std::move(skips))
-      , reserved_tokens_(std::move(reserved)) {};
+      , lexer_dfa_(std::move(dfa)) {};
 
   //! \brief Check if a token should be skipped.
   NO_DISCARD bool isSkip(int lexeme_id) const;
@@ -101,8 +105,7 @@ inline std::string LexAllToString(const std::shared_ptr<LexerDFA>& lexer) {
   std::stringstream stream;
   auto all_tokens = lexer->LexAll();
   for (const auto& token : all_tokens) {
-    stream << "(" << lexer->LexemeName(token.type) << " | \"" << clean(token.literal)
-           << "\") ";
+    stream << "(" << lexer->LexemeName(token.type) << " | \"" << clean(token.literal) << "\") ";
   }
   return stream.str();
 }

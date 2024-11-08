@@ -18,6 +18,7 @@ void ParserGenerator::SetDescriptionParser(std::shared_ptr<DescriptionParser> de
 std::shared_ptr<ParserData> ParserGenerator::CreateParserData(std::istream& stream) {
   // Parse the stream to get description of the lexer_generator and the parser.
   production_rules_data_ = description_parser_->ParseDescription(stream);
+  MANTA_ASSERT(production_rules_data_, "failed to parse the description");
 
   // Now, create the parser from its description.
 

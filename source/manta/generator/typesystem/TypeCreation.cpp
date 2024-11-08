@@ -512,7 +512,7 @@ TypeDeduction ParserDataToTypeManager::DeduceTypes() {
     // deduced, so we wouldn't need to follow any of its relationships.
     std::map<FieldTracker, std::vector<TypeRelationship*>> unsolved_relationships;
     for (auto& relationship : field_type_relationships) {
-      FieldTracker reference{relationship.referenced_id, *relationship.source_field_name};
+      FieldTracker reference {relationship.referenced_id, *relationship.source_field_name};
       unsolved_relationships[reference].push_back(&relationship);
     }
 
@@ -530,7 +530,7 @@ TypeDeduction ParserDataToTypeManager::DeduceTypes() {
 
       std::set<FieldTracker> referenced_fields;  // Set for the DFS.
 
-      FieldTracker reference{relationship.referenced_id, *relationship.source_field_name};
+      FieldTracker reference {relationship.referenced_id, *relationship.source_field_name};
       type = deduceTypesDFS(reference, deduction, unsolved_relationships, referenced_fields);
       type = makeType(relationship.check_type, type);
 
@@ -666,7 +666,10 @@ std::tuple<int, NonterminalID, std::optional<std::string>> ParserDataToTypeManag
   auto segments = split(argument_string, '.');
   MANTA_ASSERT(segments.size() == 1 || segments.size() == 2,
                "argument name must be in one of the forms '$N' or '$N.<field-name>'");
-  auto position        = std::stoi(segments[0]);
+  auto position = std::stoi(segments[0]);
+  MANTA_REQUIRE(position < item.rhs.size(),
+                "trying to reference argument " << position << " but there are only " << item.rhs.size()
+                                                << " arguments");
   auto referenced_type = item.rhs.at(position);
   if (segments.size() == 1) {
     return {position, referenced_type, {} /* No field name */};
@@ -962,7 +965,7 @@ const TypeDescription* ParserDataToTypeManager::deduceTypesDFS(
     // Try each relationship whose source field has not already been referenced (to
     // prevent infinite loops).
     for (auto& rel : it->second) {
-      FieldTracker reference{rel->referenced_id, *rel->source_field_name};
+      FieldTracker reference {rel->referenced_id, *rel->source_field_name};
       if (!referenced_fields.contains(reference)) {
         referenced_fields.insert(reference);
         type = deduceTypesDFS(reference, deduction, unsolved_relationships, referenced_fields);

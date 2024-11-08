@@ -4,6 +4,8 @@
 
 #include "manta/generator/DescriptionParser.h"
 // Other files
+#include <format>
+
 #include <Lightning/Lightning.h>
 
 #include "manta/parser/ParseNode.h"
@@ -28,8 +30,8 @@ int ProductionRulesBuilder::registerProduction(const std::string& production) {
 NonterminalID ProductionRulesBuilder::createHelperNonterminal(NonterminalID parent_id) {
   // Helper nonterminals can't be referenced explicitly, since they are created by the parser generator, not
   // by the user. Each one is unique. So we never have to check if on "already exists."
-  auto name = "SUPPORT_" + std::to_string(parent_id) + "_" + std::to_string(support_nonterminal_ids_.size());
-  auto id = production_rules_data_->num_productions--;
+  auto name = std::format("SUPPORT_{}_{}", parent_id, support_nonterminal_ids_.size());
+  auto id   = production_rules_data_->num_productions--;
   support_nonterminal_ids_.insert(id);
   return id++;
 }
@@ -43,8 +45,8 @@ void ProductionRulesBuilder::shiftProductionNumbers() {
   int lids = static_cast<int>(production_rules_data_->lexer_generator->GetNumLexemes());
 
   // Shift the ids in production map.
-  for (auto& p : production_rules_data_->nonterminal_map) {
-    p.second = lids - p.second;
+  for (auto& [name, id] : production_rules_data_->nonterminal_map) {
+    id = lids - id;
   }
 
   // Shift the ids in all productions
@@ -61,8 +63,10 @@ void ProductionRulesBuilder::shiftProductionNumbers() {
 
   // Shift the ids in inverse map
   std::map<int, std::string> new_inverse_map;
-  for (auto& p : production_rules_data_->inverse_nonterminal_map) {
-    new_inverse_map.emplace(lids - p.first, p.second);
+  for (auto& [id, name] : production_rules_data_->inverse_nonterminal_map) {
+    auto new_id = lids - id;
+    new_inverse_map.emplace(new_id, name);
+    LOG_SEV(Debug) << "Mapping " << new_id << " <-> " << formatting::CLBB(name) << ".";
   }
   production_rules_data_->inverse_nonterminal_map = new_inverse_map;
 
@@ -97,8 +101,8 @@ int ProductionRulesBuilder::getLexemeID(const std::string& lexeme_name) const {
 }
 
 Item& ProductionRulesBuilder::makeNextItem(int production_id) {
-  auto item_number = item_number_++;
-  current_item_ = {production_id, item_number};
+  auto item_number          = item_number_++;
+  current_item_             = {production_id, item_number};
   current_item_.item_number = item_number;
   return current_item_;
 }
@@ -109,7 +113,7 @@ void ProductionRulesBuilder::storeCurrentItem() {
   // Done finding the rule. Store the rule.
   auto prod = production_rules_data_->productions_for.find(nonterminal_id);
   if (prod == production_rules_data_->productions_for.end()) {
-    production_rules_data_->productions_for.emplace(nonterminal_id, State{});
+    production_rules_data_->productions_for.emplace(nonterminal_id, State {});
     prod = production_rules_data_->productions_for.find(nonterminal_id);
   }
 
@@ -174,7 +178,7 @@ std::shared_ptr<ProductionRulesData> HandWrittenDescriptionParser::ParseDescript
   int pid;
 
   // Create the lexer. We always add @eof as a lexer item.
-  production_rules_data_->lexer_generator->CreateLexer(stream, false); // Do not Clear old.
+  production_rules_data_->lexer_generator->CreateLexer(stream, false);  // Do not Clear old.
 
   if (auto cmd = findNextCommand(stream); cmd != "Parser") {
     MANTA_THROW(UnexpectedInput, "expected a .Parser command, found a ." << cmd);
@@ -191,8 +195,9 @@ std::shared_ptr<ProductionRulesData> HandWrittenDescriptionParser::ParseDescript
   stream.get(c);
   while (!stream.eof()) {
     // Pass whitespaces.
-    if (isspace(c)) {}
-      // Start of production
+    if (isspace(c))
+      ;
+    // Start of production
     else if (isalpha(c)) {
       // Get the production name.
       production_name.clear();
@@ -200,6 +205,7 @@ std::shared_ptr<ProductionRulesData> HandWrittenDescriptionParser::ParseDescript
         production_name.push_back(c);
         stream.get(c);
       } while (!isspace(c) && !stream.eof());
+      LOG_SEV(Debug) << "Found production " << formatting::CLB(production_name) << ".";
 
       // We should have stopped because we encountered a space, not because of an eof.
       if (stream.eof()) {
@@ -209,13 +215,24 @@ std::shared_ptr<ProductionRulesData> HandWrittenDescriptionParser::ParseDescript
       // Get the production number associated with the production name, registering it if it has not
       // already been registered.
       pid = registerProduction(production_name);
+      LOG_SEV(Trace) << "Production " << formatting::CLB(production_name) << " given temporary id " << pid
+                     << ".";
 
       // Find '->'
       stream.get(c);
       while (c != '-' && !stream.eof()) {
         if (!isspace(c)) {
-          // We expect there to only be spaces leading up to the equals sign.
-          MANTA_THROW(UnexpectedInput, "expected a space, encountered '" << c << "'");
+          // We expect there to only be spaces leading up to the ->.
+
+          // Check, for context.
+          stream.putback(c);
+          std::string following;
+          stream >> following;
+          // Then throw.
+          MANTA_THROW(UnexpectedInput,
+                      "expected a space while looking for the '->' for production '"
+                          << production_name << "', encountered '" << c << "'. The string this begins is '"
+                          << following << "'");
         }
         stream.get(c);
       }
@@ -242,6 +259,7 @@ std::shared_ptr<ProductionRulesData> HandWrittenDescriptionParser::ParseDescript
     }
     // Start of a comment.
     else if (c == '#') {
+      LOG_SEV(Trace) << "Bypassing comment";
       // Pass comments.
       while (c != '\n' && !stream.eof()) {
         stream.get(c);
@@ -261,10 +279,12 @@ std::shared_ptr<ProductionRulesData> HandWrittenDescriptionParser::ParseDescript
 
       // The command ".End" ends a section.
       if (command == "End") {
+        LOG_SEV(Debug) << "Found the .End command.";
         break;
       }
       // Set the start symbol.
-      else if (command == "Start") {
+      if (command == "Start") {
+        LOG_SEV(Debug) << "Found the .Start command.";
         stream.get(c);
         while (!stream.eof() && c == ' ') {
           stream.get(c);
@@ -307,6 +327,7 @@ std::shared_ptr<ProductionRulesData> HandWrittenDescriptionParser::ParseDescript
 
   // Get any additional information about visitor classes.
   if (auto cmd = findNextCommand(stream); cmd == "Data") {
+    LOG_SEV(Debug) << "Extracting data section.";
     getData(stream);
   }
 
@@ -373,7 +394,7 @@ inline void HandWrittenDescriptionParser::getProductions(std::istream& in, int p
       acc.clear();
     }
 
-      // Start of a lexeme indicator.
+    // Start of a lexeme indicator.
     else if (c == '@') {
       in.get(c);
       while (!isspace(c) && !in.eof()) {
@@ -422,7 +443,7 @@ inline void HandWrittenDescriptionParser::getProductions(std::istream& in, int p
     }
     // Start of precedence section
     else if (c == '-') {
-      in.get(c); // Expect a '>'
+      in.get(c);  // Expect a '>'
       if (c != '>') {
         MANTA_THROW(UnexpectedInput, "expected a >, got " << c);
       }
@@ -458,7 +479,8 @@ void HandWrittenDescriptionParser::findResInfo(std::istream& in, ResolutionInfo&
   in.get(c);
   std::string word;
   while (!in.eof()) {
-    if (c == ' ') {} // Pass spaces
+    if (c == ' ') {
+    }  // Pass spaces
     else if (is_terminator(c)) {
       // End of production. No instructions.
       // Put the character back so the calling function will detect the end of the production
@@ -482,7 +504,7 @@ void HandWrittenDescriptionParser::findResInfo(std::istream& in, ResolutionInfo&
       // here are prec(.) and assoc(.)
       if (word == "prec") {
         word.clear();
-        not_eof = getInteger(in, word);
+        not_eof             = getInteger(in, word);
         res_info.precedence = std::stoi(word);
       }
       else if (word == "assoc") {
@@ -611,7 +633,7 @@ std::shared_ptr<ParseNode> HandWrittenDescriptionParser::getInstructions(std::is
       do {
         acc.push_back(c);
         in.get(c);
-      } while (isalpha(c) || c == '_'); // letters or underscores
+      } while (isalpha(c) || c == '_');  // letters or underscores
 
       // Add a node.
       auto node = std::make_shared<ParseNode>(acc);
@@ -681,7 +703,8 @@ std::shared_ptr<ParseNode> HandWrittenDescriptionParser::getInstructions(std::is
           acc.clear();
         }
         // Argument separators.
-        else if (c == ',') {} // Put this on a separate line to silence a warning
+        else if (c == ',') {
+        }  // Put this on a separate line to silence a warning
 
         // Get next character.
         in.get(c);
@@ -716,7 +739,6 @@ void HandWrittenDescriptionParser::getData(std::istream& stream) {
         return;
       }
       MANTA_THROW(UnexpectedInput, "in getData, expected a .End command, found a ." << word);
-
     }
     // Module import.
     else if (c == '@') {
@@ -756,9 +778,9 @@ void HandWrittenDescriptionParser::getData(std::istream& stream) {
       if (!getWord(stream, word)) {
         MANTA_THROW(UnexpectedInput, "in getData, unexpectedly reached EOF");
       }
-      auto visitor_name = word;
+      auto visitor_name  = word;
       auto& visitor_data = production_rules_data_->visitor_data.visitors;
-      auto it = visitor_data.find(word);
+      auto it            = visitor_data.find(word);
       MANTA_ASSERT(it != visitor_data.end(), "could not find visitor '" << word << "' to add code to it");
       auto& visitor = it->second;
 
@@ -854,4 +876,4 @@ void HandWrittenDescriptionParser::bypassWhitespace(std::istream& stream) {
   stream.putback(c);
 }
 
-} // namespace manta
+}  // namespace manta

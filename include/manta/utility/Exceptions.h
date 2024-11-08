@@ -96,7 +96,7 @@ class MantaException : public std::runtime_error {
 
 #define __MANTA_EXCEPTION(message) do { \
   std::ostringstream _strm_; \
-  _strm_ << message; \
+  _strm_ << __FILE__ << ":" << __LINE__ << "\n" << message; \
   throw ::manta::MantaException(_strm_.str(), __FILE__, __FUNCTION_NAME__, __LINE__); \
 } while (false)
 
@@ -113,7 +113,7 @@ class MantaException : public std::runtime_error {
 #define MANTA_THROW(exception_type, message) \
   { \
     std::ostringstream _strm_; \
-    _strm_ << message; \
+    _strm_ << __FILE__ << ":" << __LINE__ << "\n" << message; \
     throw std::runtime_error(_strm_.str()); \
   }
 

@@ -15,7 +15,7 @@ namespace manta {
 
 template<typename NodeBase_t, typename LexemeNode_t, typename Parent_t>
 class ParserDriverBase {
- public:
+public:
   //! \brief Set the lexer for the parser.
   void SetLexer(std::shared_ptr<LexerDFA> lexer) { lexer_ = std::move(lexer); }
 
@@ -23,7 +23,7 @@ class ParserDriverBase {
 
   void SetLogger(lightning::Logger logger) { logger_ = logger; }
 
- protected:
+protected:
   std::shared_ptr<NodeBase_t> parse();
 
   //! \brief Convert an ID to a string. The ID may either be a lexeme, or terminal.
@@ -47,14 +47,13 @@ class ParserDriverBase {
     using namespace lightning;
     // Record error in parse trace.
     if (auto handle = logger_.Log(Severity::Error)) {
-      handle << "Lexer is at Line " << lexer_->GetLine() << ", Column "
-             << lexer_->GetColumn() << ".";
+      handle << "Lexer is at Line " << lexer_->GetLine() << ", Column " << lexer_->GetColumn() << ".";
       // Print out what valid options would have been recognized.
       int print_count = 0;
       for (auto& entry : parse_table_[state]) {
         if (!entry.IsError()) {
-          handle << NewLineIndent << "  * Valid: ["
-                 << idToString(print_count) + "], Result: <" << entry.Write(0) + ">";
+          handle << NewLineIndent << "  * Valid: [" << idToString(print_count) + "], Result: <"
+                 << entry.Write(0) + ">";
         }
         ++print_count;
       }
@@ -116,8 +115,7 @@ class ParserDriverBase {
 };
 
 template<typename NodeBase_t, typename LexemeNode_t, typename Parent_t>
-std::shared_ptr<NodeBase_t>
-ParserDriverBase<NodeBase_t, LexemeNode_t, Parent_t>::parse() {
+std::shared_ptr<NodeBase_t> ParserDriverBase<NodeBase_t, LexemeNode_t, Parent_t>::parse() {
   using namespace manta::formatting;
   using namespace lightning;
 
@@ -153,8 +151,8 @@ ParserDriverBase<NodeBase_t, LexemeNode_t, Parent_t>::parse() {
     // Get the current state.
     int state = working_stack.top().state;
 
-    LOG_SEV_TO(logger_, Debug) << "Starting parser step " << num_parse_steps_
-                               << ", state is " << state << ".";
+    LOG_SEV_TO(logger_, Debug) << "Starting parser step " << num_parse_steps_ << ", state is " << state
+                               << ".";
 
     // Refill incoming_deque if necessary.
     if (incoming_deque.empty()) {
@@ -169,17 +167,15 @@ ParserDriverBase<NodeBase_t, LexemeNode_t, Parent_t>::parse() {
       }
 
       if (auto handler = logger_.Log(Severity::Debug)) {
-        handler << "Lexed the literal \"" << CLBG(escape(result->literal))
-                << "\", location " << result->source_position << ". Matched " << result->accepted_lexemes.size()
+        handler << "Lexed the literal \"" << CLBG(escape(result->literal)) << "\", location "
+                << result->source_position << ". Matched " << result->accepted_lexemes.size()
                 << " lexeme(s):";
         int i = 0;
         for (auto& [id, _] : result->accepted_lexemes) {
           if (i != 0) {
             handler << ",";
           }
-          handler << " "
-                  << (i % 2 == 0 ? CLB(lexer_->LexemeName(id))
-                                 : CLM(lexer_->LexemeName(id)))
+          handler << " " << (i % 2 == 0 ? CLB(lexer_->LexemeName(id)) : CLM(lexer_->LexemeName(id)))
                   << " (id = " << id << ")";
           ++i;
         }
@@ -198,14 +194,13 @@ ParserDriverBase<NodeBase_t, LexemeNode_t, Parent_t>::parse() {
 
       // Check if no valid options could be found.
       if (!any_valid) {
-        if (auto handle = logger_.Log(lightning::Severity::Error)) {
-          handle << "No valid transitions could be found for the input."
-                 << lightning::NewLineIndent << "Accepted lexeme(s) (for literal "
-                 << CLBG(result->literal) << ") were: ";
+        if (auto handle = logger_.Log(Severity::Error)) {
+          handle << "No valid transitions could be found for the input." << NewLineIndent
+                 << "Accepted lexeme(s) (for literal " << CLBG(escape(result->literal)) << ") were: ";
           for (auto& [lexeme_id, _] : result->accepted_lexemes) {
-            handle << lightning::NewLineIndent << CLBB(idToString(lexeme_id));
+            handle << NewLineIndent << CLBB(idToString(lexeme_id));
           }
-          handle << lightning::NewLineIndent << "Token source location was " << result->source_position << ".";
+          handle << NewLineIndent << "Token source location was " << result->source_position << ".";
         }
         printFatalParseError(state);
         break;
@@ -216,37 +211,33 @@ ParserDriverBase<NodeBase_t, LexemeNode_t, Parent_t>::parse() {
     int incoming_symbol = incoming_deque.front().type;
 
     // For Debugging: Record the step and state of the parser.
-    LOG_SEV_TO(logger_, Debug) << "Step " << num_parse_steps_ << ", State: " << state
-                               << ", lexer is at line " << lexer_->GetLine()
-                               << ", column " << lexer_->GetColumn();
+    LOG_SEV_TO(logger_, Debug) << "Step " << num_parse_steps_ << ", State: " << state << ", lexer is at line "
+                               << lexer_->GetLine() << ", column " << lexer_->GetColumn();
 
     // For Debugging: Print the state of the stack.
     // For Debugging: Print the state of the stack.
     if (auto handler = logger_.Log(Severity::Debug)) {
       handler << "Current stack:" << NewLineIndent;
       for (auto& ty : working_stack_types) {
-        handler << "[" << (isLexeme(ty) ? CLM(idToString(ty)) : CLB(idToString(ty)))
-                << "] ";
+        handler << "[" << (isLexeme(ty) ? CLM(idToString(ty)) : CLB(idToString(ty))) << "] ";
       }
       // Separate stack incoming deque.
       handler << " <-->  ";
       // Incoming deque.
       for (auto& d : incoming_deque) {
-        handler << "["
-                << (isLexeme(d.type) ? CLM(idToString(d.type)) : CLB(idToString(d.type)))
-                << "] ";
+        handler << "[" << (isLexeme(d.type) ? CLM(idToString(d.type)) : CLB(idToString(d.type))) << "] ";
       }
     }
 
     // Get action from the parse table.
-    Entry action = parse_table_.at(state).at(incoming_symbol);
+    Entry action   = parse_table_.at(state).at(incoming_symbol);
     Token transfer = incoming_deque.front();
 
     // If shift
     if (action.IsShift()) {
       transfer.state = action.GetState();  // Set state
-      incoming_deque.pop_front();  // Pop off the incoming stack...
-      working_stack.push(transfer);  // and shift onto the working stack.
+      incoming_deque.pop_front();          // Pop off the incoming stack...
+      working_stack.push(transfer);        // and shift onto the working stack.
 
       // Shift ParseNode
       working_parse_deque.push_front(incoming_parse_deque.front());
@@ -257,7 +248,7 @@ ParserDriverBase<NodeBase_t, LexemeNode_t, Parent_t>::parse() {
       LOG_SEV_TO(logger_, Debug) << "SHIFT. State is now " << action.GetState() << ".";
     }
     else if (action.IsReduce()) {
-      int size = action.GetRule().Size();
+      int size       = action.GetRule().Size();
       int production = action.GetRule().produced_nonterminal;
 
       // Put (newly reduced) production Token onto the input stack.
@@ -277,11 +268,10 @@ ParserDriverBase<NodeBase_t, LexemeNode_t, Parent_t>::parse() {
 
       auto reduction_id = action.GetRule().item_number;
       MANTA_ASSERT(reduction_id,
-                   "reduction did not have its item number set, table entry was (state=" << state << ", symbol="
-                                                                                         << incoming_symbol << ")");
-      LOG_SEV_TO(logger_, Debug)
-          << "Reducing " << collect.size() << " collected nodes using item "
-          << *reduction_id << ".";
+                   "reduction did not have its item number set, table entry was (state="
+                       << state << ", symbol=" << incoming_symbol << ")");
+      LOG_SEV_TO(logger_, Debug) << "Reducing " << collect.size() << " collected nodes using item "
+                                 << *reduction_id << ".";
 
       auto production_node = static_cast<Parent_t*>(this)->reduce(*reduction_id, collect);
 
@@ -292,9 +282,8 @@ ParserDriverBase<NodeBase_t, LexemeNode_t, Parent_t>::parse() {
       incoming_parse_deque.push_front(production_node);
 
       // Record the reduction occurring.
-      LOG_SEV_TO(logger_, Debug)
-          << "REDUCE by " << size << ". Reduce to a " << production
-          << " via:" << NewLineIndent << entryToString(action) << ".";
+      LOG_SEV_TO(logger_, Debug) << "REDUCE by " << size << ". Reduce to a " << production
+                                 << " via:" << NewLineIndent << entryToString(action) << ".";
     }
     else if (action.IsAccept()) {
       // Set start node to be the parsed program.
@@ -317,10 +306,8 @@ ParserDriverBase<NodeBase_t, LexemeNode_t, Parent_t>::parse() {
     LOG_SEV_TO(logger_, Debug) << "Ended in acceptance, returning head node.";
     return start_node;
   }
-  else {
-    LOG_SEV_TO(logger_, Debug) << "Ended NON accepting. Returning empty.";
-    return nullptr;
-  }
+  LOG_SEV_TO(logger_, Debug) << "Ended NON accepting. Returning empty.";
+  return nullptr;
 }
 
 }  // namespace manta

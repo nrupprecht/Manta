@@ -1,17 +1,17 @@
 #include "manta/lexer/LexerDFA.hpp"
 // Other files.
 #include <Lightning/Lightning.h>
+#include <filesystem>
 
 namespace manta {
 
-bool LexerDFA::SetFileToLex(const std::string& fileName) {
-  std::ifstream fin(fileName);
-  if (!fin.fail()) {
-    auto instream = utility::IStreamContainer::OpenFile(fileName);
-    lexer_dfa_.SetContainer(instream);
-    return true;
+bool LexerDFA::SetFileToLex(const std::string& file_name) {
+  if (!std::filesystem::exists(file_name)) {
+    return false;
   }
-  return false;
+  auto instream = utility::IStreamContainer::OpenFile(file_name);
+  lexer_dfa_.SetContainer(instream);
+  return true;
 }
 
 void LexerDFA::SetStringToLex(const std::string& sentence) {
@@ -73,7 +73,7 @@ std::vector<Token> LexerDFA::LexAll() {
   return output;
 }
 
-int LexerDFA::size() const {
+int LexerDFA::Size() const {
   return lexer_dfa_.size();
 }
 
@@ -87,10 +87,17 @@ FAStatus LexerDFA::CheckStatus() const {
 
 std::string LexerDFA::LexemeName(int index) const {
   if (index < 0 || all_lexemes_.size() <= index) {
-    // throw InvalidIndex();
     return "";
   }
   return all_lexemes_[index];
+}
+
+std::optional<int> LexerDFA::LexemeID(const std::string& name) const {
+  const auto it = std::ranges::find(all_lexemes_, name);
+  if (it == all_lexemes_.end()) {
+    return {};
+  }
+  return std::distance(all_lexemes_.begin(), it);
 }
 
 int LexerDFA::GetLine() const {

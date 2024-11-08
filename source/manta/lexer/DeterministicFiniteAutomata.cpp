@@ -136,10 +136,9 @@ std::optional<LexerResult> FiniteAutomaton::LexNext() {
     }
     return result;
   }
-  else {  // An error has occurred.
-    status_flag_ = FAStatus::EndedNonAccepting;
-    return {};
-  }
+  // An error has occurred.
+  status_flag_ = FAStatus::EndedNonAccepting;
+  return {};
 }
 
 FiniteAutomaton FiniteAutomaton::NFAToDFA() {
