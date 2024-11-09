@@ -6,6 +6,8 @@
 
 #include "manta/generator/LexerGenerator.h"
 #include "manta/utility/ParserUtility.hpp"
+#include <deque>
+#include <stack>
 
 namespace manta {
 
