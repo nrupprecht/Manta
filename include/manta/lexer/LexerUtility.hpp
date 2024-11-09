@@ -3,6 +3,9 @@
 // http://smlweb.cpsc.ucalgary.ca/start.html
 // https://web.cs.dal.ca/~sjackson/lalr1.html.......5/,
 
+#include <deque>
+#include <stack>
+
 #include "manta/utility/Exceptions.h"
 #include "manta/utility/utility.hpp"
 
