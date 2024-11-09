@@ -30,7 +30,7 @@ int ProductionRulesBuilder::registerProduction(const std::string& production) {
 NonterminalID ProductionRulesBuilder::createHelperNonterminal(NonterminalID parent_id) {
   // Helper nonterminals can't be referenced explicitly, since they are created by the parser generator, not
   // by the user. Each one is unique. So we never have to check if on "already exists."
-  auto name = std::format("SUPPORT_{}_{}", parent_id, support_nonterminal_ids_.size());
+  auto name = lightning::formatting::Format("SUPPORT_{}_{}", parent_id, support_nonterminal_ids_.size());
   auto id   = production_rules_data_->num_productions--;
   support_nonterminal_ids_.insert(id);
   return id++;

@@ -3,10 +3,6 @@
 // http://smlweb.cpsc.ucalgary.ca/start.html
 // https://web.cs.dal.ca/~sjackson/lalr1.html.......5/,
 
-#include <deque>
-#include <format>
-#include <stack>
-
 #include "manta/utility/Exceptions.h"
 #include "manta/utility/utility.hpp"
 
@@ -17,7 +13,7 @@ struct SourcePosition {
 
   SourcePosition(int l, int c) : line(l), column(c) {}
 
-  std::string ToString() const { return std::format("{}:{}", line, column); }
+  std::string ToString() const { return lightning::formatting::Format("{}:{}", line, column); }
 
   void NewLine() {
     ++line;
