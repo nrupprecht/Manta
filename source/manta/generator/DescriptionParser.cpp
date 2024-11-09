@@ -4,8 +4,6 @@
 
 #include "manta/generator/DescriptionParser.h"
 // Other files
-#include <format>
-
 #include <Lightning/Lightning.h>
 
 #include "manta/parser/ParseNode.h"
