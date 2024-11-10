@@ -31,7 +31,7 @@ ASTNodeManager::ASTNodeManager() {
       // Parent constructors
       {},
       // List initialized fields.
-      {{"node_type", "node_type"}, {"nonterminal_type", "nonterminal_type"}},
+      {{"node_type", "node_type"}, {"nonterminal_type", "nonterminal_type"}, {"item_id", "item_id"}},
       // Additional list initialized values
       {}});
 
