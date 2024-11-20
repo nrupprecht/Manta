@@ -27,15 +27,17 @@
 
     .Start start
 
-    start -> lexer_block newlines parser_block newlines data_block @eof : field($0), field($2) %ParserGenerator{
-        LOG_SEV(Info) << "Starting to parse the description.";
-        Visit(*object.lexer_block);
-        Visit(*object.parser_block);
+    start -> lexer_block newlines parser_block newlines data_block @eof : field($0), field($2), field($4) \
+        %ParserGenerator{
+            LOG_SEV(Info) << CLR("Starting to parse the description.");
+            Visit(*object.lexer_block);
+            Visit(*object.parser_block);
+            Visit(*object.data_block);
 
-        // Shift productions, so all terminals and nonterminals have positive numbers.
-        shiftProductionNumbers();
-        findStartProduction();
-    %}
+            // Shift productions, so all terminals and nonterminals have positive numbers.
+            shiftProductionNumbers();
+            findStartProduction();
+        %}
 
     # ========================================================
     #  Utility
@@ -51,141 +53,283 @@
     #  Lexer
     # ========================================================
 
-    lexer_block -> ".Lexer" newlines lexer_definitions newlines ".End"  : field($2.definitions) %ParserGenerator{
-        LOG_SEV(Info) << "Getting definitions.";
-        for (auto& definition : object.definitions) {
-          definition->Accept(*this);
-        }
-    %}
+    lexer_block -> ".Lexer" newlines lexer_definitions newlines ".End" : field($2.definitions) %ParserGenerator{
+            LOG_SEV(Info) << "Getting lexer definitions.";
+            for (auto& definition : object.definitions) {
+              definition->Accept(*this);
+            }
+        %}
 
-    lexer_definitions -> lexer_definitions newlines lexeme_line : append($0.definitions, "definitions"), push($2, "definitions") \
-        | lexeme_line : push($0, "definitions")
+    lexer_definitions -> lexer_definitions newlines lexeme_line : append($0.definitions, "definitions"), push($2, "definitions") %ParserGenerator{
+            // Redirect to base.
+            // Visit(static_cast<ASTNodeBase_lexer_definitions&>(object));
+
+            for (auto& definition : object.definitions) {
+              definition->Accept(*this);
+            }
+        %} \
+        | lexeme_line : push($0, "definitions") %ParserGenerator{
+            // Redirect to base.
+            // Visit(static_cast<ASTNodeBase_lexer_definitions&>(object));
+
+            for (auto& definition : object.definitions) {
+              definition->Accept(*this);
+            }
+        %}
 
     lexeme_line -> lexeme_definition : node("Lexeme"), field($0.name), field($0.regex) \
-        | skip_indicator : node("Skip"), field($0.identifier)
+        %ParserGenerator{
+            LOG_SEV(Debug) << "Adding lexeme: " << object.name << " with regex " << object.regex;
+            std::string_view name = object.name;
+            name = name.substr(1, name.size() - 1);  // Remove the @
+            production_rules_data_->lexer_generator->AddLexeme(std::string(name), object.regex);
+        %} \
+        | skip_indicator : node("Skip"), field($0.identifier) %ParserGenerator{
+            LOG_SEV(Debug) << "Setting lexeme " << object.identifier << " to be a skip lexeme.";
+            production_rules_data_->lexer_generator->AddSkip(object.identifier);
+        %}
 
+    # The parts from this node are taken directly into lexeme_line:Lexeme.
     lexeme_definition -> @lexeme_name @colon @regex : field($0, "name"), field($2, "regex") %ParserGenerator{
-                production_rules_data_->lexer_generator->AddLexeme(object.name, object.regex);
-            %}
+            production_rules_data_->lexer_generator->AddLexeme(object.name, object.regex);
+        %}
 
+    # The parts from this node are taken directly into lexeme_line:Skip.
     skip_indicator -> ".Skip" @identifier : field($1, "identifier") %ParserGenerator{
-                production_rules_data_->lexer_generator->AddSkip(object.identifier);
-            %}
+            production_rules_data_->lexer_generator->AddSkip(object.identifier);
+        %}
 
     # ========================================================
     #  Parser
     # ========================================================
 
-    parser_block -> ".Parser" newlines start_indicator newlines parser_definitions newlines ".End"  : node("Parser"), field($2.start_name, "start_name"), field($4.definitions, "definition") %ParserGenerator{
-        // Set the start production name.
-        auto id = registerProduction(object.start_name);
-        registerStartingProduction(id);
-        LOG_SEV(Info) << "Setting production start name to "
-                      << manta::formatting::CLM(production_rules_data_->start_nonterminal_name) << ".";
-        for (auto& definition : object.definition) {
-          definition->Accept(*this);
-        }
-    %}
+    parser_block -> ".Parser" newlines start_indicator newlines parser_definitions newlines ".End" \
+    : node("Parser"), field($2.start_name, "start_name"), field($4.definitions, "definition") %ParserGenerator{
+            // Set the start production name.
+            auto id = registerProduction(object.start_name);
+            registerStartingProduction(id);
+            LOG_SEV(Info) << "Setting production start name to "
+                          << CLM(production_rules_data_->start_nonterminal_name) << ".";
+            for (auto& definition : object.definition) {
+              definition->Accept(*this);
+            }
+        %}
 
-    start_indicator -> ".Start" @identifier     : field($1, "start_name") %ParserGenerator{
-        // Set the start non-terminal
-        production_rules_data_->start_nonterminal_name = object.start_name;
-    %}
+    start_indicator -> ".Start" @identifier : field($1, "start_name") %ParserGenerator{
+            // Set the start non-terminal
+            production_rules_data_->start_nonterminal_name = object.start_name;
+        %}
 
-    parser_definitions -> parser_definitions newlines parser_definition : append($0.definitions, "definitions"), push($2, "definitions") %ParserGenerator{
+    parser_definitions -> parser_definitions newlines parser_definition \
+        : append($0.definitions, "definitions"), push($2, "definitions") %ParserGenerator{
             // Redirect to base.
-            Visit(static_cast<ASTNodeBase_parser_definitions&>(object));
+            // Visit(static_cast<ASTNodeBase_parser_definitions&>(object));
+
+            for (auto& definition : object.definitions) {
+              definition->Accept(*this);
+            }
         %} \
         | parser_definition : push($0, "definitions") %ParserGenerator{
             // Redirect to base.
-            Visit(static_cast<ASTNodeBase_parser_definitions&>(object));
+            // Visit(static_cast<ASTNodeBase_parser_definitions&>(object));
+
+            for (auto& definition : object.definitions) {
+              definition->Accept(*this);
+            }
         %}
 
-    parser_definition -> @identifier "->" production_lines : field($0, "nonterminal_name"), field($2.productions) %ParserGenerator{
-        LOG_SEV(Info) << "Reading definition for non-terminal " << manta::formatting::CLY(object.nonterminal_name)
-                          << ", there are " << object.productions.size() << " productions.";
+    parser_definition -> @identifier "->" production_lines \
+        : node("parser"), field($0, "nonterminal_name"), field($2.productions) %ParserGenerator{
+            LOG_SEV(Info) << "Reading definition for non-terminal " << CLY(object.nonterminal_name)
+                              << ", there are " << object.productions.size() << " productions.";
 
-        auto pid = registerProduction(object.nonterminal_name);
-        makeNextItem(pid);  // Create the item for this production.
-        for (auto& production : object.productions) {
-          production->Accept(*this);
-        }
-        storeCurrentItem(); // Done creating the item, store it.
-    %}
+            registerProductionDefinition(object.nonterminal_name);
+            LOG_SEV(Debug) << "Registered nonterminal " << object.nonterminal_name << " with id " << current_production_id_;
+            for (auto& production : object.productions) {
+              production->Accept(*this);
+            }
+        %}
 
     # TODO Will be able to do:  production_and_data ( or production_and_data )*
-    production_lines -> production_and_data         : node("options"), push($0, "productions") \
-        | production_lines or production_and_data   : node("options"), append($0.productions, "productions"), push($2, "productions")
+    # TODO: Have a way to define code that is not reduction specific...
+    production_lines -> production_and_data : node("options"), push($0, "productions") %ParserGenerator{
+            for (auto& production : object.productions) {
+              production->Accept(*this);
+            }
+        %} \
+        | production_lines or production_and_data   : node("options"), append($0.productions, "productions"), push($2, "productions") %ParserGenerator{
+            for (auto& production : object.productions) {
+              production->Accept(*this);
+            }
+        %}
 
     or -> @or
 
-    production_and_data -> production_atoms     : field($0.atoms) %ParserGenerator{
+    production_and_data -> production_atoms : field($0.atoms) %ParserGenerator{
+            makeNextItem();  // Create the item for this production.
             // Production and data with no actions.
+            LOG_SEV(Debug) << "Production with no actions.";
             // TODO: Find a way to combine this with an actions node, just with an empty actions vector.
-            Visit(static_cast<ASTNodeBase_production_and_data&>(object));
+            // Visit(static_cast<ASTNodeBase_production_and_data&>(object));
+            for (auto& atom : object.atoms) {
+              atom->Accept(*this);
+            }
+            storeCurrent(); // Done creating the item, store it.
         %} \
-        | production_atoms @colon actions code_block  : field($0.atoms), field($2.actions, "actions") %ParserGenerator{
-            Visit(static_cast<ASTNodeBase_production_and_data&>(object));
+        | production_atoms @colon actions code_block  : field($0.atoms), field($2.actions, "actions"), field($3, "code") \
+        %ParserGenerator{
+            makeNextItem();  // Create the item for this production.
+            // Visit(static_cast<ASTNodeBase_production_and_data&>(object));
 
-            LOG_SEV(Info) << "There are " << object.actions.size() << " actions.";
+            LOG_SEV(Info) << "There are " << object.atoms.size() << " atoms and " << object.actions.size() << " actions.";
+            for (auto& atom : object.atoms) {
+              atom->Accept(*this);
+            }
+            for (auto& action : object.actions) {
+              action->Accept(*this);
+            }
+            object.code->Accept(*this);
+
+            storeCurrent(); // Done creating the item, store it.
+        %}
+
+    # Since production_and_data takes the atoms from production atoms, these functions will never be used.
+    production_atoms -> production_atoms production_atom  \
+        : node("production_atoms"), append($0.atoms, "atoms"), push($1, "atoms") %ParserGenerator{
+            for (auto& atom : object.atoms) {
+              atom->Accept(*this);
+            }
+         %} \
+        | production_atom : node("production_atoms"), push($0, "atoms") %ParserGenerator{
+           for (auto& atom : object.atoms) {
+             atom->Accept(*this);
+           }
+        %}
+
+    production_atom -> @identifier : node("identifier") %ParserGenerator{
+            // Indicates a non-terminal.
+            auto id = registerProduction(object.identifier);
+            LOG_SEV(Info) << "Non-terminal: '" << object.identifier << "', id = " << id << ".";
+            current_item_.AddToProduction(id);
+        %} \
+        | @literal : node("literal") %ParserGenerator{
+            int id = production_rules_data_->lexer_generator->AddReserved(object.literal);
+            LOG_SEV(Info) << "Literal: " << CLBG(object.literal) << "', id = " << id << ".";
+            current_item_.AddToProduction(id);
+        %} \
+        | @lexeme_name : node("lexeme_name"), field($0, "lexeme_name") %ParserGenerator{
+            LOG_SEV(Info) << "Lexeme name: '" << object.lexeme_name << "'";
+            int id = getLexemeID(object.lexeme_name);
+            current_item_.AddToProduction(id);
+        %}\
+        | @null : node("null")  %ParserGenerator{
+            // Found a null
+            LOG_SEV(Debug) << "Null found.";
+        %}
+
+    actions -> actions "," action \
+        : node("actions"), append($0.actions, "actions"), push($2, "actions") %ParserGenerator{
+            for (auto& action : object.actions) {
+              action->Accept(*this);
+            }
+         %} \
+        | action : node("actions"), push($0, "actions") %ParserGenerator{
             for (auto& action : object.actions) {
               action->Accept(*this);
             }
         %}
 
-    production_atoms -> production_atoms production_atom    : node("production_atoms"), append($0.atoms, "atoms"), push($1, "atoms") \
-        | production_atom                                   : node("production_atoms"), push($0, "atoms")
+    action -> @identifier "(" args ")" \
+        : node("action"), field($0, "fn_name"), field($2.arguments, "arguments") %ParserGenerator{
+            // auto node = std::make_shared<ParseNode>(object.fn_name);
 
-    production_atom -> @identifier : node("identifier") %ParserGenerator{
-            // Indicates a non-terminal.
-            LOG_SEV(Info) << "Identifier: '" << object.identifier << "'";
-            registerProduction(object.identifier);
-        %} \
-        | @literal : node("literal") %ParserGenerator{
-            int id = production_rules_data_->lexer_generator->AddReserved(object.literal);
-            // Add to the current item.
-            current_item_.AddToProduction(id);
-        %} \
-        | @lexeme_name : node("lexeme_name") \
-        | @null : node("null")  %ParserGenerator{ // Found a null %}
-
-    actions -> actions "," action : node("actions"), append($0.actions, "actions"), push($2, "actions") \
-        | action                  : node("actions"), push($0, "actions")
-
-    action -> @identifier "(" args ")" : node("action"), field($0, "fn_name"), field($2, "arguments")
+            registerAction(object.fn_name);
+            for (auto& arg : object.arguments) {
+              arg->Accept(*this);
+            }
+        %}
 
     args -> args "," arg : node("arguments"), append($0.arguments, "arguments"), push($2, "arguments") \
         | arg : node("arguments"), push($0, "arguments")
 
-    arg -> @pos_arg : node("PosArg"), field($0, "pos") %ParserGenerator{ // Came from pos arg 1 %} \
-        | @pos_arg @special_symbol : node("PosArg"), field($0, "pos"), field($1, "field_name") %ParserGenerator{ // Came from pos arg 2 %} \
-        | @literal  : node("StringArg"), field($0, "argument") %ParserGenerator{ // Came from literal %} \
+    arg -> @pos_arg : node("PosArg"), field($0, "pos") %ParserGenerator{
+            LOG_SEV(Debug) << "Pos arg: ARG:" << object.pos;
+            addArgumentToAction(object.pos.substr(1));
+        %} \
+        | @pos_arg @special_symbol : node("PosArg"), field($0, "pos"), field($1, "field_name") %ParserGenerator{
+            LOG_SEV(Debug) << "Pos arg: " << object.pos << " with field name: " << object.field_name << " ARG:"
+                           << object.pos << object.field_name;
+            // NOTE: Currently not doing anything special here.
+            addArgumentToAction(object.pos.substr(1) + object.field_name);
+        %} \
+        | @literal  : node("StringArg"), field($0, "argument") %ParserGenerator{
+            // Remove the quotes.
+            auto arg = object.argument.substr(1, object.argument.size() - 2);
+            LOG_SEV(Debug) << "String arg: " << CLBG(arg) << " ARG:" << object.argument;
+
+            addArgumentToAction(arg);
+        %} \
         | "$null"   : node("NullArg")
 
-    code_block -> $null | "%" @identifier @code
+    code_block -> $null \
+        | "%" @identifier @code  : node("code_block"), field($1, "visitor_name"), field($2, "code_body") %ParserGenerator{
+            LOG_SEV(Info) << "Code block: " << CLBB(object.code_body);
+
+            // Have to take off the beginning "{" and ending "% }".
+            auto code = object.code_body.substr(1, object.code_body.size() - 3);
+
+            auto item = getCurrentItemNumber();
+            if (!item) {
+                MANTA_THROW(UnexpectedInput, "could not get item number for reduction code");
+            }
+            if (object.visitor_name.empty() || object.visitor_name == "REDUCE") {
+                production_rules_data_->reduction_code[*item] = code;
+            }
+            else {
+                production_rules_data_->visitor_data.SetBodyForItem(
+                    object.visitor_name,
+                    *item,
+                    code);
+            }
+        %}
 
     # ========================================================
     #  Data section
     # ========================================================
 
-    data_block -> ".Data" newlines data_definitions newlines ".End"
+    data_block -> ".Data" newlines data_definitions newlines ".End" : field($2.definitions, "definitions") %ParserGenerator{
+            LOG_SEV(Info) << "Getting definitions.";
+            for (auto& definition : object.definitions) {
+              definition->Accept(*this);
+            }
+        %}
 
     data_definitions -> data_definitions newlines data_definition : append($0.definitions, "definitions"), push($2, "definitions") \
         | data_definition : push($0, "definitions")
 
+    data_definition -> import_statement : node("import"), field($0.path) \
+            %ParserGenerator{
+                LOG_SEV(Info) << "Import " << object.path << ".";
+                addImport(object.path);
+            %} \
+        | inherit_statement : node("inherit"), field($0.visitor_name, "visitor_name"), field($0.base, "base") \
+            %ParserGenerator{
+                LOG_SEV(Info) << "Inherits " << object.visitor_name << " from " << object.base << ".";
+                addParentClassForVisitor(object.visitor_name, object.base);
+            %} \
+        | general_code_block : node("define_code_block"), field($0.class_name), field($0.code) \
+            %ParserGenerator{
+                LOG_SEV(Info) << "General code block:\n" << object.code;
+                // Take off leading "{" and trailing "% }".
+                auto code = object.code.substr(1, object.code.size() - 3);
+                addGeneralCodeToVisitor(object.class_name, code);
+            %}
 
-    data_definition -> import_statement | inherit_statement | general_code_block
+    import_statement -> "@import" @path : field($1, "path")
 
-    import_statement -> "@import" @path : field($1, "import") %ParserGenerator{
-            LOG_SEV(Info) << "Importing " << object.import << ".";
-        %}
+    inherit_statement -> "inherits" @identifier @classname : field($1, "visitor_name"), field($2, "base")
 
-    inherit_statement -> "inherits" @identifier @classname : field($1, "inherits"), field($2, "base") %ParserGenerator{
-            LOG_SEV(Info) << "Inherits " << object.inherits << " from " << object.base << ".";
-        %}
-
-    general_code_block -> "code" @identifier "%" @code : field($0, "code"), field($1, "class_name"), field($3, "code") %ParserGenerator{
-            LOG_SEV(Info) << "Code block: " << object.code; %}
+    general_code_block -> "code" @identifier "%" @code : field($1, "class_name"), field($3, "code")
 
 .End
 
@@ -197,6 +341,16 @@
         ParserGenerator() = default;
 
         std::shared_ptr<manta::ProductionRulesData> ParseDescription(std::istream& stream) override { return nullptr; }
+
+        void storeCurrent() {
+          LOG_SEV(Info) << "Storing item of size " << current_item_.Size() << ".";
+          storeCurrentItem();
+        }
+
+        void registerAction(const std::string& action) {
+          LOG_SEV(Debug) << "Registering action '" << action << "' for production " << current_production_id_ << ".";
+          createAction(action);
+        }
     %}
 
     inherits ParserGenerator manta::DescriptionParser

@@ -13,7 +13,7 @@ using Precedence = int;
 
 //! \brief Helper function that checks whether a set contains a value.
 template<typename T>
-inline bool SetContains(const std::set<T>& container,
+bool SetContains(const std::set<T>& container,
                         const typename std::remove_cv<T>::type& value) {
   return std::find(container.begin(), container.end(), value) != container.end();
 }

@@ -32,7 +32,7 @@ struct SourcePosition {
 };
 
 //! \brief Convert a SourcePosition to a string. This function will allow it to stream into lightning logging
-//! for free.
+//!        for free.
 inline std::string to_string(const SourcePosition& pos) {
   return pos.ToString();
 }
@@ -79,8 +79,8 @@ struct Token {
 };
 
 //! \brief Represents the result of lexing.
-//
-//! Naively (and inn the simple case), we expect
+//!
+//! Naively (and in the simple case), we expect
 //! valid input to lex into exactly one lexeme. However, there can be practical reasons
 //! why you might want to define two different lexemes that might accept the same string.
 //! You might want separate lexemes for @variable and @function_name, even if they both

@@ -9,6 +9,7 @@
 using namespace manta;
 using namespace manta::formatting;
 using namespace manta::typesystem;
+using lightning::formatting::Format;
 
 namespace {
 
@@ -46,7 +47,7 @@ std::string treatLiteral(const std::string& input) {
       // added back by the lexer.
       // Otherwise, we need to escape the '\'
       if (!lexeme_escapes.contains(input[i + 1])) {
-        output += "\\\\";
+        output += R"(\\)";
       }
     }
   }
@@ -104,7 +105,7 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
   createBaseVisitor(node_manager);  // Fills in the base visitor.
 
   // TEST: Generate a printing visitor.
-  auto printing_visitor = createPrintingVisitor(node_manager);
+  // auto printing_visitor = createPrintingVisitor(node_manager);
 
   // ==============================================================================
   //  Generate code.
@@ -136,6 +137,7 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
   codegen.WriteImports(code_out);
 
   // Write any typedefs
+  code_out << "using namespace manta::formatting;\n";
   code_out << "using manta::ItemID;\n\n";
 
   code_out << "#define REDUCE_ASSERT(count, item, size) \\\n"
@@ -150,8 +152,8 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
 
   // >>> Write printing visitor
   code_out << "\n";
-  codegen.WriteDefinition(code_out, printing_visitor);
-  code_out << "\n";
+  //codegen.WriteDefinition(code_out, printing_visitor);
+  //code_out << "\n";
 
   std::string parser_class_name = "Parser";
 
@@ -314,7 +316,7 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
   // Add all skip lexemes.
   code_out << "  // Add the skip-lexemes (these will be lexed, but skipped, by the lexer).\n";
   auto skip_lexemes = lex_gen.GetSkipLexemeNames();
-  for (auto& skip_lexeme_name : skip_lexemes) {
+  for (const auto& skip_lexeme_name : skip_lexemes) {
     code_out << "  lexer_generator->AddSkip(\"" << skip_lexeme_name << "\");\n";
   }
   code_out << "\n";
@@ -334,7 +336,7 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
     for (auto& item : parser_data->production_rules_data->all_productions) {
       // TODO: Sanitize names.
 
-      auto& node_type_name = node_types_for_item.at(item_number);
+      const auto& node_type_name = node_types_for_item.at(item_number);
       code_out << "    case " << item_number << ": {\n";
 
       // Make sure there are enough nodes in the collect vector.
@@ -345,7 +347,7 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
       //      reduction "
       //               << item_number << ", not enough nodes in the collect vector, needed at least "
       //               << item.rhs.size() << ", actual size was \" << collected_nodes.size());\n";
-      auto function_name = "ReduceTo_" + node_type_name + "_ViaItem_" + std::to_string(item_number);
+      auto function_name = Format("ReduceTo_{}_ViaItem_{}", node_type_name, item_number);
       code_out << "      LOG_SEV_TO(logger_, Debug) << \"Calling reduce function '" << function_name
                << "'.\";\n";
       code_out << "      return " << function_name << "(";
@@ -380,13 +382,13 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
 
   {
     unsigned item_number = 0u;
-    for (auto& item : parser_data->production_rules_data->all_productions) {
-      auto& node_type_name = node_types_for_item.at(item_number);
+    for (const auto& item : parser_data->production_rules_data->all_productions) {
+      const auto& node_type_name = node_types_for_item.at(item_number);
 
       // Note - making this function inline, since right now, these definitions are going into the header.
       code_out << "inline std::shared_ptr<" << node_type_name << ">\n";
       auto function_name =
-          parser_class_name + "::ReduceTo_" + node_type_name + "_ViaItem_" + std::to_string(item_number);
+          Format("{}::ReduceTo_{}_ViaItem_{}", parser_class_name, node_type_name, item_number);
       code_out << function_name;
       code_out << "(";
 
@@ -394,22 +396,17 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
                     << ". Node type name is " << CLBB(node_type_name) << ".";
 
       // Arguments.
-      // std::map<int, int> count_duplicates;
       auto i = 0;
       LOG_SEV(Debug) << "Creating function arguments.";
       for (auto id : item.rhs) {
         LOG_SEV(Debug) << "Looking at element " << i << " in the production, id = " << id << ".";
-        // auto count = count_duplicates[id]++;
         if (i != 0) {
           code_out << ",";
         }
         if (parser_data->production_rules_data->IsNonTerminal(id)) {
           // Get the base type for this non-terminal.
           auto& base_type = deduced_types.GetBaseTypeName(id);
-          code_out << "\n    [[maybe_unused]] const std::shared_ptr<" << base_type
-                   << ">& "
-                   // parser_data->production_rules_data->GetName(id)
-                   << "argument_" << i;
+          code_out << "\n    [[maybe_unused]] const std::shared_ptr<" << base_type << ">& argument_" << i;
 
           LOG_SEV(Debug) << "  * Argument " << i << " is a non-terminal. Base type is named "
                          << CLBB(base_type) << ".";
@@ -431,7 +428,6 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
         code_out << "  // Set fields in the new node.\n";
 
         // Get relationships for this node. We only keep the ones for this item number.
-
         auto& relationships_for_node = it->second;
         std::sort(relationships_for_node.end(), relationships_for_node.end(), [](auto& l, auto& r) {
           return l.position < r.position;
@@ -451,15 +447,19 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
               break;
             }
             case CheckType::APPEND: {
-              const std::string arg_name = "argument_" + std::to_string(rel.position);
+              const std::string arg_name = Format("argument_{}", rel.position);
 
               LOG_SEV(Debug) << "  * APPEND relationship for arg " << rel.position << " into field named '"
                              << field_name << "'.";
 
-              code_out << "  new_node->" << field_name << ".insert("
-                       << "new_node->" << field_name << ".end(), " << arg_name << "->"
-                       << *rel.source_field_name << ".cbegin(), " << arg_name << "->"
-                       << *rel.source_field_name << ".cend());\n";
+              code_out << Format(
+                  "  new_node->{}.insert(new_node->{}.end(), {}->{}.cbegin(), {}->{}.cend());\n",
+                  field_name,
+                  field_name,
+                  arg_name,
+                  *rel.source_field_name,
+                  arg_name,
+                  *rel.source_field_name);
               break;
             }
             case CheckType::FIELD: {
@@ -502,27 +502,31 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
   // Invert the map node_types_for_item, forming a map where the values in the original map are the keys, and
   // the keys are the values.
   std::map<std::string, std::set<ItemID>> type_names_to_ids;
-  for (auto& [key, value] : node_types_for_item) {
+  for (const auto& [key, value] : node_types_for_item) {
     type_names_to_ids[value].insert(key);
   }
 
   std::map<ItemID, const TypeDescriptionStructure*> types_by_item;
-  for (auto [_, types] : all_types) {
-    for (auto [name, type] : types.child_types) {
+  for (const auto& [_, types] : all_types) {
+    for (const auto& [name, type] : types.child_types) {
       if (auto it = type_names_to_ids.find(name); it != type_names_to_ids.end()) {
-        for (auto& item_id : it->second) {
+        for (const auto& item_id : it->second) {
           types_by_item[item_id] = type;
         }
       }
     }
   }
 
-  auto& visitor_data = parser_data->production_rules_data->visitor_data;
-  for (auto& [name, data] : visitor_data.visitors) {
+  const auto& visitor_data = parser_data->production_rules_data->visitor_data;
+  for (const auto& [name, data] : visitor_data.visitors) {
     auto visitor = createVisitorFromTemplate(node_manager, data, types_by_item);
     codegen.WriteDefinition(code_out, visitor);
     code_out << "\n";
   }
+
+  // Define a macro that indicates that the parser has been generated.
+  // Obviously, C++ specific.
+  code_out << "#define MANTA_PARSER_GENERATED\n";
 }
 
 void ParserCodegen::GenerateParserCode(std::ostream& code_out,

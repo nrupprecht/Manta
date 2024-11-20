@@ -13,6 +13,7 @@
 #include <memory>
 #include <optional>
 #include <functional>
+#include "manta/utility/Exceptions.h"
 
 namespace manta {
 
@@ -22,19 +23,19 @@ namespace manta {
 //!     https://stackoverflow.com/questions/2590677/how-do-i-combine-hash-values-in-c0x
 //!
 template <class T>
-inline void HashCombine(std::size_t& seed, const T& v) {
+void HashCombine(std::size_t& seed, const T& v) {
   seed ^= std::hash<T>{}(v) + 0x9e3779b9 + (seed<<6) + (seed>>2);
 }
 
 template <typename T>
-inline bool contains(const std::set<T> &s, T &&el) {
+bool contains(const std::set<T> &s, T &&el) {
   return s.find(el) != s.end();
 }
 
 inline bool prepends(const std::set<std::string> &s, const std::string &op) {
   // Check if the string is the first part of any string in the set.
   for (const auto &str: s) {
-    int index = str.find(op);
+    auto index = str.find(op);
     if (index == 0) {
       return true;
     }
@@ -45,10 +46,8 @@ inline bool prepends(const std::set<std::string> &s, const std::string &op) {
 
 inline std::string repeat(char c, int length) {
   std::string str;
-  str.reserve(length);
-  for (int i = 0; i < length; ++i) {
-    str += c;
-  }
+  str.resize(length);
+  std::fill_n(str.begin(), length, c);
   return str;
 }
 
@@ -85,6 +84,15 @@ inline std::string clean(const std::string &str) {
     else output += c;
   }
   return output;
+}
+
+inline int stoi(const std::string& input) {
+  try {
+    return std::stoi(input);
+  }
+  catch ([[maybe_unused]] const std::exception& ex) {
+    MANTA_FAIL("could not convert '" << input << "' to an integer");
+  }
 }
 
 } // namespace manta

@@ -131,6 +131,8 @@ class ProductionRulesBuilder {
 public:
   ProductionRulesBuilder() : production_rules_data_(std::make_shared<ProductionRulesData>()) {}
 
+  virtual ~ProductionRulesBuilder() = default;
+
   //! \brief Get the production rules data that has been built.
   std::shared_ptr<ProductionRulesData> GetProductionRulesData() { return production_rules_data_; }
 
@@ -141,6 +143,13 @@ protected:
   //! \brief Get the production number associated with a production name, registering it if it has not already
   //!        been registered.
   NonterminalID registerProduction(const std::string& production);
+
+  //! \brief Register a production whose productions are being defined.
+  NonterminalID registerProductionDefinition(const std::string& production);
+
+  void addToProduction(int id) {
+    current_item_.AddToProduction(id);
+  }
 
   //! \brief Create a new helper nonterminal.
   NonterminalID createHelperNonterminal(NonterminalID parent_id);
@@ -156,10 +165,25 @@ protected:
   int getLexemeID(const std::string& lexeme_name) const;
 
   //! \brief Generate an item with the next production label, sets the current_item_ to be this new item.
-  Item& makeNextItem(int production_id);
+  //!        Also generates a new current_instructions_.
+  Item& makeNextItem();
 
   //! \brief Store the current, completed item.
   void storeCurrentItem();
+
+  //! \brief Register an action for the current production.
+  void createAction(std::string name);
+
+  //! \brief Add an argument to the current action.
+  void addArgumentToAction(std::string argument);
+
+  std::shared_ptr<const ParseNode> getCurrentAction() const;
+
+  void addImport(const std::string& import_name);
+
+  void addGeneralCodeToVisitor(const std::string& visitor_name, const std::string& code);
+
+  void addParentClassForVisitor(const std::string& visitor_name, const std::string& parent);
 
   //! \brief Find start production. This must be done after we shift production numbers.
   void findStartProduction();
@@ -167,11 +191,21 @@ protected:
   //! \brief Get the number of the current item.
   std::optional<unsigned> getCurrentItemNumber() const;
 
+  //! \brief Get the instructions node for the current item.
+  ParseNode& getCurrentInstructions() { return *current_item_.instructions; }
+
+  int getCurrentProductionID() {
+    return current_item_.production_item_number;
+  }
+
   //! \brief The current item being built.
   Item current_item_ {};
 
   //! \brief Keep track of the next production item's ID.
   ItemID item_number_ = 0;
+
+  //! \brief The production id of the currently registered production.
+  ItemID current_production_id_ = 0;
 
   //! \brief Keep track of which non-terminals are support non-terminals.
   std::set<NonterminalID> support_nonterminal_ids_ {};
@@ -213,13 +247,13 @@ private:
   std::string findNextCommand(std::istream& stream) const;
 
   //! \brief Get a production from it's representation in a stream.
-  void getProductions(std::istream& in, int production_id);
+  void getProductions(std::istream& in);
 
   //! \brief Find the conflict resolution info for a production.
   void findResInfo(std::istream& in, ResolutionInfo& res_info);
 
   //! \brief Get the instruction for a production.
-  std::shared_ptr<ParseNode> getInstructions(std::istream& fin, int pid);
+  void getInstructions(std::istream& fin);
 
   //! \brief Get additional data, including visitor related data and module import data.
   void getData(std::istream& in);

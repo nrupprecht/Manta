@@ -169,8 +169,8 @@ ParserTypeData& ParserDataToTypeManager::CreateRelationships(
       std::map<std::string, std::vector<std::shared_ptr<ParseNode>>> instructions_by_name;
       // NOTE(Nate): Keywords of the allowed instructions are hard-coded.
       static std::set<std::string> allowed_instructions {"node", "field", "append", "push"};
-      for (auto& command : instructions->children) {
-        auto& fn_name = command->designator;
+      for (const auto& command : instructions->children) {
+        const auto& fn_name = command->designator;
         MANTA_ASSERT(allowed_instructions.contains(fn_name), "unrecognized function '" << fn_name << "'");
         instructions_by_name[fn_name].push_back(command);
       }
@@ -181,7 +181,8 @@ ParserTypeData& ParserDataToTypeManager::CreateRelationships(
       // Look for the node instruction.
       if (auto node_it = instructions_by_name.find("node"); node_it != instructions_by_name.end()) {
         MANTA_ASSERT(node_it->second.size() == 1,
-                     "there can be at most one 'node' instruction per production rule");
+                     "there can be at most one 'node' instruction per production rule, there were "
+                         << node_it->second.size() << " for item " << item_number);
         MANTA_ASSERT(node_it->second.size() == 1, "'node' function takes one argument");
         // TODO: Check if the name follows the correct format, e.g. does not contain ':'
         // or '-' or any other illegal characters.
@@ -223,17 +224,23 @@ ParserTypeData& ParserDataToTypeManager::CreateRelationships(
           || !instructions_by_name["push"].empty())
       {
         // Process all the 'field' commands.
-        for (auto& cmd : instructions_by_name["field"]) {
+        const auto& field_commands = instructions_by_name["field"];
+        LOG_SEV(Debug) << "Type " << type_name << ": " << field_commands.size() << " FIELD commands.";
+        for (auto& cmd : field_commands) {
           processFieldCommand(cmd->children, item, item_number, node_type_description);
         }
 
         // Process all the 'append' commands.
-        for (auto& cmd : instructions_by_name["append"]) {
+        const auto& append_commands = instructions_by_name["append"];
+        LOG_SEV(Debug) << "Type " << type_name << ": " << append_commands.size() << " APPEND commands.";
+        for (auto& cmd : append_commands) {
           processAppendCommand(cmd->children, item, item_number, node_type_description);
         }
 
         // Process all the 'push' commands.
-        for (auto& cmd : instructions_by_name["push"]) {
+        const auto& push_commands = instructions_by_name["push"];
+        LOG_SEV(Debug) << "Type " << type_name << ": " << push_commands.size() << " PUSH commands.";
+        for (auto& cmd : push_commands) {
           processPushCommand(cmd->children, item, item_number, node_type_description);
         }
       }
@@ -666,7 +673,7 @@ std::tuple<int, NonterminalID, std::optional<std::string>> ParserDataToTypeManag
   auto segments = split(argument_string, '.');
   MANTA_ASSERT(segments.size() == 1 || segments.size() == 2,
                "argument name must be in one of the forms '$N' or '$N.<field-name>'");
-  auto position = std::stoi(segments[0]);
+  auto position = manta::stoi(segments[0]);
   MANTA_REQUIRE(position < item.rhs.size(),
                 "trying to reference argument " << position << " but there are only " << item.rhs.size()
                                                 << " arguments");
@@ -838,8 +845,8 @@ void ParserDataToTypeManager::processFieldCommand(const std::vector<std::shared_
     //  have this problem.
     node_type_description->AddField(target_field_name, node_manager().GetStringType());
 
-    LOG_SEV(Info) << "    >> Adding field referring to a terminal, '" << target_field_name << "', to type "
-                  << formatting::CLBB(node_type_description->type_name) << ".";
+    LOG_SEV(Info) << "    >> Adding field referring to a terminal: "
+                  << formatting::CLBB(node_type_description->type_name + "::" + target_field_name) << ".";
   }
 
   TypeRelationship relationship {

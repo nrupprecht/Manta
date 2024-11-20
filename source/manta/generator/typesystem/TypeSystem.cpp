@@ -71,10 +71,11 @@ StructureConstructor& StructureConstructor::WithBody(std::string_view body) {
 // =======================================================================================
 
 TypeDescriptionStructure::TypeDescriptionStructure(std::string name)
-    : type_name(std::move(name))
-    , TypeDescription(TSGeneralType::Structure) {}
+    : TypeDescription(TSGeneralType::Structure)
+    , type_name(std::move(name)) {}
 
 void TypeDescriptionStructure::AddField(const std::string& field_name, const TypeDescription* field_type) {
+  LOG_SEV(Trace) << "Adding field " << type_name << "::" << field_name << " with type " << field_type->Write();
   if (auto it = fields.find(field_name); it == fields.end()) {
     // New field.
     fields[field_name] = field_type;

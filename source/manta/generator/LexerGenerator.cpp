@@ -224,22 +224,22 @@ std::string LexerGenerator::escapeLiteral(const std::string& literal) {
   for (auto c : literal) {
     switch (c) {
       case '\\':
-        output += "\\\\";
+        output += R"(\\)";
         break;
       case '|':
-        output += "\\|";
+        output += R"(\|)";
         break;
       case '(':
-        output += "\\(";
+        output += R"(\()";
         break;
       case ')':
         output += "\\)";
         break;
       case '[':
-        output += "\\[";
+        output += R"(\[)";
         break;
       case ']':
-        output += "\\]";
+        output += R"(\])";
         break;
       default:
         output.push_back(c);
@@ -260,9 +260,7 @@ int LexerGenerator::LexemeID(const std::string& name) const {
   if (it == all_lexemes_.end()) {
     return -1;
   }
-  else {
-    return static_cast<int>(std::distance(all_lexemes_.begin(), it));
-  }
+  return static_cast<int>(std::distance(all_lexemes_.begin(), it));
 }
 
 int LexerGenerator::ReservedIndex(const std::string& keyword) const {

@@ -9,51 +9,26 @@
 namespace manta::formatting {
 
 #define LCOL8(data, color8bit) \
-  lightning::AnsiColor8Bit((data), lightning::formatting::AnsiForegroundColor::color8bit)
+  ::lightning::AnsiColor8Bit((data), ::lightning::formatting::AnsiForegroundColor::color8bit)
 
-template<typename T>
-auto CLBB(const T& data) {
-  return LCOL8(data, BrightBlue);
-}
+#define FMT_COL(name, color) \
+  template<typename T> \
+  inline auto name (const T& data) { \
+    return LCOL8(data, color); \
+  }
 
-template<typename T>
-auto CLX(const T& data) {
-  return LCOL8(data, BrightBlack);
-}
-
-template<typename T>
-auto CLW(const T& data) {
-  return LCOL8(data, White);
-}
-template<typename T>
-auto CLBW(const T& data) {
-  return LCOL8(data, BrightWhite);
-}
-
-template<typename T>
-auto CLB(const T& data) {
-  return LCOL8(data, Blue);
-}
-
-template<typename T>
-auto CLM(const T& data) {
-  return LCOL8(data, Magenta);
-}
-
-template<typename T>
-auto CLG(const T& data) {
-  return LCOL8(data, Green);
-}
-
-template<typename T>
-auto CLBG(const T& data) {
-  return LCOL8(data, BrightGreen);
-}
-
-template<typename T>
-auto CLY(const T& data) {
-  return LCOL8(data, Yellow);
-}
+FMT_COL(CLR, Red);
+FMT_COL(CLBR, BrightRed);
+FMT_COL(CLB, Blue);
+FMT_COL(CLBB, BrightBlue);
+FMT_COL(CLX, BrightBlack);
+FMT_COL(CLW, White);
+FMT_COL(CLBW, BrightWhite);
+FMT_COL(CLM, Magenta);
+FMT_COL(CLG, Green);
+FMT_COL(CLBG, BrightGreen);
+FMT_COL(CLY, Yellow);
+FMT_COL(CLBY, BrightYellow);
 
 inline std::size_t DetectIndentation(std::string_view body) {
   std::size_t indentation = std::numeric_limits<std::size_t>::max();

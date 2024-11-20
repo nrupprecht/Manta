@@ -10,6 +10,7 @@
 #include "manta/utility/Formatting.h"
 
 namespace manta {
+
 // ====================================================================================
 //  ProductionRulesBuilder.
 // ====================================================================================
@@ -23,6 +24,11 @@ int ProductionRulesBuilder::registerProduction(const std::string& production) {
     return production_rules_data_->num_productions--;
   }
   return it->second;
+}
+
+NonterminalID ProductionRulesBuilder::registerProductionDefinition(const std::string& production) {
+  current_production_id_ = registerProduction(production);
+  return current_production_id_;
 }
 
 NonterminalID ProductionRulesBuilder::createHelperNonterminal(NonterminalID parent_id) {
@@ -98,15 +104,22 @@ int ProductionRulesBuilder::getLexemeID(const std::string& lexeme_name) const {
   return production_rules_data_->lexer_generator->LexemeID(lexeme_name);
 }
 
-Item& ProductionRulesBuilder::makeNextItem(int production_id) {
-  auto item_number          = item_number_++;
-  current_item_             = {production_id, item_number};
-  current_item_.item_number = item_number;
+Item& ProductionRulesBuilder::makeNextItem() {
+  auto item_number           = item_number_++;
+  current_item_              = {current_production_id_, item_number};
+  current_item_.item_number  = item_number;
+  current_item_.instructions = std::make_shared<ParseNode>("I");
+
   return current_item_;
 }
 
 void ProductionRulesBuilder::storeCurrentItem() {
   auto nonterminal_id = current_item_.produced_nonterminal;
+
+  // If there are no instructions, just get rid of the instructions node.
+  if (current_item_.instructions->children.empty()) {
+    current_item_.instructions = nullptr;
+  }
 
   // Done finding the rule. Store the rule.
   auto prod = production_rules_data_->productions_for.find(nonterminal_id);
@@ -119,6 +132,51 @@ void ProductionRulesBuilder::storeCurrentItem() {
   prod->second.insert(current_item_);
   // Add production to all productions.
   production_rules_data_->all_productions.push_back(current_item_);
+
+  LOG_SEV(Trace) << "Storing current item (" << nonterminal_id << "), there are now "
+                 << production_rules_data_->all_productions.size() << " productions.";
+}
+
+void ProductionRulesBuilder::createAction(std::string name) {
+  auto& instructions = getCurrentInstructions();
+  instructions.Add(std::move(name));
+}
+
+void ProductionRulesBuilder::addArgumentToAction(std::string argument) {
+  auto& instructions = getCurrentInstructions();
+  MANTA_ASSERT(!instructions.children.empty(), "cannot add argument to action, no action added");
+  instructions.children.back()->Add(std::move(argument));
+}
+
+
+std::shared_ptr<const ParseNode> ProductionRulesBuilder::getCurrentAction() const {
+  return current_item_.instructions->children.back();
+}
+
+void ProductionRulesBuilder::addImport(const std::string& import_name) {
+  production_rules_data_->file_data.import_names.push_back(import_name);
+}
+
+void ProductionRulesBuilder::addGeneralCodeToVisitor(const std::string& visitor_name,
+                                                     const std::string& code) {
+  auto& visitor_data = production_rules_data_->visitor_data.visitors;
+  auto it            = visitor_data.find(visitor_name);
+  MANTA_ASSERT(it != visitor_data.end(), "could not find visitor '" << visitor_name << "' to add code to it");
+  auto& visitor = it->second;
+  // Add the code to the visitor.
+  if (!visitor.other_definitions.empty()) {
+    visitor.other_definitions += "\n";
+  }
+  visitor.other_definitions += code;
+}
+
+void ProductionRulesBuilder::addParentClassForVisitor(const std::string& visitor_name,
+                                                      const std::string& parent) {
+  auto& visitor_data = production_rules_data_->visitor_data.visitors;
+  auto it            = visitor_data.find(visitor_name);
+  MANTA_ASSERT(it != visitor_data.end(), "could not find visitor '" << visitor_name << "' to add code to it");
+  auto& visitor = it->second;
+  visitor.additional_base_classes.push_back(parent);
 }
 
 void ProductionRulesBuilder::findStartProduction() {
@@ -173,7 +231,6 @@ std::shared_ptr<ProductionRulesData> HandWrittenDescriptionParser::ParseDescript
 
   char c;
   std::string production_name;
-  int pid;
 
   // Create the lexer. We always add @eof as a lexer item.
   production_rules_data_->lexer_generator->CreateLexer(stream, false);  // Do not Clear old.
@@ -212,9 +269,9 @@ std::shared_ptr<ProductionRulesData> HandWrittenDescriptionParser::ParseDescript
 
       // Get the production number associated with the production name, registering it if it has not
       // already been registered.
-      pid = registerProduction(production_name);
-      LOG_SEV(Trace) << "Production " << formatting::CLB(production_name) << " given temporary id " << pid
-                     << ".";
+      registerProductionDefinition(production_name);
+      LOG_SEV(Trace) << "Production " << formatting::CLB(production_name) << " given temporary id "
+                     << current_production_id_ << ".";
 
       // Find '->'
       stream.get(c);
@@ -249,11 +306,11 @@ std::shared_ptr<ProductionRulesData> HandWrittenDescriptionParser::ParseDescript
       }
 
       // Get all the production rules. Stream points to character after the '='
-      getProductions(stream, pid);
+      getProductions(stream);
     }
     // OR
     else if (c == '|') {
-      getProductions(stream, pid);
+      getProductions(stream);
     }
     // Start of a comment.
     else if (c == '#') {
@@ -262,6 +319,14 @@ std::shared_ptr<ProductionRulesData> HandWrittenDescriptionParser::ParseDescript
       while (c != '\n' && !stream.eof()) {
         stream.get(c);
       }
+    }
+    // A "continuation"
+    else if (c == '\\') {
+      stream.get(c);
+      if (c != '\n') {
+        MANTA_THROW(UnexpectedInput, "expected a newline after a backslash, found a " << c);
+      }
+      // The stream.get(c) at the end of the loop will get the next character.
     }
     // Command
     else if (c == '.') {
@@ -337,9 +402,9 @@ std::shared_ptr<ProductionRulesData> HandWrittenDescriptionParser::ParseDescript
   return production_rules_data_;
 }
 
-inline void HandWrittenDescriptionParser::getProductions(std::istream& in, int production_id) {
+inline void HandWrittenDescriptionParser::getProductions(std::istream& in) {
   // Create an "item" to represent the production.
-  auto& production = makeNextItem(production_id);
+  makeNextItem();
 
   auto is_terminator = [](char c) { return c == '\n' || c == '\r' || c == ';'; };
 
@@ -361,7 +426,7 @@ inline void HandWrittenDescriptionParser::getProductions(std::istream& in, int p
       if (!acc.empty()) {
         int id = production_rules_data_->lexer_generator->AddReserved(acc);
         // Add to production
-        production.AddToProduction(id);
+        addToProduction(id);
       }
       // Clear accumulator.
       acc.clear();
@@ -378,6 +443,8 @@ inline void HandWrittenDescriptionParser::getProductions(std::istream& in, int p
         in.putback(c);
       }
 
+      LOG_SEV(Debug) << "Found production: " << formatting::CLB(acc);
+
       // Found the production. Get its production number.
       int id = registerProduction(acc);
       // If this is the start state, register the start production id.
@@ -387,7 +454,7 @@ inline void HandWrittenDescriptionParser::getProductions(std::istream& in, int p
         registerStartingProduction(id);
       }
       // Add production to rule.
-      production.AddToProduction(id);
+      addToProduction(id);
       // Clear accumulator.
       acc.clear();
     }
@@ -400,12 +467,14 @@ inline void HandWrittenDescriptionParser::getProductions(std::istream& in, int p
         in.get(c);
       }
 
+      LOG_SEV(Trace) << "Found lexeme: @" << acc;
+
       // Ask the lexer generator for the lexeme ID of the terminal
       int id = getLexemeID(acc);
       if (id < 0) {
         MANTA_THROW(UnexpectedInput, "visitor_name " << acc << " not a valid lexeme type");
       }
-      production.AddToProduction(id);
+      addToProduction(id);
 
       // Clear accumulator.
       acc.clear();
@@ -417,6 +486,8 @@ inline void HandWrittenDescriptionParser::getProductions(std::istream& in, int p
         acc.push_back(c);
         in.get(c);
       }
+
+      LOG_SEV(Trace) << "Found special: $" << acc;
 
       if (acc == "null") {
         // We handle the null by not adding anything to the production.
@@ -438,6 +509,7 @@ inline void HandWrittenDescriptionParser::getProductions(std::istream& in, int p
       while (c != '\n' && !in.eof()) {
         in.get(c);
       }
+      LOG_SEV(Trace) << "Passed a comment.";
     }
     // Start of precedence section
     else if (c == '-') {
@@ -446,18 +518,28 @@ inline void HandWrittenDescriptionParser::getProductions(std::istream& in, int p
         MANTA_THROW(UnexpectedInput, "expected a >, got " << c);
       }
       // Fill in the production's resolution info.
-      findResInfo(in, production.res_info);
+      findResInfo(in, current_item_.res_info);
+      LOG_SEV(Trace) << "Filled in precedence section.";
     }
     // Start of the instructions
     else if (c == ':') {
-      // Store the rule.
-      production.instructions = getInstructions(in, production_id);
+      // Find and store any instructions / actions.
+      getInstructions(in);
       break;
     }
     else if (c == '|') {
       // Start of another production for the non-terminal. Put it back and return.
       in.putback(c);
       break;
+    }
+
+    // A "continuation" - a \ followed immediately by a newline.
+    else if (c == '\\') {
+      in.get(c);
+      if (c != '\n') {
+        MANTA_THROW(UnexpectedInput, "expected a newline after a backslash, found a " << c);
+      }
+      in.get(c);
     }
 
     // Get next character.
@@ -503,7 +585,7 @@ void HandWrittenDescriptionParser::findResInfo(std::istream& in, ResolutionInfo&
       if (word == "prec") {
         word.clear();
         not_eof             = getInteger(in, word);
-        res_info.precedence = std::stoi(word);
+        res_info.precedence = manta::stoi(word);
       }
       else if (word == "assoc") {
         word.clear();
@@ -545,13 +627,14 @@ void HandWrittenDescriptionParser::findResInfo(std::istream& in, ResolutionInfo&
   }
 }
 
-std::shared_ptr<ParseNode> HandWrittenDescriptionParser::getInstructions(std::istream& in, int pid) {
+void HandWrittenDescriptionParser::getInstructions(std::istream& in) {
+  LOG_SEV(Debug) << "Getting instructions for production " << current_production_id_ << ".";
+
   // Setup.
   char c;
   std::string acc;
 
   // Start an instruction parser node.
-  auto instruction = std::make_shared<ParseNode>("I");
 
   // Get first character.
   in.get(c);
@@ -563,6 +646,7 @@ std::shared_ptr<ParseNode> HandWrittenDescriptionParser::getInstructions(std::is
       while (!in.eof() && c != '\n') {
         in.get(c);
       }
+      LOG_SEV(Trace) << "Passed comment.";
       // TODO: We putback c here at least in part so the \n triggers the end of the loop.
       //  I added a "break" here, but need to make sure we don't actually need the \n before
       //  we can remove the putback.
@@ -571,9 +655,23 @@ std::shared_ptr<ParseNode> HandWrittenDescriptionParser::getInstructions(std::is
       }
       break;
     }
+
+    if (c == '|') {  // OR - start of another production
+      in.putback(c);
+      break;
+    }
+
+    if (c == '\\') {  // continuation.
+      in.get(c);
+      if (c != '\n') {
+        MANTA_THROW(UnexpectedInput, "expected a newline after a backslash, found a " << c);
+      }
+      LOG_SEV(Trace) << "Passing continuation.";
+    }
     // Reduction / visitor code.
-    if (c == '%') {
+    else if (c == '%') {
       MANTA_ASSERT(!in.eof(), "unexpected eof while getting reduction code");
+      LOG_SEV(Debug) << "Found reduction / visitor code.";
 
       // Get what type of code this is for, a visitor, or a function to be called upon the REDUCE.
       acc.clear();
@@ -582,23 +680,16 @@ std::shared_ptr<ParseNode> HandWrittenDescriptionParser::getInstructions(std::is
         acc.push_back(c);
       } while (!in.eof() && c != '{');
       MANTA_ASSERT(!in.eof(), "unexpected eof while getting reduction code");
-      in.putback('{');
       acc.pop_back();
       auto target_type = acc;
       if (target_type.empty()) {
         LOG_SEV(Debug) << "Got reduction code for the REDUCE function.";
       }
       else {
-        LOG_SEV(Debug) << "Reduction code got the target type '" << acc << "'.";
+        LOG_SEV(Debug) << "Reduction code got the visitor type '" << acc << "'.";
       }
 
       MANTA_ASSERT(!in.eof(), "unexpected eof while getting reduction code");
-
-      in.get(c);
-      MANTA_ASSERT(!in.eof(), "unexpected eof while getting reduction code");
-      if (c != '{') {
-        MANTA_THROW(UnexpectedInput, "expected '{' after '%', found '" << c << "'");
-      }
 
       // Get everything up until the closing "%}"
       acc.clear();
@@ -633,9 +724,11 @@ std::shared_ptr<ParseNode> HandWrittenDescriptionParser::getInstructions(std::is
         in.get(c);
       } while (isalpha(c) || c == '_');  // letters or underscores
 
+      LOG_SEV(Trace) << "Got identifier: " << acc;
+
       // Add a node.
-      auto node = std::make_shared<ParseNode>(acc);
-      instruction->Add(node);
+      createAction(acc);
+
       // Clear accumulator.
       acc.clear();
 
@@ -646,8 +739,8 @@ std::shared_ptr<ParseNode> HandWrittenDescriptionParser::getInstructions(std::is
       if (c != '(') {
         MANTA_THROW(UnexpectedInput,
                     "Error while getting instruction: expected an open parenthesis. Found ["
-                        << c << "]. (Trying to find the argument for [" << node->designator
-                        << "]. Instruction so far is " << instruction->printTerminals());
+                        << c << "]. (Trying to find the argument for [" << getCurrentAction()->designator
+                        << "]. Instruction so far is " << getCurrentInstructions().printTerminals());
       }
 
       // Gather all arguments.
@@ -655,9 +748,9 @@ std::shared_ptr<ParseNode> HandWrittenDescriptionParser::getInstructions(std::is
       while (!in.eof() && c != ')') {
         // Pass spaces.
         if (isspace(c)) {
-          // The character '$' starts a node reference - that is, it refers to the nodes of the production
-          // the instruction corresponds to.
         }
+        // The character '$' starts a node reference - that is, it refers to the nodes of the production
+        // the instruction corresponds to.
         else if (c == '$') {
           in.get(c);
           if (!isdigit(c)) {
@@ -683,7 +776,7 @@ std::shared_ptr<ParseNode> HandWrittenDescriptionParser::getInstructions(std::is
           }
 
           // Add child.
-          node->Add(acc);
+          addArgumentToAction(acc);
           // Clear accumulator.
           acc.clear();
         }
@@ -696,13 +789,13 @@ std::shared_ptr<ParseNode> HandWrittenDescriptionParser::getInstructions(std::is
             in.get(c);
           }
           // Add child.
-          node->Add(acc);
+          addArgumentToAction(acc);
           // Clear accumulator.
           acc.clear();
         }
         // Argument separators.
-        else if (c == ',') {
-        }  // Put this on a separate line to silence a warning
+        else if (c == ',') { /* separator */
+        }                    // Put this on a separate line to silence a warning
 
         // Get next character.
         in.get(c);
@@ -712,9 +805,10 @@ std::shared_ptr<ParseNode> HandWrittenDescriptionParser::getInstructions(std::is
     // Get the next character.
     in.get(c);
   }
+  LOG_SEV(Trace) << "Done finding instruction.";
 
   // Return the instruction.
-  return instruction;
+  // return instruction;
 }
 
 void HandWrittenDescriptionParser::getData(std::istream& stream) {
@@ -753,7 +847,7 @@ void HandWrittenDescriptionParser::getData(std::istream& stream) {
           stream.get(c);
         } while (!isspace(c) && !stream.eof());
         // Add the import.
-        production_rules_data_->file_data.import_names.push_back(word);
+        addImport(word);
         LOG_SEV(Debug) << "Found command to import the module '" << word << "'.";
       }
       else {
@@ -807,7 +901,7 @@ void HandWrittenDescriptionParser::getData(std::istream& stream) {
         code.pop_back();
 
         // Add the code to the visitor.
-        visitor.other_definitions = code;
+        addGeneralCodeToVisitor(visitor_name, code);
       }
       else if (command_type == "inherits") {
         // Next word is the class that the visitor inherits from. This is programmer specified, and does not
@@ -823,7 +917,7 @@ void HandWrittenDescriptionParser::getData(std::istream& stream) {
           word.push_back(c);
           stream.get(c);
         } while (!isspace(c) && !stream.eof());
-        visitor.additional_base_classes.push_back(word);
+        addParentClassForVisitor(visitor_name, word);
         LOG_SEV(Debug) << "Visitor class '" << visitor_name << "' will inherit from '" << word << "'.";
       }
       else {

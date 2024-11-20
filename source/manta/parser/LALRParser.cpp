@@ -3,7 +3,8 @@
 #include <string_view>
 #include "manta/utility/Formatting.h"
 
-using namespace manta;
+namespace manta {
+
 using namespace manta::formatting;
 using namespace lightning;
 
@@ -212,7 +213,7 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
           else if (functionName == "add") {
             MANTA_ASSERT(!instruction->children.empty(),
                          "instruction must not have no children");
-            int index = std::stoi(instruction->children[0]->designator);
+            int index = manta::stoi(instruction->children[0]->designator);
             if (0 <= index && index < collect.size()) {
               instructionAdd(production_node, collect[index]);
             }
@@ -222,7 +223,7 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
           else if (functionName == "adopt") {
             MANTA_ASSERT(!instruction->children.empty(),
                          "instruction must not have no children");
-            int index = std::stoi(instruction->children[0]->designator);
+            int index = manta::stoi(instruction->children[0]->designator);
             if (0 <= index && index < collect.size()) {
               instructionAdopt(production_node, collect[index]);
             }
@@ -232,7 +233,7 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
           else if (functionName == "replace") {
             MANTA_ASSERT(!instruction->children.empty(),
                          "instruction must not have no children");
-            int index = std::stoi(instruction->children[0]->designator);
+            int index = manta::stoi(instruction->children[0]->designator);
             if (0 <= index && index < collect.size()) {
               instructionReplace(production_node, collect[index]);
               collect[index] = nullptr;
@@ -244,7 +245,7 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
           else if (functionName == "push") {
             MANTA_ASSERT(1 < instruction->children.size(),
                          "instruction must have at least two children");
-            int index = std::stoi(instruction->children[1]->designator);
+            int index = manta::stoi(instruction->children[1]->designator);
             if (0 <= index && index < collect.size()) {
               instructionPush(
                   production_node, instruction->children[0]->designator, collect[index]);
@@ -555,8 +556,6 @@ void LALRParser::printFatalParseError(int state) {
     }
   }
 }
-
-namespace manta {
 
 void CompareParsers(const LALRParser& left, const LALRParser& right) {
   for (auto i = 0u; i < left.parse_table_.size(); ++i) {

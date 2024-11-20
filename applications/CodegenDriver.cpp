@@ -53,6 +53,7 @@ int main(int argc, char** argv) {
   }
   catch (const std::exception& ex) {
     LOG_SEV(Fatal) << "Exception generating code:" << ex;
+    return 1;
   }
   LOG_SEV(Major) << "Program finished. Output is written to '" << output_path << "'. Exiting.";
 
