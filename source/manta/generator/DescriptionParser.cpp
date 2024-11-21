@@ -70,7 +70,7 @@ void ProductionRulesBuilder::shiftProductionNumbers() {
   for (auto& [id, name] : production_rules_data_->inverse_nonterminal_map) {
     auto new_id = lids - id;
     new_inverse_map.emplace(new_id, name);
-    LOG_SEV(Debug) << "Mapping " << new_id << " <-> " << formatting::CLBB(name) << ".";
+    LOG_SEV(Debug) << "Mapping " << id << " -> " << new_id << " <-> " << formatting::CLBB(name) << ".";
   }
   production_rules_data_->inverse_nonterminal_map = new_inverse_map;
 

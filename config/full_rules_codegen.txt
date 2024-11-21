@@ -61,17 +61,11 @@
         %}
 
     lexer_definitions -> lexer_definitions newlines lexeme_line : append($0.definitions, "definitions"), push($2, "definitions") %ParserGenerator{
-            // Redirect to base.
-            // Visit(static_cast<ASTNodeBase_lexer_definitions&>(object));
-
             for (auto& definition : object.definitions) {
               definition->Accept(*this);
             }
         %} \
         | lexeme_line : push($0, "definitions") %ParserGenerator{
-            // Redirect to base.
-            // Visit(static_cast<ASTNodeBase_lexer_definitions&>(object));
-
             for (auto& definition : object.definitions) {
               definition->Accept(*this);
             }
@@ -79,10 +73,12 @@
 
     lexeme_line -> lexeme_definition : node("Lexeme"), field($0.name), field($0.regex) \
         %ParserGenerator{
-            LOG_SEV(Debug) << "Adding lexeme: " << object.name << " with regex " << object.regex;
-            std::string_view name = object.name;
-            name = name.substr(1, name.size() - 1);  // Remove the @
-            production_rules_data_->lexer_generator->AddLexeme(std::string(name), object.regex);
+            std::string_view name_view = object.name;
+            std::string name{name_view.substr(1, name_view.size() - 1)};  // Remove the @
+            // Get the r` and ` off the regex.
+            auto regex = processRegex(object.regex);
+            LOG_SEV(Debug) << "Adding lexeme: " << CLBG(name) << " with regex " << CLBB(regex) << ".";
+            production_rules_data_->lexer_generator->AddLexeme(name, regex);
         %} \
         | skip_indicator : node("Skip"), field($0.identifier) %ParserGenerator{
             LOG_SEV(Debug) << "Setting lexeme " << object.identifier << " to be a skip lexeme.";
@@ -90,14 +86,10 @@
         %}
 
     # The parts from this node are taken directly into lexeme_line:Lexeme.
-    lexeme_definition -> @lexeme_name @colon @regex : field($0, "name"), field($2, "regex") %ParserGenerator{
-            production_rules_data_->lexer_generator->AddLexeme(object.name, object.regex);
-        %}
+    lexeme_definition -> @lexeme_name @colon @regex : field($0, "name"), field($2, "regex")
 
     # The parts from this node are taken directly into lexeme_line:Skip.
-    skip_indicator -> ".Skip" @identifier : field($1, "identifier") %ParserGenerator{
-            production_rules_data_->lexer_generator->AddSkip(object.identifier);
-        %}
+    skip_indicator -> ".Skip" @identifier : field($1, "identifier")
 
     # ========================================================
     #  Parser
@@ -122,17 +114,11 @@
 
     parser_definitions -> parser_definitions newlines parser_definition \
         : append($0.definitions, "definitions"), push($2, "definitions") %ParserGenerator{
-            // Redirect to base.
-            // Visit(static_cast<ASTNodeBase_parser_definitions&>(object));
-
             for (auto& definition : object.definitions) {
               definition->Accept(*this);
             }
         %} \
         | parser_definition : push($0, "definitions") %ParserGenerator{
-            // Redirect to base.
-            // Visit(static_cast<ASTNodeBase_parser_definitions&>(object));
-
             for (auto& definition : object.definitions) {
               definition->Accept(*this);
             }
@@ -144,7 +130,7 @@
                               << ", there are " << object.productions.size() << " productions.";
 
             registerProductionDefinition(object.nonterminal_name);
-            LOG_SEV(Debug) << "Registered nonterminal " << object.nonterminal_name << " with id " << current_production_id_;
+            LOG_SEV(Debug) << "Registered nonterminal " << CLY(object.nonterminal_name) << " with id " << current_production_id_;
             for (auto& production : object.productions) {
               production->Accept(*this);
             }
@@ -213,13 +199,17 @@
             current_item_.AddToProduction(id);
         %} \
         | @literal : node("literal") %ParserGenerator{
-            int id = production_rules_data_->lexer_generator->AddReserved(object.literal);
-            LOG_SEV(Info) << "Literal: " << CLBG(object.literal) << "', id = " << id << ".";
+            // Get rid of quotes
+            auto literal = object.literal.substr(1, object.literal.size() - 2);
+            int id = production_rules_data_->lexer_generator->AddReserved(literal);
+            LOG_SEV(Info) << "Literal: " << CLBG(literal) << "', id = " << id << ".";
             current_item_.AddToProduction(id);
         %} \
         | @lexeme_name : node("lexeme_name"), field($0, "lexeme_name") %ParserGenerator{
-            LOG_SEV(Info) << "Lexeme name: '" << object.lexeme_name << "'";
-            int id = getLexemeID(object.lexeme_name);
+            // Need to get rid of the '@' at the beginning.
+            auto name = object.lexeme_name.substr(1);
+            int id = getLexemeID(name);
+            LOG_SEV(Info) << "Lexeme name: '" << name << "', id = " << id << ".";
             current_item_.AddToProduction(id);
         %}\
         | @null : node("null")  %ParserGenerator{
@@ -280,16 +270,16 @@
 
             auto item = getCurrentItemNumber();
             if (!item) {
-                MANTA_THROW(UnexpectedInput, "could not get item number for reduction code");
+              MANTA_THROW(UnexpectedInput, "could not get item number for reduction code");
             }
             if (object.visitor_name.empty() || object.visitor_name == "REDUCE") {
-                production_rules_data_->reduction_code[*item] = code;
+              production_rules_data_->reduction_code[*item] = code;
             }
             else {
-                production_rules_data_->visitor_data.SetBodyForItem(
-                    object.visitor_name,
-                    *item,
-                    code);
+              production_rules_data_->visitor_data.SetBodyForItem(
+                object.visitor_name,
+                *item,
+                code);
             }
         %}
 
@@ -350,6 +340,23 @@
         void registerAction(const std::string& action) {
           LOG_SEV(Debug) << "Registering action '" << action << "' for production " << current_production_id_ << ".";
           createAction(action);
+        }
+
+        std::string processRegex(const std::string& regex_in) {
+          // Get the r` and ` off the regex.
+          // Any \` should be replaced with just `
+          std::string buffer;
+          buffer.reserve(regex_in.size() - 3);
+          auto size = regex_in.size() - 1;
+          for (auto i = 2; i < size; ++i) {
+            if (regex_in[i] == '\\' && i + 1 < size && regex_in[i + 1] == '`') {
+              buffer.push_back('`');
+              ++i;
+            } else {
+              buffer.push_back(regex_in[i]);
+            }
+          }
+          return buffer;
         }
     %}
 

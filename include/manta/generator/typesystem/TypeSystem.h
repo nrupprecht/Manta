@@ -203,9 +203,7 @@ struct FunctionValue {
   //! literally the code that should go into the function. If nullopt, this is a virtual function.
   std::optional<std::string> function_body {};
 
-  std::size_t GetArity() const {
-    return argument_names.size();
-  }
+  std::size_t GetArity() const { return argument_names.size(); }
 
   //! \brief Check whether the function is virtual.
   //!
@@ -347,7 +345,10 @@ struct TypeDescriptionStructure final : public TypeDescription {
   std::map<std::string, const TypeDescription*> fields;
 
   //! \brief The set of base classes of the structure.
-  std::set<const TypeDescriptionStructure*> parent_classes;
+  //!
+  //! Stored as a vector so we don't have pointer values influencing the order of the classes between
+  //! different runs. The AddParent function ensures that we don't add the same parent class twice.
+  std::vector<const TypeDescriptionStructure*> parent_classes;
 
   //! \brief Constructors for the structure. Storing as a deque so that we don't invalidate pointers.
   std::deque<StructureConstructor> constructors;

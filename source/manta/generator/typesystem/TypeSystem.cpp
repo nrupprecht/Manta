@@ -99,7 +99,12 @@ bool TypeDescriptionStructure::RemoveField(const std::string& field_name) {
 }
 
 void TypeDescriptionStructure::AddParent(const TypeDescriptionStructure* parent) {
-  parent_classes.insert(parent);
+  auto it = std::find_if(parent_classes.begin(), parent_classes.end(), [parent](auto ptr) {
+    return ptr->type_name == parent->type_name;
+  });
+  if (it == parent_classes.end()) {
+    parent_classes.push_back(parent);
+  }
 }
 
 void TypeDescriptionStructure::AddConstructor(const StructureConstructor& constructor) {

@@ -117,7 +117,7 @@ std::shared_ptr<LexerDFA> LexerGenerator::CreateLexer(std::istream& instream, bo
 
       // Get the regex expression defining the lexeme_name.
 
-      auto regex_pattern = utility::GetUntil(in_, '`');
+      auto regex_pattern = GetUntil(in_, '`');
       LOG_SEV(Debug) << "Extracted regex pattern " << CLBB(regex_pattern) << " for lexeme "
                      << CLBG(lexeme_name) << ".";
 
@@ -257,9 +257,7 @@ const std::string& LexerGenerator::LexemeName(int index) const {
 
 int LexerGenerator::LexemeID(const std::string& name) const {
   auto it = std::find(all_lexemes_.begin(), all_lexemes_.end(), name);
-  if (it == all_lexemes_.end()) {
-    return -1;
-  }
+  MANTA_ASSERT(it != all_lexemes_.end(), "could not find lexeme named " << name);
   return static_cast<int>(std::distance(all_lexemes_.begin(), it));
 }
 
