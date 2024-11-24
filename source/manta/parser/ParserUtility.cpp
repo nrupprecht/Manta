@@ -53,7 +53,7 @@ Item Item::WithoutInstructions() const {
 }
 
 std::optional<int> Item::GetElementFollowingBookmark() const {
-  if (bookmark == rhs.size()) {
+  if (rhs.size() <= bookmark) {
     return {};
   }
   return rhs[bookmark];
@@ -67,14 +67,14 @@ void State::insert(const Item& item) {
   item_set.insert(item);
 }
 
-void State::zero_bookmarks() {
+void State::ZeroBookmarks() {
   for (auto& item : item_set) {
     const int* i = &item.bookmark;
     *const_cast<int*>(i) = 0;
   }
 }
 
-bool State::contains(const Item& item) const {
+bool State::Contains(const Item& item) const {
   bool found = false;
   for (const auto& el : item_set) {
     if (el == item) {

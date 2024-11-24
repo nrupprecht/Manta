@@ -1,6 +1,7 @@
 #pragma once
 
 #include "manta/lexer/LexerUtility.hpp"
+#include <span>
 
 namespace manta {
 
@@ -70,6 +71,13 @@ struct ProductionRule {
     return std::tie(produced_nonterminal, rhs) <=> std::tie(rule.produced_nonterminal, rule.rhs);
   }
 
+  std::span<const int> Tail(std::size_t start) const {
+    if (rhs.size() <= start) {
+      return {};
+    }
+    return {rhs.data() + start, rhs.size() - start};
+  }
+
   // --- Data items ---
 
   // NOTE(Nate): Check how production and production_label differ - can we consolidate?
@@ -100,7 +108,7 @@ struct ProductionRule {
 //! An Item is a production rule plus a bookmark.
 //! A state is a set of state items.
 // TODO: Change Item to be a pointer to a production rule, plus a bookmark.
-struct Item : public ProductionRule {
+struct Item : ProductionRule {
   Item(NonterminalID production,
        int label,
        int bookmark                        = 0,
@@ -166,8 +174,8 @@ struct State {
   void insert(const Item& item);
 
   // Set the bookmarks in all the items in this state to be fresh.
-  void zero_bookmarks();
-  NO_DISCARD bool contains(const Item& item) const;
+  void ZeroBookmarks();
+  NO_DISCARD bool Contains(const Item& item) const;
   friend std::ostream& operator<<(std::ostream& out, const State& state);
   NO_DISCARD int size() const;
   NO_DISCARD bool empty() const;

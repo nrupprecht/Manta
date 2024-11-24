@@ -5,28 +5,30 @@
     @whitespaces: r`\s+`
     @newlines: r`\n+`
 
-.Skip whitespaces
+    .Skip whitespaces
 
 .End
 
 # Definition of the Parser
 .Parser
 
+    .Start start
+
     # Entry point is named start.
     start -> exprs newlines : field($0, "expressions")
 
-    newlines -> @newlines
+    newlines -> @newlines \
         | @eof # So the last line doesn't need to end with a newline.
 
-    exprs -> exprs newlines expr : append($0.expressions, "expressions") push($2, "expressions")
+    exprs -> exprs newlines expr : append($0.expressions, "expressions"), push($2, "expressions") \
         | expr : push($0, "expressions")
 
-    expr -> "(" expr ")"     : node("expr") field($1)
-        | expr "+" expr     -> prec(1) assoc(Left) : node("sum") field($0, "first") field($2, "second")
-        | expr "-" expr     -> prec(1) assoc(Left) : node("sub") field($0, "first") field($2, "second")
-        | expr "*" expr     -> prec(2) assoc(Left) : node("mult") field($0, "first") field($2, "second")
-        | expr "/" expr     -> prec(2) assoc(Left) : node("div") field($0, "first") field($2, "second")
-        | expr "^" expr     -> prec(3) assoc(Right) : node("exp") field($0, "first") field($2, "second")
+    expr -> "(" expr ")"     : node("expr"), field($1) \
+        | expr "+" expr     -> prec(1) assoc(Left) : node("sum"), field($0, "first"), field($2, "second") \
+        | expr "-" expr     -> prec(1) assoc(Left) : node("sub"), field($0, "first"), field($2, "second") \
+        | expr "*" expr     -> prec(2) assoc(Left) : node("mult"), field($0, "first"), field($2, "second") \
+        | expr "/" expr     -> prec(2) assoc(Left) : node("div"), field($0, "first"), field($2, "second") \
+        | expr "^" expr     -> prec(3) assoc(Right) : node("exp"), field($0, "first"), field($2, "second") \
         | @int
 
 .End

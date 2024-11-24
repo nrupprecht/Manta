@@ -151,14 +151,13 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
   node_manager.CreateAllDefinitions(code_out, codegen);
 
   // >>> Write printing visitor
-  code_out << "\n";
+  // code_out << "\n";
   //codegen.WriteDefinition(code_out, printing_visitor);
   //code_out << "\n";
 
   std::string parser_class_name = "Parser";
 
   // Write parser definitions
-  code_out << std::endl;
   code_out << "// ========================================================================\n";
   code_out << "//  LALR Parser.\n";
   code_out << "// ========================================================================\n";
@@ -532,9 +531,12 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
 void ParserCodegen::GenerateParserCode(std::ostream& code_out,
                                        std::istream& parser_description,
                                        ParserType parser_type) {
-  ParserGenerator generator(parser_type);
-  generator.SetDescriptionParser(description_parser_);
-  parser_data_ = generator.CreateParserData(parser_description);
+  generator_ = ParserGenerator(parser_type);
+  generator_.SetLogger(generator_logger_);
+  generator_.SetDescriptionParser(description_parser_);
+  // Read the parser description and create the parser data.
+  parser_data_ = generator_.CreateParserData(parser_description);
+
   GenerateParserCode(code_out, parser_data_);
 }
 

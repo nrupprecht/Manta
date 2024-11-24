@@ -24,7 +24,7 @@ class LALRParser {
 
 public:
   //! \brief Use the parser to parse input from a file.
-  std::shared_ptr<ParseNode> ParserCodeFile(const std::string& file_name);
+  std::shared_ptr<ParseNode> ParseCodeFile(const std::string& file_name);
 
   //! \brief Use the parser to parse input from a string.
   std::shared_ptr<ParseNode> ParseString(const std::string& input);
@@ -84,12 +84,12 @@ private:
              std::vector<std::vector<Entry>> parse_table,
              std::vector<State> all_states,
              std::shared_ptr<LexerDFA> lexer)
-      : inverse_production_map_(std::move(inverse_production_map))
+      : lexer_(std::move(lexer))
+      , inverse_production_map_(std::move(inverse_production_map))
       , start_production_(start_production)
       , total_symbols_(total_symbols)
       , parse_table_(std::move(parse_table))
-      , all_states_(std::move(all_states))
-      , lexer_(std::move(lexer)) {};
+      , all_states_(std::move(all_states)) {};
 
   LALRParser(const std::shared_ptr<ParserData>& parser_data)
       : LALRParser(parser_data->production_rules_data->inverse_nonterminal_map,

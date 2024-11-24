@@ -101,7 +101,7 @@ let you see how the bottom up parser is working.
 
 ![Alt text](images/cminus-parser-logging.png)
 
-An application named [TestParserCodegen](applications/ParserCodegenDriver.cpp) is provided that is capable of reading
+An application named [TestParserCodegen](applications/CodegenDriver.cpp) is provided that is capable of reading
 Manta parser definitions and generating the parser code.
 
 ### Parser description annotation and type deduction

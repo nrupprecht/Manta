@@ -1,9 +1,0 @@
-.Lexer
-    @special_symbol:  ".\@+"
-    @lexeme_name: "@\@+"
-    @semicolon: ":"
-    @identifier: "( \@ | _ )+"
-    @spaces: "\s+"
-    @newlines: "\n+"
-    @eof: "\0"
-.End

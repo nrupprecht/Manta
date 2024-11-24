@@ -3,6 +3,7 @@
     @lexeme_name: r`@(\@ | _)+`
     @colon: r`:`
     @identifier: r`( \@ | _ )+`
+    @integer: r`\d+`
     @regex: r` r \` ( \\ \` | [~ \`] )* \` `
     @literal: r` " ( \\" | [~"] )* " `
     @or: r`\|`
@@ -27,7 +28,7 @@
 
     .Start start
 
-    start -> lexer_block newlines parser_block newlines data_block @eof : field($0), field($2), field($4) \
+    start -> lexer_block newlines parser_block newlines optional_data_block @eof : field($0), field($2), field($4, "data_block") \
         %ParserGenerator{
             LOG_SEV(Info) << CLR("Starting to parse the description.");
             Visit(*object.lexer_block);
@@ -39,6 +40,12 @@
             findStartProduction();
         %}
 
+    # Having a data block is optional.
+    optional_data_block -> data_block : field($0) %ParserGenerator{
+            Visit(*object.data_block);
+        %} \
+        | $null
+
     # ========================================================
     #  Utility
     # ========================================================
@@ -46,8 +53,6 @@
     # NOTE: This is to get around the fact that we can have things like "\n   \n" which we want to count as "newlines."
     #       For some reason, defining this at the lexeme level is not working well.
     newlines -> newlines @newlines | @newlines
-
-    lexeme_def_or -> @or | @newlines @or
 
     # ========================================================
     #  Lexer
@@ -136,8 +141,6 @@
             }
         %}
 
-    # TODO Will be able to do:  production_and_data ( or production_and_data )*
-    # TODO: Have a way to define code that is not reduction specific...
     production_lines -> production_and_data : node("options"), push($0, "productions") %ParserGenerator{
             for (auto& production : object.productions) {
               production->Accept(*this);
@@ -151,18 +154,16 @@
 
     or -> @or
 
-    production_and_data -> production_atoms : field($0.atoms) %ParserGenerator{
+    production_and_data -> production_atoms resolution : field($0.atoms), field($1, "resolution") %ParserGenerator{
             makeNextItem();  // Create the item for this production.
             // Production and data with no actions.
             LOG_SEV(Debug) << "Production with no actions.";
-            // TODO: Find a way to combine this with an actions node, just with an empty actions vector.
-            // Visit(static_cast<ASTNodeBase_production_and_data&>(object));
             for (auto& atom : object.atoms) {
               atom->Accept(*this);
             }
             storeCurrent(); // Done creating the item, store it.
         %} \
-        | production_atoms @colon actions code_block  : field($0.atoms), field($2.actions, "actions"), field($3, "code") \
+        | production_atoms resolution @colon actions code_block  : field($0.atoms), field($1, "resolution"), field($3.actions, "actions"), field($4, "code") \
         %ParserGenerator{
             makeNextItem();  // Create the item for this production.
             // Visit(static_cast<ASTNodeBase_production_and_data&>(object));
@@ -215,6 +216,24 @@
         | @null : node("null")  %ParserGenerator{
             // Found a null
             LOG_SEV(Debug) << "Null found.";
+        %}
+
+    resolution -> $null | "->" resolution_atoms : field($1.atoms) %ParserGenerator{
+            for (auto& atom : object.atoms) {
+              atom->Accept(*this);
+            }
+        %}
+
+    resolution_atoms -> resolution_atoms resolution_atom : node("resolution_atoms"), append($0.atoms, "atoms"), push($1, "atoms") \
+        | resolution_atom : node("resolution_atoms"), push($0, "atoms")
+
+    resolution_atom -> "assoc" "(" @identifier ")" : node("assoc"), field($1, "assoc") %ParserGenerator{
+            LOG_SEV(Debug) << "Assoc: " << object.assoc;
+            current_item_.res_info.assoc = toAssociation(object.assoc);
+        %} \
+        | "prec" "(" @integer ")" : node("prec"), field($1, "prec") %ParserGenerator{
+            LOG_SEV(Debug) << "Prec: " << object.prec;
+            current_item_.res_info.precedence = manta::stoi(object.prec);
         %}
 
     actions -> actions "," action \
@@ -357,6 +376,14 @@
             }
           }
           return buffer;
+        }
+
+        manta::Associativity toAssociation(const std::string& str) {
+          using namespace manta;
+          if (str == "Left") return Associativity::LEFT;
+          if (str == "Right") return Associativity::RIGHT;
+          if (str == "None") return Associativity::NONE;
+          MANTA_FAIL("unknown associativity: " << str);
         }
     %}
 

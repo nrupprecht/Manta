@@ -13,7 +13,7 @@ std::shared_ptr<ProductionRulesData> ParsingDescriptionParser::ParseDescription(
   // Create a new production rules object.
 #ifdef MANTA_PARSER_GENERATED
   Parser parser;
-  // parser.SetLogger(lightning::Global::GetLogger());
+  parser.SetLogger(lightning::Global::GetLogger());
 
   parser.SetInput(utility::IStreamContainer::FromStream(stream));
   auto parsed_ast = parser.ParseInput();

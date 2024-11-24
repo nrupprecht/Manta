@@ -42,14 +42,6 @@ void testParser(const std::string& rules_filepath, const std::string& code_filep
     return;
   }
 
-  auto parser_gen_trace = generator.GetParserGenerationTrace();
-  if (!parser_gen_trace.empty()) {
-    LOG_SEV(Info) << "\n--- Parser Generation Trace     --- \n"
-                  << parser_gen_trace << "\n--- End Parser Generation Trace ---\n";
-  }
-  else {
-    LOG_SEV(Info) << "No parser generation trace.";
-  }
 
   if (parser) {
     // Set the logger in the parser.
@@ -70,7 +62,7 @@ void testParser(const std::string& rules_filepath, const std::string& code_filep
     std::shared_ptr<ParseNode> program;
     try {
       utility::Timer timer{};
-      program = parser->ParserCodeFile(code_filepath);
+      program = parser->ParseCodeFile(code_filepath);
       timer.Stop();
       LOG_SEV(Info) << "Parse took " << timer.Time() << " seconds.";
 
@@ -89,7 +81,6 @@ void testParser(const std::string& rules_filepath, const std::string& code_filep
   }
   else {
     LOG_SEV(Warning) << "Failure to create Parser.";
-    std::cout << generator.GetParserGenerationTrace() << "\n";
   }
 }
 

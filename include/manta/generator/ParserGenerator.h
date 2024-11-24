@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <span>
+
 #include "manta/generator/DescriptionParser.h"
 #include "manta/generator/LALRPropagationGraph.h"
 #include "manta/generator/LexerGenerator.h"
@@ -35,6 +37,9 @@ public:
   //! \brief Mutator to set the description_parser_.
   void SetDescriptionParser(std::shared_ptr<DescriptionParser> description_parser);
 
+  //! \brief Set the ParserGenerator's logger.
+  void SetLogger(const lightning::Logger& logger) { logger_ = logger; }
+
   //! \brief Read the description of a Parser from a stream and create all the data necessary to run that
   //!        parser.
   std::shared_ptr<ParserData> CreateParserData(std::istream& stream);
@@ -54,7 +59,7 @@ public:
   //! \brief Get the number of terminal symbols (lexemes).
   NO_DISCARD int NumTerminals() const;
 
-  //! \brief Get the ID of a non-terminal (lexeme).
+  //! \brief Get the ID of a non-terminal (lexeme), by its name.
   NO_DISCARD int GetNonterminalID(const std::string& non_terminal) const;
 
   //! \brief Compute the first set of a symbol. This is the set of terminals that begin
@@ -73,7 +78,13 @@ public:
   std::set<int> FirstSet(int symbol);
   std::set<std::string> FirstSet(const std::string& symbol);
 
-  //! \brief Compute the follow set of a symbol.
+  //! \brief Compute the first set of a sentence of symbols. This is the set of all terminals that begin
+  //!        strings derivable from the sentence.
+  //!
+  //! TODO: Fill in notes.
+  std::set<int> FirstSet(std::span<const int> symbols);
+
+  //! \brief Compute the follow set of a non-terminal.
   //!
   //! Follow(start) = { $ } (eof follows the start symbol)
   //! For productions X -> p B q, where p, q are any symbols or strings of symbols,
@@ -81,9 +92,9 @@ public:
   //! For productions X -> p B, Follow(A) \subset Follow(B)
   //! For productions A -> p B q where q =>* @epsilon, First(q) \ { @epsilon } U Follow(A) \subset Follow(B)
   //!
-  //! \param symbol The symbol in question.
+  //! \param non_terminal The symbol in question.
   //! \return The follow set.
-  std::set<int> FollowSet(int symbol);
+  std::set<int> FollowSet(int non_terminal);
   std::set<std::string> FollowSet(const std::string& symbol);
 
   // ======================================================
@@ -93,11 +104,17 @@ public:
   //! \brief Write all the states (as item sets) to an ostream.
   void WriteStates(std::ostream& out) const;
 
-  //! \brief Get the parser generation trace.
-  std::string GetParserGenerationTrace() const;
+  //! \brief Get all the states.
+  const std::vector<State>& GetStates() const;
 
   //! \brief Get the parse table.
   NO_DISCARD const std::vector<std::vector<Entry>>& GetParseTable() const;
+
+  //! \brief Write the name of a terminal or non-terminal. Writes reserved terminals with quotes.
+  NO_DISCARD std::string NameOf(int id) const;
+
+  //! \brief Write an item (a production rule + bookmark) to a string.
+  NO_DISCARD std::string WriteItem(const Item& item) const;
 
   // ======================================================
   //  Exceptions
@@ -115,12 +132,6 @@ private:
   // ======================================================
   //  Private helper functions.
   // ======================================================
-
-  //! \brief Write the name of a terminal or non-terminal. Writes reserved terminals with quotes.
-  NO_DISCARD std::string nameOf(int id) const;
-
-  //! \brief Write an item (a production rule + bookmark) to a string.
-  NO_DISCARD std::string writeItem(const Item& item) const;
 
   //! \brief Compute the nonterminal_derives_empty_ vector, which indicates which states can derive empty.
   void createStateDerivesEmpty();
@@ -169,6 +180,11 @@ private:
   //!        sets.
   void evalItemForPropGraph();
 
+  //! \brief Add an edge to the propagation graph. Used by `buildItemForPropGraph`.
+  //!
+  //! \returns Returns the start and end vertices.
+  std::pair<StateItem, StateItem> addEdge(int state_id, int next_element, const Item& cleaned_item);
+
   //! \brief Fill out a row in the parser table.
   void tryRuleInState(int state, const Item& rule);
 
@@ -182,17 +198,27 @@ private:
   //!
   //! Uses a vector to keep track of which symbols were already visited by the first calculation.
   std::set<int> internalFirst(int symbol, std::vector<bool>& visited);
+  std::set<int> internalFirst(std::span<const int> symbols, std::vector<bool>& visited);
 
   //! \brief A function that is called recursively in the compute follow set algorithm.
   //!
   //! Uses a vector to keep track of which symbols were already visited by the follow calculation.
-  std::set<int> internalFollow(int symbol, std::vector<bool>& visited);
+  std::set<int> internalFollow(int non_terminal, std::vector<bool>& visited);
+
+  //! \brief Get the productions and place in the rhs of a production where a non-terminal occurs (on the rhs
+  //!        of a production).
+  std::vector<std::pair<int, int>> productionsIncluding(int non_terminal) const;
 
   //! \brief Returns whether the entire tail of a vector of production symbols can derive the empty symbol.
-  NO_DISCARD bool allDeriveEmpty(const std::vector<int>& rhs, std::size_t start_index) const;
+  NO_DISCARD bool allDeriveEmpty(std::span<const int> sentence) const;
 
   //! \brief Check whether a state can derive empty.
   NO_DISCARD bool stateDerivesEmpty(const State& state) const;
+
+  //! \brief Check whether a symbol (terminal or non-terminal) can derive empty.
+  //!
+  //! This will always be false for terminals.
+  bool derivesEmpty(int symbol) const;
 
   // ======================================================
   //  Private member variables.
@@ -226,8 +252,8 @@ private:
 
   ItemFollowSet item_follow_;
 
-  //! \brief A string that records the history of the parser generation.
-  std::stringstream parser_generation_trace_;
+  //! \brief Logger for the parser generation.
+  lightning::Logger logger_;
 };
 
 }  // namespace manta

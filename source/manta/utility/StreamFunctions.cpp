@@ -14,7 +14,7 @@ std::string GetUntil(IStreamContainer& stream_container, char terminator) {
     stream_container->get(c);
 
     if (stream_container->eof()) {
-      if (terminator == char(0)) {
+      if (terminator == static_cast<char>(0)) {
         return output;
       }
       MANTA_FAIL("did not find the character terminator");

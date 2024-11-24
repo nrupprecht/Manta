@@ -41,8 +41,8 @@ auto main() -> int {
 
   LOG_SEV_TO(logger, Info) << "Parse took " << timer.Time() << " seconds.";
 
-  PrintingVisitor visitor;
-  node->Accept(visitor);
+  // PrintingVisitor visitor;
+  // node->Accept(visitor);
 
   return 0;
 }
