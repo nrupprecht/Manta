@@ -26,16 +26,16 @@ double evaluate(const std::shared_ptr<ParseNode> &node) {
   if (node->designator == "+") {
     return evaluate(node->children[0]) + evaluate(node->children[1]);
   }
-  else if (node->designator == "-") {
+  if (node->designator == "-") {
     return evaluate(node->children[0]) - evaluate(node->children[1]);
   }
-  else if (node->designator == "*") {
+  if (node->designator == "*") {
     return evaluate(node->children[0]) * evaluate(node->children[1]);
   }
-  else if (node->designator == "/") {
+  if (node->designator == "/") {
     return evaluate(node->children[0]) / evaluate(node->children[1]);
   }
-  else if (node->designator == "^") {
+  if (node->designator == "^") {
     return std::pow(evaluate(node->children[0]), evaluate(node->children[1]));
   }
 

@@ -75,7 +75,6 @@ public:
   //!
   //! \param symbol The symbol, as an integer ID.
   //! \return The follow set of symbol.
-  std::set<int> FirstSet(int symbol);
   std::set<std::string> FirstSet(const std::string& symbol);
 
   //! \brief Compute the first set of a sentence of symbols. This is the set of all terminals that begin
@@ -171,14 +170,14 @@ private:
   void assertEntry(int state, int symbol, const Entry& action);
 
   //! \brief Step in LALR parser generation to compute the LALR propagation graph and follow sets.
-  void computeLookahead();
+  ItemFollowSet computeLookahead();
 
   //! \brief Create the LALR propagation graph and initial follow sets.
-  void buildItemForPropGraph();
+  ItemFollowSet buildItemForPropGraph();
 
   //! \brief Propagate the initial follow sets through the LALR propagation graph to get the complete follow
   //!        sets.
-  void evalItemForPropGraph();
+  void evalItemForPropGraph(ItemFollowSet& item_follow) const;
 
   //! \brief Add an edge to the propagation graph. Used by `buildItemForPropGraph`.
   //!
@@ -248,9 +247,8 @@ private:
   //! \brief What type of parser should be generated.
   ParserType parser_type_ = ParserType::LALR;
 
+  //! \brief The LALR propagation graph.
   LALRPropagationGraph propagation_graph_;
-
-  ItemFollowSet item_follow_;
 
   //! \brief Logger for the parser generation.
   lightning::Logger logger_;

@@ -3081,8 +3081,6 @@ struct ParserGenerator
     makeNextItem();  // Create the item for this production.
     // Production and data with no actions.
     LOG_SEV(Debug) << "Production with no actions.";
-    // TODO: Find a way to combine this with an actions node, just with an empty actions vector.
-    // Visit(static_cast<ASTNodeBase_production_and_data&>(object));
     for (auto& atom : object.atoms) {
       atom->Accept(*this);
     }
