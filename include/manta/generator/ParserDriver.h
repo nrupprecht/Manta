@@ -7,6 +7,7 @@
 #include <Lightning/Lightning.h>
 #include <manta/lexer/LexerDFA.hpp>
 
+#include "manta/generator/utility/NamingUtility.h"
 #include "manta/utility/Formatting.h"
 #include "manta/utility/IStreamContainer.hpp"
 #include "manta/utility/ParserUtility.hpp"
@@ -16,8 +17,13 @@ namespace manta {
 template<typename NodeBase_t, typename LexemeNode_t, typename Child_t>
 class ParserDriverBase {
 public:
+  ParserDriverBase() : naming_ {&inverse_nonterminal_map_, lexer_.get()} {}
+
   //! \brief Set the lexer for the parser.
-  void SetLexer(std::shared_ptr<LexerDFA> lexer) { lexer_ = std::move(lexer); }
+  void SetLexer(std::shared_ptr<LexerDFA> lexer) {
+    lexer_        = std::move(lexer);
+    naming_.lexer = lexer_.get();
+  }
 
   void SetInput(utility::IStreamContainer container) { lexer_->SetContainer(container); }
 
@@ -171,12 +177,17 @@ protected:
 
   //! \brief Logger to monitor the parsing.
   lightning::Logger logger_;
+
+  NamingUtility<LexerDFA> naming_ {};
 };
 
 template<typename NodeBase_t, typename LexemeNode_t, typename Child_t>
 std::shared_ptr<NodeBase_t> ParserDriverBase<NodeBase_t, LexemeNode_t, Child_t>::parse() {
   using namespace manta::formatting;
   using namespace lightning;
+
+  // Make sure the naming utilities is up-to-date.
+  naming_ = NamingUtility {&inverse_nonterminal_map_, lexer_.get()};
 
   LOG_SEV_TO(logger_, Info) << "Beginning parse.";
 
@@ -291,7 +302,7 @@ std::shared_ptr<NodeBase_t> ParserDriverBase<NodeBase_t, LexemeNode_t, Child_t>:
                    "reduction did not have its item number set, table entry was (state="
                        << state << ", symbol=" << incoming_symbol << ")");
       LOG_SEV_TO(logger_, Debug) << "Reducing " << collect.size() << " collected nodes using item "
-                                 << *reduction_id << ".";
+                                 << *reduction_id << " (" << CLY(naming_.WriteItem(action.GetRule())) << ")";
 
       // CRTP trick - cast ourselves to the child type that we know we are, and call our reduce function.
       // This creates the node via the specific, parser defined reduction function.

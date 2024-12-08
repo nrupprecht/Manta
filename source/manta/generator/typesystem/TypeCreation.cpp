@@ -669,7 +669,7 @@ void ParserDataToTypeManager::determineBaseTypes(TypeDeduction& deduction) {
 }
 
 std::tuple<int, NonterminalID, std::optional<std::string>> ParserDataToTypeManager::getSourceData(
-    const std::string& argument_string, const Item& item) {
+    const std::string& argument_string, const Item& item) const {
   auto segments = split(argument_string, '.');
   MANTA_ASSERT(segments.size() == 1 || segments.size() == 2,
                "argument name must be in one of the forms '$N' or '$N.<field-name>'");
@@ -681,9 +681,8 @@ std::tuple<int, NonterminalID, std::optional<std::string>> ParserDataToTypeManag
   if (segments.size() == 1) {
     return {position, referenced_type, {} /* No field name */};
   }
-  else {  // Specifies field name.
-    return {position, referenced_type, field_name_sanitizer_(segments[1])};
-  }
+  // Specifies field name.
+  return {position, referenced_type, field_name_sanitizer_(segments[1])};
 }
 
 void ParserDataToTypeManager::createGeneralNode(const std::string& type_name,
@@ -800,6 +799,7 @@ void ParserDataToTypeManager::processFieldCommand(const std::vector<std::shared_
   auto get_arg = [&](auto i) -> std::string& { return arguments[i]->designator; };
 
   auto num_args = arguments.size();
+  LOG_SEV(Trace) << "    - Command has " << num_args << " arguments.";
   MANTA_ASSERT(num_args == 1 || num_args == 2, "field function needs one or two arguments, not " << num_args);
 
   std::string target_field_name {};
@@ -833,10 +833,11 @@ void ParserDataToTypeManager::processFieldCommand(const std::vector<std::shared_
   // Type is a terminal. Field name must be specified. Type check not required.
   else {
     MANTA_ASSERT(num_args == 2,
-                 "field name must be specified to create a field for a terminal, "
-                 "non-terminal type is '"
-                     << production_rules_data_->GetNonterminalName(nonterminal_id) << "', item number "
-                     << item_number);
+                 "field name must be specified to create a field for a terminal (target id="
+                     << referenced_type << ", " << production_rules_data_->GetName(referenced_type)
+                     << " is a terminal), "
+                        "non-terminal type is '"
+                     << production_rules_data_->GetName(nonterminal_id) << "', item number " << item_number);
     target_field_name = get_arg(1);
 
     // Directly add the field, which is known to be a string.

@@ -1,5 +1,4 @@
 .Lexer
-    @special_symbol:  r`.(\@ | _)+`
     @lexeme_name: r`@(\@ | _)+`
     @colon: r`:`
     @identifier: r`( \@ | _ )+`
@@ -31,9 +30,9 @@
     start -> lexer_block newlines parser_block newlines optional_data_block @eof : field($0), field($2), field($4, "data_block") \
         %ParserGenerator{
             LOG_SEV(Info) << CLR("Starting to parse the description.");
-            Visit(*object.lexer_block);
-            Visit(*object.parser_block);
-            Visit(*object.data_block);
+            object.lexer_block->Accept(*this);
+            object.parser_block->Accept(*this);
+            object.data_block->Accept(*this);
 
             // Shift productions, so all terminals and nonterminals have positive numbers.
             shiftProductionNumbers();
@@ -42,7 +41,7 @@
 
     # Having a data block is optional.
     optional_data_block -> data_block : field($0) %ParserGenerator{
-            Visit(*object.data_block);
+            object.data_block->Accept(*this);
         %} \
         | $null
 
@@ -52,7 +51,8 @@
 
     # NOTE: This is to get around the fact that we can have things like "\n   \n" which we want to count as "newlines."
     #       For some reason, defining this at the lexeme level is not working well.
-    newlines -> newlines @newlines | @newlines
+    newlines -> newlines @newlines -> prec(2) \
+        | @newlines -> prec(2)
 
     # ========================================================
     #  Lexer
@@ -141,12 +141,16 @@
             }
         %}
 
-    production_lines -> production_and_data : node("options"), push($0, "productions") %ParserGenerator{
+    production_lines -> production_and_data \
+        : node("options"), push($0, "productions") \
+        %ParserGenerator{
             for (auto& production : object.productions) {
               production->Accept(*this);
             }
         %} \
-        | production_lines or production_and_data   : node("options"), append($0.productions, "productions"), push($2, "productions") %ParserGenerator{
+        | production_lines or production_and_data : \
+        node("options"), append($0.productions, "productions"), push($2, "productions") \
+        %ParserGenerator{
             for (auto& production : object.productions) {
               production->Accept(*this);
             }
@@ -154,7 +158,8 @@
 
     or -> @or
 
-    production_and_data -> production_atoms resolution : field($0.atoms), field($1, "resolution") %ParserGenerator{
+    production_and_data -> production_atoms resolution \
+        : field($0.atoms), field($1, "resolution") %ParserGenerator{
             makeNextItem();  // Create the item for this production.
             // Production and data with no actions.
             LOG_SEV(Debug) << "Production with no actions.";
@@ -163,10 +168,10 @@
             }
             storeCurrent(); // Done creating the item, store it.
         %} \
-        | production_atoms resolution @colon actions code_block  : field($0.atoms), field($1, "resolution"), field($3.actions, "actions"), field($4, "code") \
+        | production_atoms resolution @colon actions code_block \
+        : field($0.atoms), field($1, "resolution"), field($3.actions, "actions"), field($4, "code") \
         %ParserGenerator{
             makeNextItem();  // Create the item for this production.
-            // Visit(static_cast<ASTNodeBase_production_and_data&>(object));
 
             LOG_SEV(Info) << "There are " << object.atoms.size() << " atoms and " << object.actions.size() << " actions.";
             for (auto& atom : object.atoms) {
@@ -218,20 +223,22 @@
             LOG_SEV(Debug) << "Null found.";
         %}
 
-    resolution -> $null | "->" resolution_atoms : field($1.atoms) %ParserGenerator{
+    resolution -> $null \
+        | "->" resolution_atoms : field($1.atoms) %ParserGenerator{
             for (auto& atom : object.atoms) {
               atom->Accept(*this);
             }
         %}
 
-    resolution_atoms -> resolution_atoms resolution_atom : node("resolution_atoms"), append($0.atoms, "atoms"), push($1, "atoms") \
+    resolution_atoms -> resolution_atoms "," resolution_atom \
+        : node("resolution_atoms"), append($0.atoms, "atoms"), push($2, "atoms") \
         | resolution_atom : node("resolution_atoms"), push($0, "atoms")
 
-    resolution_atom -> "assoc" "(" @identifier ")" : node("assoc"), field($1, "assoc") %ParserGenerator{
+    resolution_atom -> "assoc" "(" @identifier ")" : node("assoc"), field($2, "assoc") %ParserGenerator{
             LOG_SEV(Debug) << "Assoc: " << object.assoc;
             current_item_.res_info.assoc = toAssociation(object.assoc);
         %} \
-        | "prec" "(" @integer ")" : node("prec"), field($1, "prec") %ParserGenerator{
+        | "prec" "(" @integer ")" : node("prec"), field($2, "prec") %ParserGenerator{
             LOG_SEV(Debug) << "Prec: " << object.prec;
             current_item_.res_info.precedence = manta::stoi(object.prec);
         %}
@@ -241,7 +248,7 @@
             for (auto& action : object.actions) {
               action->Accept(*this);
             }
-         %} \
+        %} \
         | action : node("actions"), push($0, "actions") %ParserGenerator{
             for (auto& action : object.actions) {
               action->Accept(*this);
@@ -250,35 +257,33 @@
 
     action -> @identifier "(" args ")" \
         : node("action"), field($0, "fn_name"), field($2.arguments, "arguments") %ParserGenerator{
-            // auto node = std::make_shared<ParseNode>(object.fn_name);
-
             registerAction(object.fn_name);
             for (auto& arg : object.arguments) {
               arg->Accept(*this);
             }
         %}
 
-    args -> args "," arg : node("arguments"), append($0.arguments, "arguments"), push($2, "arguments") \
+    args -> args "," arg \
+        : node("arguments"), append($0.arguments, "arguments"), push($2, "arguments") \
         | arg : node("arguments"), push($0, "arguments")
 
-    arg -> @pos_arg : node("PosArg"), field($0, "pos") %ParserGenerator{
+    arg -> @pos_arg : node("PosArg"), field($0, "pos") \
+        %ParserGenerator{
             LOG_SEV(Debug) << "Pos arg: ARG:" << object.pos;
             addArgumentToAction(object.pos.substr(1));
         %} \
-        | @pos_arg @special_symbol : node("PosArg"), field($0, "pos"), field($1, "field_name") %ParserGenerator{
+        | @pos_arg "." @identifier : node("PosArg"), field($0, "pos"), field($2, "field_name") %ParserGenerator{
             LOG_SEV(Debug) << "Pos arg: " << object.pos << " with field name: " << object.field_name << " ARG:"
                            << object.pos << object.field_name;
-            // NOTE: Currently not doing anything special here.
-            addArgumentToAction(object.pos.substr(1) + object.field_name);
+            addArgumentToAction(object.pos.substr(1) + "." + object.field_name);
         %} \
-        | @literal  : node("StringArg"), field($0, "argument") %ParserGenerator{
+        | @literal : node("StringArg"), field($0, "argument") %ParserGenerator{
             // Remove the quotes.
             auto arg = object.argument.substr(1, object.argument.size() - 2);
             LOG_SEV(Debug) << "String arg: " << CLBG(arg) << " ARG:" << object.argument;
-
             addArgumentToAction(arg);
         %} \
-        | "$null"   : node("NullArg")
+        | "$null" : node("NullArg")
 
     code_block -> $null \
         | "%" @identifier @code  : node("code_block"), field($1, "visitor_name"), field($2, "code_body") %ParserGenerator{
@@ -313,7 +318,12 @@
             }
         %}
 
-    data_definitions -> data_definitions newlines data_definition : append($0.definitions, "definitions"), push($2, "definitions") \
+    data_definitions -> data_definitions newlines data_definition : append($0.definitions, "definitions"), push($2, "definitions") %ParserGenerator{
+           LOG_SEV(Info) << "Processing definitions.";
+           for (auto& definition : object.definitions) {
+             definition->Accept(*this);
+           }
+       %} \
         | data_definition : push($0, "definitions")
 
     data_definition -> import_statement : node("import"), field($0.path) \

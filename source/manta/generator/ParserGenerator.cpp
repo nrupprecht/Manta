@@ -166,37 +166,11 @@ const std::vector<std::vector<Entry>>& ParserGenerator::GetParseTable() const {
 }
 
 std::string ParserGenerator::NameOf(int id) const {
-  if (isTerminal(id)) {
-    auto lex_name = production_rules_data_->lexer_generator->LexemeName(id);
-    if (lex_name.find("RES:") == 0) {
-      std::copy(lex_name.begin() + 4, lex_name.end(), lex_name.begin() + 1);
-      lex_name[0] = '"';
-      lex_name.resize(lex_name.size() - 3);
-      return lex_name + '"';
-    }
-    return lex_name;
-  }
-  return production_rules_data_->inverse_nonterminal_map.at(id);
+  return production_rules_data_->GetPrettyName(id);
 }
 
 std::string ParserGenerator::WriteItem(const Item& item) const {
-  // This may be a null production, just a placeholder for a shift.
-  if (item.produced_nonterminal < 0) {
-    return "";
-  }
-  std::string output = NameOf(item.produced_nonterminal) + " -> ";
-  int j              = 0;
-  for (auto symbol : item.rhs) {
-    if (j == item.bookmark) {
-      output += "* ";
-    }
-    output += NameOf(symbol) + " ";
-    ++j;
-  }
-  if (j == item.bookmark) {
-    output += "*";
-  }
-  return output;
+  return production_rules_data_->WriteItem(item);
 }
 
 void ParserGenerator::createStateDerivesEmpty() {
@@ -450,16 +424,20 @@ void ParserGenerator::assertEntry(int state, int symbol, const Entry& action) {
     const auto& res_info         = action.GetResInfo();
 
     // Record the potential conflict.
-    std::string bf(20, ' ');
-    LOG_SEV_TO(logger_, Warning)
-        << "Conflict for state " << state << ", symbol " << NameOf(symbol) << NewLineIndent
-        << "  > Current entry:  " << ToString(current_entry.GetAction()) << " " << current_entry.GetState()
-        << (current_entry.IsReduce() ? "\n" + bf + "Reduction" + WriteItem(current_entry.GetRule()) : "")
-        << NewLineIndent << "Prec: " << current_res_info.precedence
-        << ", Assoc: " << to_string(current_res_info.assoc) << NewLineIndent
-        << "  > Proposed entry: " << ToString(action.GetAction()) << " " << action.GetState()
-        << (action.IsReduce() ? "\n" + bf + "Reduction: " + WriteItem(action.GetRule()) : "") << NewLineIndent
-        << "Prec: " << res_info.precedence << ", Assoc: " << to_string(res_info.assoc);
+    if (auto handler = LOG_HANDLER_FOR(logger_, Warning)) {
+      handler << "Conflict for state " << state << ", symbol " << NameOf(symbol) << NewLineIndent
+              << "> Current entry: " << current_entry;
+      if (current_entry.IsReduce()) {
+        handler << NewLineIndent << "Current reduction" + WriteItem(current_entry.GetRule());
+      }
+      handler << NewLineIndent << "  Current - Prec: " << current_res_info.precedence
+              << ", Assoc: " << current_res_info.assoc << NewLineIndent << "> Proposed entry: " << action;
+      if (action.IsReduce()) {
+        handler << NewLineIndent << "  Proposed reduction: [" + WriteItem(action.GetRule()) << "]";
+      }
+      handler << NewLineIndent << "  Incoming - Prec: " << res_info.precedence
+              << ", Assoc: " << res_info.assoc;
+    }
 
     // This is resolution is a generalization of comparing the precedence of first and second operators, e.g.
     // things like A + A * A. We compare the precedence of the first and second operator. The lookahead is the
@@ -475,15 +453,15 @@ void ParserGenerator::assertEntry(int state, int symbol, const Entry& action) {
     // If the first operator has lower precedence, shift.
     if (first_prec < second_prec) {
       bool current_shift = current_entry.IsShift();
-      current_entry      = (current_shift ? current_entry : action);
-      LOG_SEV_TO(logger_, Info) << "  @Res: Current entry is lower precedence. Using Shift ("
+      current_entry      = current_shift ? current_entry : action;
+      LOG_SEV_TO(logger_, Info) << "@Res: Current entry is lower precedence. Using Shift ("
                                 << (current_shift ? "current entry" : "replacing entry") << ").";
     }
     // If the first operator has higher precedence, reduce.
     else if (second_prec < first_prec) {
       bool current_reduce = current_entry.IsReduce();
-      current_entry       = (current_reduce ? current_entry : action);
-      LOG_SEV_TO(logger_, Info) << "  @Res: Current entry is higher precedence. Using Reduce ("
+      current_entry       = current_reduce ? current_entry : action;
+      LOG_SEV_TO(logger_, Info) << "@Res: Current entry is higher precedence. Using Reduce ("
                                 << (current_reduce ? "current entry" : "replacing entry") << ").";
     }
     // If they are the same, check the associativity.
@@ -491,23 +469,23 @@ void ParserGenerator::assertEntry(int state, int symbol, const Entry& action) {
       // Shift
       if (first_assoc == Associativity::RIGHT && second_assoc == Associativity::RIGHT) {
         bool current_shift = current_entry.IsShift();
-        current_entry      = (current_shift ? current_entry : action);
-        LOG_SEV_TO(logger_, Info) << "  @Res: Both entries are Right associative. Using Shift ("
+        current_entry      = current_shift ? current_entry : action;
+        LOG_SEV_TO(logger_, Info) << "@Res: Both entries are Right associative. Using Shift ("
                                   << (current_shift ? "current entry" : "replacing entry") << ").";
       }
       // Reduce
       else if (first_assoc == Associativity::LEFT && second_assoc == Associativity::LEFT) {
         bool current_reduce = current_entry.IsReduce();
-        current_entry       = (current_reduce ? current_entry : action);
-        LOG_SEV_TO(logger_, Info) << "  @Res: Both entries are Left associative. Using Reduce ("
+        current_entry       = current_reduce ? current_entry : action;
+        LOG_SEV_TO(logger_, Info) << "@Res: Both entries are Left associative. Using Reduce ("
                                   << (current_reduce ? "current entry" : "replacing entry") << ").";
       }
       // Otherwise, error.
       else {
-        LOG_SEV_TO(logger_, Error) << "Error - Entry already exists!!!" << lightning::NewLineIndent
-                                   << "State: " << state << ", Symbol: " << symbol
-                                   << ". Old entry: " << parse_table_[state][symbol] << ", "
-                                   << " New entry: " << action;
+        LOG_SEV_TO(logger_, Error)
+            << "Entry already exists, could not resolve using precedence and associativity." << NewLineIndent
+            << "State: " << state << ", Symbol: " << symbol << ". Old entry: " << parse_table_[state][symbol]
+            << ", New entry: " << action;
         // Set status_ to false.
         status_ = false;
       }

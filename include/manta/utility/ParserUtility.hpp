@@ -1,7 +1,8 @@
 #pragma once
 
-#include "manta/lexer/LexerUtility.hpp"
 #include <span>
+
+#include "manta/lexer/LexerUtility.hpp"
 
 namespace manta {
 
@@ -20,11 +21,11 @@ inline std::string to_string(Associativity assoc) {
   switch (assoc) {
     using enum Associativity;
     case LEFT:
-      return "Left";
+      return "LEFT";
     case RIGHT:
-      return "Right";
+      return "RIGHT";
     case NONE:
-      return "None";
+      return "NONE";
     default:
       MANTA_FAIL("unrecognized Associativity");
   }
@@ -83,7 +84,7 @@ struct ProductionRule {
   // NOTE(Nate): Check how production and production_label differ - can we consolidate?
 
   //! \brief The non-terminal symbol, by ID, that this is a rule for. I.e., the left hand side of a
-  //! production rule.
+  //!        production rule.
   NonterminalID produced_nonterminal = -1;
 
   //! \brief A number for the production, i.e. this is the n-th item.
@@ -217,6 +218,11 @@ inline std::string ToString(Action action) {
   }
 }
 
+//! \brief Allow for Actions to be streamed directly when logging.
+inline void format_logstream(const Action action, lightning::RefBundle& handler) {
+  handler << ToString(action);
+}
+
 //! \brief Table entry.
 //!
 //! Actions
@@ -261,5 +267,22 @@ private:
   //! \brief The reduce rule (if applicable).
   Item rule;
 };
+
+inline void format_logstream(const Entry& entry, lightning::RefBundle& handler) {
+  switch (entry.GetAction()) {
+    case Action::ERROR:
+      handler << "ERROR";
+      break;
+    case Action::SHIFT:
+      handler << "SHIFT " << entry.GetState();
+      break;
+    case Action::ACCEPT:
+      handler << "ACCEPT";
+      break;
+    case Action::REDUCE:
+      handler << "REDUCE";
+      break;
+  }
+}
 
 }  // namespace manta

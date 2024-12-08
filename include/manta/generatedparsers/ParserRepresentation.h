@@ -1462,7 +1462,8 @@ protected:
   std::shared_ptr<ASTNode_resolution_atoms>
   ReduceTo_ASTNode_resolution_atoms_ViaItem_30(
       const std::shared_ptr<ASTNode_resolution_atoms>& argument_0,
-      const std::shared_ptr<ASTNodeBase_resolution_atom>& argument_1);
+      const std::string& argument_1,
+      const std::shared_ptr<ASTNodeBase_resolution_atom>& argument_2);
 
   std::shared_ptr<ASTNode_resolution_atoms>
   ReduceTo_ASTNode_resolution_atoms_ViaItem_31(
@@ -1516,7 +1517,8 @@ protected:
   std::shared_ptr<ASTNode_PosArg>
   ReduceTo_ASTNode_PosArg_ViaItem_40(
       const std::string& argument_0,
-      const std::string& argument_1);
+      const std::string& argument_1,
+      const std::string& argument_2);
 
   std::shared_ptr<ASTNode_StringArg>
   ReduceTo_ASTNode_StringArg_ViaItem_41(
@@ -1590,95 +1592,95 @@ inline Parser::Parser() {
 
   start_nonterminal_ = 35;
   // Allocate space for the parser table.
-  parse_table_.assign(101, std::vector<Entry>(66,Entry()));
+  parse_table_.assign(103, std::vector<Entry>(66,Entry()));
 
   // Create the table. There are better, though more difficult, ways to serialize this information.
-  parse_table_[0][18] = Entry(1);  // Shift
+  parse_table_[0][17] = Entry(1);  // Shift
   parse_table_[0][35] = Entry(true);  // Accept
   parse_table_[0][36] = Entry(2);  // Shift
-  parse_table_[1][16] = Entry(3);  // Shift
+  parse_table_[1][15] = Entry(3);  // Shift
   parse_table_[1][37] = Entry(4);  // Shift
-  parse_table_[2][16] = Entry(3);  // Shift
+  parse_table_[2][15] = Entry(3);  // Shift
   parse_table_[2][37] = Entry(5);  // Shift
-  parse_table_[3][0] = Entry(Item(37, 4, 0, {16}, 4));  // Reduce
-  parse_table_[3][2] = Entry(Item(37, 4, 0, {16}, 4));  // Reduce
-  parse_table_[3][4] = Entry(Item(37, 4, 0, {16}, 4));  // Reduce
-  parse_table_[3][16] = Entry(Item(37, 4, 0, {16}, 4));  // Reduce
-  parse_table_[3][19] = Entry(Item(37, 4, 0, {16}, 4));  // Reduce
-  parse_table_[3][20] = Entry(Item(37, 4, 0, {16}, 4));  // Reduce
-  parse_table_[3][21] = Entry(Item(37, 4, 0, {16}, 4));  // Reduce
-  parse_table_[3][22] = Entry(Item(37, 4, 0, {16}, 4));  // Reduce
-  parse_table_[3][31] = Entry(Item(37, 4, 0, {16}, 4));  // Reduce
-  parse_table_[3][32] = Entry(Item(37, 4, 0, {16}, 4));  // Reduce
-  parse_table_[3][33] = Entry(Item(37, 4, 0, {16}, 4));  // Reduce
-  parse_table_[3][34] = Entry(Item(37, 4, 0, {16}, 4));  // Reduce
-  parse_table_[4][2] = Entry(6);  // Shift
-  parse_table_[4][16] = Entry(7);  // Shift
-  parse_table_[4][20] = Entry(8);  // Shift
+  parse_table_[3][0] = Entry(Item(37, 4, 0, {15}, 4));  // Reduce
+  parse_table_[3][1] = Entry(Item(37, 4, 0, {15}, 4));  // Reduce
+  parse_table_[3][3] = Entry(Item(37, 4, 0, {15}, 4));  // Reduce
+  parse_table_[3][15] = Entry(Item(37, 4, 0, {15}, 4));  // Reduce
+  parse_table_[3][18] = Entry(Item(37, 4, 0, {15}, 4));  // Reduce
+  parse_table_[3][19] = Entry(Item(37, 4, 0, {15}, 4));  // Reduce
+  parse_table_[3][20] = Entry(Item(37, 4, 0, {15}, 4));  // Reduce
+  parse_table_[3][21] = Entry(Item(37, 4, 0, {15}, 4));  // Reduce
+  parse_table_[3][31] = Entry(Item(37, 4, 0, {15}, 4));  // Reduce
+  parse_table_[3][32] = Entry(Item(37, 4, 0, {15}, 4));  // Reduce
+  parse_table_[3][33] = Entry(Item(37, 4, 0, {15}, 4));  // Reduce
+  parse_table_[3][34] = Entry(Item(37, 4, 0, {15}, 4));  // Reduce
+  parse_table_[4][1] = Entry(6);  // Shift
+  parse_table_[4][15] = Entry(7);  // Shift
+  parse_table_[4][19] = Entry(8);  // Shift
   parse_table_[4][41] = Entry(9);  // Shift
   parse_table_[4][42] = Entry(10);  // Shift
   parse_table_[4][43] = Entry(11);  // Shift
   parse_table_[4][44] = Entry(12);  // Shift
-  parse_table_[5][16] = Entry(7);  // Shift
-  parse_table_[5][21] = Entry(13);  // Shift
+  parse_table_[5][15] = Entry(7);  // Shift
+  parse_table_[5][20] = Entry(13);  // Shift
   parse_table_[5][38] = Entry(14);  // Shift
-  parse_table_[6][3] = Entry(15);  // Shift
-  parse_table_[7][0] = Entry(Item(37, 3, 0, {37, 16}, 3));  // Reduce
-  parse_table_[7][2] = Entry(Item(37, 3, 0, {37, 16}, 3));  // Reduce
-  parse_table_[7][4] = Entry(Item(37, 3, 0, {37, 16}, 3));  // Reduce
-  parse_table_[7][16] = Entry(Item(37, 3, 0, {37, 16}, 3));  // Reduce
-  parse_table_[7][19] = Entry(Item(37, 3, 0, {37, 16}, 3));  // Reduce
-  parse_table_[7][20] = Entry(Item(37, 3, 0, {37, 16}, 3));  // Reduce
-  parse_table_[7][21] = Entry(Item(37, 3, 0, {37, 16}, 3));  // Reduce
-  parse_table_[7][22] = Entry(Item(37, 3, 0, {37, 16}, 3));  // Reduce
-  parse_table_[7][31] = Entry(Item(37, 3, 0, {37, 16}, 3));  // Reduce
-  parse_table_[7][32] = Entry(Item(37, 3, 0, {37, 16}, 3));  // Reduce
-  parse_table_[7][33] = Entry(Item(37, 3, 0, {37, 16}, 3));  // Reduce
-  parse_table_[7][34] = Entry(Item(37, 3, 0, {37, 16}, 3));  // Reduce
-  parse_table_[8][4] = Entry(16);  // Shift
-  parse_table_[9][16] = Entry(3);  // Shift
+  parse_table_[6][2] = Entry(15);  // Shift
+  parse_table_[7][0] = Entry(Item(37, 3, 0, {37, 15}, 3));  // Reduce
+  parse_table_[7][1] = Entry(Item(37, 3, 0, {37, 15}, 3));  // Reduce
+  parse_table_[7][3] = Entry(Item(37, 3, 0, {37, 15}, 3));  // Reduce
+  parse_table_[7][15] = Entry(Item(37, 3, 0, {37, 15}, 3));  // Reduce
+  parse_table_[7][18] = Entry(Item(37, 3, 0, {37, 15}, 3));  // Reduce
+  parse_table_[7][19] = Entry(Item(37, 3, 0, {37, 15}, 3));  // Reduce
+  parse_table_[7][20] = Entry(Item(37, 3, 0, {37, 15}, 3));  // Reduce
+  parse_table_[7][21] = Entry(Item(37, 3, 0, {37, 15}, 3));  // Reduce
+  parse_table_[7][31] = Entry(Item(37, 3, 0, {37, 15}, 3));  // Reduce
+  parse_table_[7][32] = Entry(Item(37, 3, 0, {37, 15}, 3));  // Reduce
+  parse_table_[7][33] = Entry(Item(37, 3, 0, {37, 15}, 3));  // Reduce
+  parse_table_[7][34] = Entry(Item(37, 3, 0, {37, 15}, 3));  // Reduce
+  parse_table_[8][3] = Entry(16);  // Shift
+  parse_table_[9][15] = Entry(3);  // Shift
   parse_table_[9][37] = Entry(17);  // Shift
-  parse_table_[10][16] = Entry(Item(41, 7, 0, {42}, 7));  // Reduce
-  parse_table_[11][16] = Entry(Item(42, 8, 0, {43}, 8));  // Reduce
-  parse_table_[12][16] = Entry(Item(42, 9, 0, {44}, 9));  // Reduce
-  parse_table_[13][16] = Entry(3);  // Shift
+  parse_table_[10][15] = Entry(Item(41, 7, 0, {42}, 7));  // Reduce
+  parse_table_[11][15] = Entry(Item(42, 8, 0, {43}, 8));  // Reduce
+  parse_table_[12][15] = Entry(Item(42, 9, 0, {44}, 9));  // Reduce
+  parse_table_[13][15] = Entry(3);  // Shift
   parse_table_[13][37] = Entry(18);  // Shift
-  parse_table_[14][16] = Entry(3);  // Shift
+  parse_table_[14][15] = Entry(3);  // Shift
   parse_table_[14][37] = Entry(19);  // Shift
-  parse_table_[15][6] = Entry(20);  // Shift
-  parse_table_[16][16] = Entry(Item(44, 11, 0, {20, 4}, 11));  // Reduce
-  parse_table_[17][2] = Entry(6);  // Shift
-  parse_table_[17][16] = Entry(7);  // Shift
-  parse_table_[17][19] = Entry(21);  // Shift
-  parse_table_[17][20] = Entry(8);  // Shift
+  parse_table_[15][5] = Entry(20);  // Shift
+  parse_table_[16][15] = Entry(Item(44, 11, 0, {19, 3}, 11));  // Reduce
+  parse_table_[17][1] = Entry(6);  // Shift
+  parse_table_[17][15] = Entry(7);  // Shift
+  parse_table_[17][18] = Entry(21);  // Shift
+  parse_table_[17][19] = Entry(8);  // Shift
   parse_table_[17][42] = Entry(22);  // Shift
   parse_table_[17][43] = Entry(11);  // Shift
   parse_table_[17][44] = Entry(12);  // Shift
-  parse_table_[18][16] = Entry(7);  // Shift
-  parse_table_[18][22] = Entry(23);  // Shift
+  parse_table_[18][15] = Entry(7);  // Shift
+  parse_table_[18][21] = Entry(23);  // Shift
   parse_table_[18][45] = Entry(24);  // Shift
   parse_table_[19][0] = Entry(Item(39, 2, 0, {}, 2));  // Reduce
-  parse_table_[19][16] = Entry(7);  // Shift
+  parse_table_[19][15] = Entry(7);  // Shift
   parse_table_[19][31] = Entry(25);  // Shift
   parse_table_[19][39] = Entry(26);  // Shift
   parse_table_[19][40] = Entry(27);  // Shift
-  parse_table_[20][16] = Entry(Item(43, 10, 0, {2, 3, 6}, 10));  // Reduce
-  parse_table_[21][0] = Entry(Item(36, 5, 0, {18, 37, 41, 37, 19}, 5));  // Reduce
-  parse_table_[21][16] = Entry(Item(36, 5, 0, {18, 37, 41, 37, 19}, 5));  // Reduce
-  parse_table_[22][16] = Entry(Item(41, 6, 0, {41, 37, 42}, 6));  // Reduce
-  parse_table_[23][4] = Entry(28);  // Shift
-  parse_table_[24][16] = Entry(3);  // Shift
+  parse_table_[20][15] = Entry(Item(43, 10, 0, {1, 2, 5}, 10));  // Reduce
+  parse_table_[21][0] = Entry(Item(36, 5, 0, {17, 37, 41, 37, 18}, 5));  // Reduce
+  parse_table_[21][15] = Entry(Item(36, 5, 0, {17, 37, 41, 37, 18}, 5));  // Reduce
+  parse_table_[22][15] = Entry(Item(41, 6, 0, {41, 37, 42}, 6));  // Reduce
+  parse_table_[23][3] = Entry(28);  // Shift
+  parse_table_[24][15] = Entry(3);  // Shift
   parse_table_[24][37] = Entry(29);  // Shift
-  parse_table_[25][16] = Entry(3);  // Shift
+  parse_table_[25][15] = Entry(3);  // Shift
   parse_table_[25][37] = Entry(30);  // Shift
   parse_table_[26][0] = Entry(31);  // Shift
   parse_table_[27][0] = Entry(Item(39, 1, 0, {40}, 1));  // Reduce
-  parse_table_[28][16] = Entry(Item(45, 13, 0, {22, 4}, 13));  // Reduce
-  parse_table_[29][4] = Entry(32);  // Shift
-  parse_table_[29][16] = Entry(7);  // Shift
+  parse_table_[28][15] = Entry(Item(45, 13, 0, {21, 3}, 13));  // Reduce
+  parse_table_[29][3] = Entry(32);  // Shift
+  parse_table_[29][15] = Entry(7);  // Shift
   parse_table_[29][46] = Entry(33);  // Shift
   parse_table_[29][47] = Entry(34);  // Shift
-  parse_table_[30][16] = Entry(7);  // Shift
+  parse_table_[30][15] = Entry(7);  // Shift
   parse_table_[30][32] = Entry(35);  // Shift
   parse_table_[30][33] = Entry(36);  // Shift
   parse_table_[30][34] = Entry(37);  // Shift
@@ -1688,36 +1690,36 @@ inline Parser::Parser() {
   parse_table_[30][64] = Entry(41);  // Shift
   parse_table_[30][65] = Entry(42);  // Shift
   parse_table_[31][0] = Entry(Item(35, 0, 0, {36, 37, 38, 37, 39, 0}, 0));  // Reduce
-  parse_table_[32][23] = Entry(43);  // Shift
-  parse_table_[33][16] = Entry(3);  // Shift
+  parse_table_[32][22] = Entry(43);  // Shift
+  parse_table_[33][15] = Entry(3);  // Shift
   parse_table_[33][37] = Entry(44);  // Shift
-  parse_table_[34][16] = Entry(Item(46, 15, 0, {47}, 15));  // Reduce
-  parse_table_[35][12] = Entry(45);  // Shift
-  parse_table_[36][4] = Entry(46);  // Shift
-  parse_table_[37][4] = Entry(47);  // Shift
-  parse_table_[38][16] = Entry(3);  // Shift
+  parse_table_[34][15] = Entry(Item(46, 15, 0, {47}, 15));  // Reduce
+  parse_table_[35][11] = Entry(45);  // Shift
+  parse_table_[36][3] = Entry(46);  // Shift
+  parse_table_[37][3] = Entry(47);  // Shift
+  parse_table_[38][15] = Entry(3);  // Shift
   parse_table_[38][37] = Entry(48);  // Shift
-  parse_table_[39][16] = Entry(Item(61, 47, 0, {62}, 47));  // Reduce
-  parse_table_[40][16] = Entry(Item(62, 48, 0, {63}, 48));  // Reduce
-  parse_table_[41][16] = Entry(Item(62, 49, 0, {64}, 49));  // Reduce
-  parse_table_[42][16] = Entry(Item(62, 50, 0, {65}, 50));  // Reduce
-  parse_table_[43][2] = Entry(49);  // Shift
-  parse_table_[43][4] = Entry(50);  // Shift
-  parse_table_[43][7] = Entry(51);  // Shift
-  parse_table_[43][10] = Entry(52);  // Shift
+  parse_table_[39][15] = Entry(Item(61, 47, 0, {62}, 47));  // Reduce
+  parse_table_[40][15] = Entry(Item(62, 48, 0, {63}, 48));  // Reduce
+  parse_table_[41][15] = Entry(Item(62, 49, 0, {64}, 49));  // Reduce
+  parse_table_[42][15] = Entry(Item(62, 50, 0, {65}, 50));  // Reduce
+  parse_table_[43][1] = Entry(49);  // Shift
+  parse_table_[43][3] = Entry(50);  // Shift
+  parse_table_[43][6] = Entry(51);  // Shift
+  parse_table_[43][9] = Entry(52);  // Shift
   parse_table_[43][48] = Entry(53);  // Shift
   parse_table_[43][49] = Entry(54);  // Shift
   parse_table_[43][51] = Entry(55);  // Shift
   parse_table_[43][55] = Entry(56);  // Shift
-  parse_table_[44][4] = Entry(32);  // Shift
-  parse_table_[44][16] = Entry(7);  // Shift
-  parse_table_[44][19] = Entry(57);  // Shift
+  parse_table_[44][3] = Entry(32);  // Shift
+  parse_table_[44][15] = Entry(7);  // Shift
+  parse_table_[44][18] = Entry(57);  // Shift
   parse_table_[44][47] = Entry(58);  // Shift
-  parse_table_[45][16] = Entry(Item(63, 51, 0, {32, 12}, 51));  // Reduce
-  parse_table_[46][13] = Entry(59);  // Shift
+  parse_table_[45][15] = Entry(Item(63, 51, 0, {32, 11}, 51));  // Reduce
+  parse_table_[46][12] = Entry(59);  // Shift
   parse_table_[47][30] = Entry(60);  // Shift
-  parse_table_[48][16] = Entry(7);  // Shift
-  parse_table_[48][19] = Entry(61);  // Shift
+  parse_table_[48][15] = Entry(7);  // Shift
+  parse_table_[48][18] = Entry(61);  // Shift
   parse_table_[48][32] = Entry(35);  // Shift
   parse_table_[48][33] = Entry(36);  // Shift
   parse_table_[48][34] = Entry(37);  // Shift
@@ -1725,75 +1727,75 @@ inline Parser::Parser() {
   parse_table_[48][63] = Entry(40);  // Shift
   parse_table_[48][64] = Entry(41);  // Shift
   parse_table_[48][65] = Entry(42);  // Shift
-  parse_table_[49][2] = Entry(Item(55, 26, 0, {2}, 26));  // Reduce
-  parse_table_[49][3] = Entry(Item(55, 26, 0, {2}, 26));  // Reduce
-  parse_table_[49][4] = Entry(Item(55, 26, 0, {2}, 26));  // Reduce
-  parse_table_[49][7] = Entry(Item(55, 26, 0, {2}, 26));  // Reduce
-  parse_table_[49][8] = Entry(Item(55, 26, 0, {2}, 26));  // Reduce
-  parse_table_[49][10] = Entry(Item(55, 26, 0, {2}, 26));  // Reduce
-  parse_table_[49][16] = Entry(Item(55, 26, 0, {2}, 26));  // Reduce
-  parse_table_[49][23] = Entry(Item(55, 26, 0, {2}, 26));  // Reduce
-  parse_table_[50][2] = Entry(Item(55, 24, 0, {4}, 24));  // Reduce
-  parse_table_[50][3] = Entry(Item(55, 24, 0, {4}, 24));  // Reduce
-  parse_table_[50][4] = Entry(Item(55, 24, 0, {4}, 24));  // Reduce
-  parse_table_[50][7] = Entry(Item(55, 24, 0, {4}, 24));  // Reduce
-  parse_table_[50][8] = Entry(Item(55, 24, 0, {4}, 24));  // Reduce
-  parse_table_[50][10] = Entry(Item(55, 24, 0, {4}, 24));  // Reduce
-  parse_table_[50][16] = Entry(Item(55, 24, 0, {4}, 24));  // Reduce
-  parse_table_[50][23] = Entry(Item(55, 24, 0, {4}, 24));  // Reduce
-  parse_table_[51][2] = Entry(Item(55, 25, 0, {7}, 25));  // Reduce
-  parse_table_[51][3] = Entry(Item(55, 25, 0, {7}, 25));  // Reduce
-  parse_table_[51][4] = Entry(Item(55, 25, 0, {7}, 25));  // Reduce
-  parse_table_[51][7] = Entry(Item(55, 25, 0, {7}, 25));  // Reduce
-  parse_table_[51][8] = Entry(Item(55, 25, 0, {7}, 25));  // Reduce
-  parse_table_[51][10] = Entry(Item(55, 25, 0, {7}, 25));  // Reduce
-  parse_table_[51][16] = Entry(Item(55, 25, 0, {7}, 25));  // Reduce
-  parse_table_[51][23] = Entry(Item(55, 25, 0, {7}, 25));  // Reduce
-  parse_table_[52][2] = Entry(Item(55, 27, 0, {10}, 27));  // Reduce
-  parse_table_[52][3] = Entry(Item(55, 27, 0, {10}, 27));  // Reduce
-  parse_table_[52][4] = Entry(Item(55, 27, 0, {10}, 27));  // Reduce
-  parse_table_[52][7] = Entry(Item(55, 27, 0, {10}, 27));  // Reduce
-  parse_table_[52][8] = Entry(Item(55, 27, 0, {10}, 27));  // Reduce
-  parse_table_[52][10] = Entry(Item(55, 27, 0, {10}, 27));  // Reduce
-  parse_table_[52][16] = Entry(Item(55, 27, 0, {10}, 27));  // Reduce
-  parse_table_[52][23] = Entry(Item(55, 27, 0, {10}, 27));  // Reduce
-  parse_table_[53][8] = Entry(63);  // Shift
-  parse_table_[53][16] = Entry(Item(47, 16, 0, {4, 23, 48}, 16));  // Reduce
+  parse_table_[49][1] = Entry(Item(55, 26, 0, {1}, 26));  // Reduce
+  parse_table_[49][2] = Entry(Item(55, 26, 0, {1}, 26));  // Reduce
+  parse_table_[49][3] = Entry(Item(55, 26, 0, {1}, 26));  // Reduce
+  parse_table_[49][6] = Entry(Item(55, 26, 0, {1}, 26));  // Reduce
+  parse_table_[49][7] = Entry(Item(55, 26, 0, {1}, 26));  // Reduce
+  parse_table_[49][9] = Entry(Item(55, 26, 0, {1}, 26));  // Reduce
+  parse_table_[49][15] = Entry(Item(55, 26, 0, {1}, 26));  // Reduce
+  parse_table_[49][22] = Entry(Item(55, 26, 0, {1}, 26));  // Reduce
+  parse_table_[50][1] = Entry(Item(55, 24, 0, {3}, 24));  // Reduce
+  parse_table_[50][2] = Entry(Item(55, 24, 0, {3}, 24));  // Reduce
+  parse_table_[50][3] = Entry(Item(55, 24, 0, {3}, 24));  // Reduce
+  parse_table_[50][6] = Entry(Item(55, 24, 0, {3}, 24));  // Reduce
+  parse_table_[50][7] = Entry(Item(55, 24, 0, {3}, 24));  // Reduce
+  parse_table_[50][9] = Entry(Item(55, 24, 0, {3}, 24));  // Reduce
+  parse_table_[50][15] = Entry(Item(55, 24, 0, {3}, 24));  // Reduce
+  parse_table_[50][22] = Entry(Item(55, 24, 0, {3}, 24));  // Reduce
+  parse_table_[51][1] = Entry(Item(55, 25, 0, {6}, 25));  // Reduce
+  parse_table_[51][2] = Entry(Item(55, 25, 0, {6}, 25));  // Reduce
+  parse_table_[51][3] = Entry(Item(55, 25, 0, {6}, 25));  // Reduce
+  parse_table_[51][6] = Entry(Item(55, 25, 0, {6}, 25));  // Reduce
+  parse_table_[51][7] = Entry(Item(55, 25, 0, {6}, 25));  // Reduce
+  parse_table_[51][9] = Entry(Item(55, 25, 0, {6}, 25));  // Reduce
+  parse_table_[51][15] = Entry(Item(55, 25, 0, {6}, 25));  // Reduce
+  parse_table_[51][22] = Entry(Item(55, 25, 0, {6}, 25));  // Reduce
+  parse_table_[52][1] = Entry(Item(55, 27, 0, {9}, 27));  // Reduce
+  parse_table_[52][2] = Entry(Item(55, 27, 0, {9}, 27));  // Reduce
+  parse_table_[52][3] = Entry(Item(55, 27, 0, {9}, 27));  // Reduce
+  parse_table_[52][6] = Entry(Item(55, 27, 0, {9}, 27));  // Reduce
+  parse_table_[52][7] = Entry(Item(55, 27, 0, {9}, 27));  // Reduce
+  parse_table_[52][9] = Entry(Item(55, 27, 0, {9}, 27));  // Reduce
+  parse_table_[52][15] = Entry(Item(55, 27, 0, {9}, 27));  // Reduce
+  parse_table_[52][22] = Entry(Item(55, 27, 0, {9}, 27));  // Reduce
+  parse_table_[53][7] = Entry(63);  // Shift
+  parse_table_[53][15] = Entry(Item(47, 16, 0, {3, 22, 48}, 16));  // Reduce
   parse_table_[53][50] = Entry(64);  // Shift
-  parse_table_[54][8] = Entry(Item(48, 17, 0, {49}, 17));  // Reduce
-  parse_table_[54][16] = Entry(Item(48, 17, 0, {49}, 17));  // Reduce
-  parse_table_[55][2] = Entry(49);  // Shift
-  parse_table_[55][3] = Entry(Item(52, 28, 0, {}, 28));  // Reduce
-  parse_table_[55][4] = Entry(50);  // Shift
-  parse_table_[55][7] = Entry(51);  // Shift
-  parse_table_[55][8] = Entry(Item(52, 28, 0, {}, 28));  // Reduce
-  parse_table_[55][10] = Entry(52);  // Shift
-  parse_table_[55][16] = Entry(Item(52, 28, 0, {}, 28));  // Reduce
-  parse_table_[55][23] = Entry(65);  // Shift
+  parse_table_[54][7] = Entry(Item(48, 17, 0, {49}, 17));  // Reduce
+  parse_table_[54][15] = Entry(Item(48, 17, 0, {49}, 17));  // Reduce
+  parse_table_[55][1] = Entry(49);  // Shift
+  parse_table_[55][2] = Entry(Item(52, 28, 0, {}, 28));  // Reduce
+  parse_table_[55][3] = Entry(50);  // Shift
+  parse_table_[55][6] = Entry(51);  // Shift
+  parse_table_[55][7] = Entry(Item(52, 28, 0, {}, 28));  // Reduce
+  parse_table_[55][9] = Entry(52);  // Shift
+  parse_table_[55][15] = Entry(Item(52, 28, 0, {}, 28));  // Reduce
+  parse_table_[55][22] = Entry(65);  // Shift
   parse_table_[55][52] = Entry(66);  // Shift
   parse_table_[55][55] = Entry(67);  // Shift
+  parse_table_[56][1] = Entry(Item(51, 23, 0, {55}, 23));  // Reduce
   parse_table_[56][2] = Entry(Item(51, 23, 0, {55}, 23));  // Reduce
   parse_table_[56][3] = Entry(Item(51, 23, 0, {55}, 23));  // Reduce
-  parse_table_[56][4] = Entry(Item(51, 23, 0, {55}, 23));  // Reduce
+  parse_table_[56][6] = Entry(Item(51, 23, 0, {55}, 23));  // Reduce
   parse_table_[56][7] = Entry(Item(51, 23, 0, {55}, 23));  // Reduce
-  parse_table_[56][8] = Entry(Item(51, 23, 0, {55}, 23));  // Reduce
-  parse_table_[56][10] = Entry(Item(51, 23, 0, {55}, 23));  // Reduce
-  parse_table_[56][16] = Entry(Item(51, 23, 0, {55}, 23));  // Reduce
-  parse_table_[56][23] = Entry(Item(51, 23, 0, {55}, 23));  // Reduce
-  parse_table_[57][16] = Entry(Item(38, 12, 0, {21, 37, 45, 37, 46, 37, 19}, 12));  // Reduce
-  parse_table_[58][16] = Entry(Item(46, 14, 0, {46, 37, 47}, 14));  // Reduce
-  parse_table_[59][16] = Entry(Item(64, 52, 0, {33, 4, 13}, 52));  // Reduce
-  parse_table_[60][14] = Entry(68);  // Shift
-  parse_table_[61][0] = Entry(Item(40, 45, 0, {31, 37, 61, 37, 19}, 45));  // Reduce
-  parse_table_[62][16] = Entry(Item(61, 46, 0, {61, 37, 62}, 46));  // Reduce
-  parse_table_[63][2] = Entry(Item(50, 19, 0, {8}, 19));  // Reduce
-  parse_table_[63][4] = Entry(Item(50, 19, 0, {8}, 19));  // Reduce
-  parse_table_[63][7] = Entry(Item(50, 19, 0, {8}, 19));  // Reduce
-  parse_table_[63][10] = Entry(Item(50, 19, 0, {8}, 19));  // Reduce
-  parse_table_[64][2] = Entry(49);  // Shift
-  parse_table_[64][4] = Entry(50);  // Shift
-  parse_table_[64][7] = Entry(51);  // Shift
-  parse_table_[64][10] = Entry(52);  // Shift
+  parse_table_[56][9] = Entry(Item(51, 23, 0, {55}, 23));  // Reduce
+  parse_table_[56][15] = Entry(Item(51, 23, 0, {55}, 23));  // Reduce
+  parse_table_[56][22] = Entry(Item(51, 23, 0, {55}, 23));  // Reduce
+  parse_table_[57][15] = Entry(Item(38, 12, 0, {20, 37, 45, 37, 46, 37, 18}, 12));  // Reduce
+  parse_table_[58][15] = Entry(Item(46, 14, 0, {46, 37, 47}, 14));  // Reduce
+  parse_table_[59][15] = Entry(Item(64, 52, 0, {33, 3, 12}, 52));  // Reduce
+  parse_table_[60][13] = Entry(68);  // Shift
+  parse_table_[61][0] = Entry(Item(40, 45, 0, {31, 37, 61, 37, 18}, 45));  // Reduce
+  parse_table_[62][15] = Entry(Item(61, 46, 0, {61, 37, 62}, 46));  // Reduce
+  parse_table_[63][1] = Entry(Item(50, 19, 0, {7}, 19));  // Reduce
+  parse_table_[63][3] = Entry(Item(50, 19, 0, {7}, 19));  // Reduce
+  parse_table_[63][6] = Entry(Item(50, 19, 0, {7}, 19));  // Reduce
+  parse_table_[63][9] = Entry(Item(50, 19, 0, {7}, 19));  // Reduce
+  parse_table_[64][1] = Entry(49);  // Shift
+  parse_table_[64][3] = Entry(50);  // Shift
+  parse_table_[64][6] = Entry(51);  // Shift
+  parse_table_[64][9] = Entry(52);  // Shift
   parse_table_[64][49] = Entry(69);  // Shift
   parse_table_[64][51] = Entry(55);  // Shift
   parse_table_[64][55] = Entry(56);  // Shift
@@ -1801,105 +1803,103 @@ inline Parser::Parser() {
   parse_table_[65][27] = Entry(71);  // Shift
   parse_table_[65][56] = Entry(72);  // Shift
   parse_table_[65][57] = Entry(73);  // Shift
-  parse_table_[66][3] = Entry(74);  // Shift
-  parse_table_[66][8] = Entry(Item(49, 20, 0, {51, 52}, 20));  // Reduce
-  parse_table_[66][16] = Entry(Item(49, 20, 0, {51, 52}, 20));  // Reduce
+  parse_table_[66][2] = Entry(74);  // Shift
+  parse_table_[66][7] = Entry(Item(49, 20, 0, {51, 52}, 20));  // Reduce
+  parse_table_[66][15] = Entry(Item(49, 20, 0, {51, 52}, 20));  // Reduce
+  parse_table_[67][1] = Entry(Item(51, 22, 0, {51, 55}, 22));  // Reduce
   parse_table_[67][2] = Entry(Item(51, 22, 0, {51, 55}, 22));  // Reduce
   parse_table_[67][3] = Entry(Item(51, 22, 0, {51, 55}, 22));  // Reduce
-  parse_table_[67][4] = Entry(Item(51, 22, 0, {51, 55}, 22));  // Reduce
+  parse_table_[67][6] = Entry(Item(51, 22, 0, {51, 55}, 22));  // Reduce
   parse_table_[67][7] = Entry(Item(51, 22, 0, {51, 55}, 22));  // Reduce
-  parse_table_[67][8] = Entry(Item(51, 22, 0, {51, 55}, 22));  // Reduce
-  parse_table_[67][10] = Entry(Item(51, 22, 0, {51, 55}, 22));  // Reduce
-  parse_table_[67][16] = Entry(Item(51, 22, 0, {51, 55}, 22));  // Reduce
-  parse_table_[67][23] = Entry(Item(51, 22, 0, {51, 55}, 22));  // Reduce
-  parse_table_[68][16] = Entry(Item(65, 53, 0, {34, 4, 30, 14}, 53));  // Reduce
-  parse_table_[69][8] = Entry(Item(48, 18, 0, {48, 50, 49}, 18));  // Reduce
-  parse_table_[69][16] = Entry(Item(48, 18, 0, {48, 50, 49}, 18));  // Reduce
+  parse_table_[67][9] = Entry(Item(51, 22, 0, {51, 55}, 22));  // Reduce
+  parse_table_[67][15] = Entry(Item(51, 22, 0, {51, 55}, 22));  // Reduce
+  parse_table_[67][22] = Entry(Item(51, 22, 0, {51, 55}, 22));  // Reduce
+  parse_table_[68][15] = Entry(Item(65, 53, 0, {34, 3, 30, 13}, 53));  // Reduce
+  parse_table_[69][7] = Entry(Item(48, 18, 0, {48, 50, 49}, 18));  // Reduce
+  parse_table_[69][15] = Entry(Item(48, 18, 0, {48, 50, 49}, 18));  // Reduce
   parse_table_[70][25] = Entry(75);  // Shift
   parse_table_[71][25] = Entry(76);  // Shift
-  parse_table_[72][3] = Entry(Item(52, 29, 0, {23, 56}, 29));  // Reduce
-  parse_table_[72][8] = Entry(Item(52, 29, 0, {23, 56}, 29));  // Reduce
-  parse_table_[72][16] = Entry(Item(52, 29, 0, {23, 56}, 29));  // Reduce
-  parse_table_[72][24] = Entry(70);  // Shift
-  parse_table_[72][27] = Entry(71);  // Shift
-  parse_table_[72][57] = Entry(77);  // Shift
-  parse_table_[73][3] = Entry(Item(56, 31, 0, {57}, 31));  // Reduce
-  parse_table_[73][8] = Entry(Item(56, 31, 0, {57}, 31));  // Reduce
-  parse_table_[73][16] = Entry(Item(56, 31, 0, {57}, 31));  // Reduce
-  parse_table_[73][24] = Entry(Item(56, 31, 0, {57}, 31));  // Reduce
-  parse_table_[73][27] = Entry(Item(56, 31, 0, {57}, 31));  // Reduce
-  parse_table_[74][4] = Entry(78);  // Shift
+  parse_table_[72][2] = Entry(Item(52, 29, 0, {22, 56}, 29));  // Reduce
+  parse_table_[72][7] = Entry(Item(52, 29, 0, {22, 56}, 29));  // Reduce
+  parse_table_[72][15] = Entry(Item(52, 29, 0, {22, 56}, 29));  // Reduce
+  parse_table_[72][23] = Entry(77);  // Shift
+  parse_table_[73][2] = Entry(Item(56, 31, 0, {57}, 31));  // Reduce
+  parse_table_[73][7] = Entry(Item(56, 31, 0, {57}, 31));  // Reduce
+  parse_table_[73][15] = Entry(Item(56, 31, 0, {57}, 31));  // Reduce
+  parse_table_[73][23] = Entry(Item(56, 31, 0, {57}, 31));  // Reduce
+  parse_table_[74][3] = Entry(78);  // Shift
   parse_table_[74][53] = Entry(79);  // Shift
   parse_table_[74][58] = Entry(80);  // Shift
-  parse_table_[75][4] = Entry(81);  // Shift
-  parse_table_[76][5] = Entry(82);  // Shift
-  parse_table_[77][3] = Entry(Item(56, 30, 0, {56, 57}, 30));  // Reduce
-  parse_table_[77][8] = Entry(Item(56, 30, 0, {56, 57}, 30));  // Reduce
-  parse_table_[77][16] = Entry(Item(56, 30, 0, {56, 57}, 30));  // Reduce
-  parse_table_[77][24] = Entry(Item(56, 30, 0, {56, 57}, 30));  // Reduce
-  parse_table_[77][27] = Entry(Item(56, 30, 0, {56, 57}, 30));  // Reduce
-  parse_table_[78][25] = Entry(83);  // Shift
-  parse_table_[79][8] = Entry(Item(54, 43, 0, {}, 43));  // Reduce
-  parse_table_[79][16] = Entry(Item(54, 43, 0, {}, 43));  // Reduce
-  parse_table_[79][28] = Entry(84);  // Shift
-  parse_table_[79][30] = Entry(85);  // Shift
-  parse_table_[79][54] = Entry(86);  // Shift
-  parse_table_[80][8] = Entry(Item(53, 35, 0, {58}, 35));  // Reduce
-  parse_table_[80][16] = Entry(Item(53, 35, 0, {58}, 35));  // Reduce
-  parse_table_[80][28] = Entry(Item(53, 35, 0, {58}, 35));  // Reduce
+  parse_table_[75][3] = Entry(81);  // Shift
+  parse_table_[76][4] = Entry(82);  // Shift
+  parse_table_[77][24] = Entry(70);  // Shift
+  parse_table_[77][27] = Entry(71);  // Shift
+  parse_table_[77][57] = Entry(83);  // Shift
+  parse_table_[78][25] = Entry(84);  // Shift
+  parse_table_[79][7] = Entry(Item(54, 43, 0, {}, 43));  // Reduce
+  parse_table_[79][15] = Entry(Item(54, 43, 0, {}, 43));  // Reduce
+  parse_table_[79][23] = Entry(85);  // Shift
+  parse_table_[79][30] = Entry(86);  // Shift
+  parse_table_[79][54] = Entry(87);  // Shift
+  parse_table_[80][7] = Entry(Item(53, 35, 0, {58}, 35));  // Reduce
+  parse_table_[80][15] = Entry(Item(53, 35, 0, {58}, 35));  // Reduce
+  parse_table_[80][23] = Entry(Item(53, 35, 0, {58}, 35));  // Reduce
   parse_table_[80][30] = Entry(Item(53, 35, 0, {58}, 35));  // Reduce
-  parse_table_[81][26] = Entry(87);  // Shift
-  parse_table_[82][26] = Entry(88);  // Shift
-  parse_table_[83][7] = Entry(89);  // Shift
-  parse_table_[83][9] = Entry(90);  // Shift
-  parse_table_[83][29] = Entry(91);  // Shift
-  parse_table_[83][59] = Entry(92);  // Shift
-  parse_table_[83][60] = Entry(93);  // Shift
-  parse_table_[84][4] = Entry(78);  // Shift
-  parse_table_[84][58] = Entry(94);  // Shift
-  parse_table_[85][4] = Entry(95);  // Shift
-  parse_table_[86][8] = Entry(Item(49, 21, 0, {51, 52, 3, 53, 54}, 21));  // Reduce
-  parse_table_[86][16] = Entry(Item(49, 21, 0, {51, 52, 3, 53, 54}, 21));  // Reduce
-  parse_table_[87][3] = Entry(Item(57, 32, 0, {24, 25, 4, 26}, 32));  // Reduce
-  parse_table_[87][8] = Entry(Item(57, 32, 0, {24, 25, 4, 26}, 32));  // Reduce
-  parse_table_[87][16] = Entry(Item(57, 32, 0, {24, 25, 4, 26}, 32));  // Reduce
-  parse_table_[87][24] = Entry(Item(57, 32, 0, {24, 25, 4, 26}, 32));  // Reduce
-  parse_table_[87][27] = Entry(Item(57, 32, 0, {24, 25, 4, 26}, 32));  // Reduce
-  parse_table_[88][3] = Entry(Item(57, 33, 0, {27, 25, 5, 26}, 33));  // Reduce
-  parse_table_[88][8] = Entry(Item(57, 33, 0, {27, 25, 5, 26}, 33));  // Reduce
-  parse_table_[88][16] = Entry(Item(57, 33, 0, {27, 25, 5, 26}, 33));  // Reduce
-  parse_table_[88][24] = Entry(Item(57, 33, 0, {27, 25, 5, 26}, 33));  // Reduce
-  parse_table_[88][27] = Entry(Item(57, 33, 0, {27, 25, 5, 26}, 33));  // Reduce
-  parse_table_[89][26] = Entry(Item(60, 41, 0, {7}, 41));  // Reduce
-  parse_table_[89][28] = Entry(Item(60, 41, 0, {7}, 41));  // Reduce
-  parse_table_[90][1] = Entry(96);  // Shift
-  parse_table_[90][26] = Entry(Item(60, 39, 0, {9}, 39));  // Reduce
-  parse_table_[90][28] = Entry(Item(60, 39, 0, {9}, 39));  // Reduce
-  parse_table_[91][26] = Entry(Item(60, 42, 0, {29}, 42));  // Reduce
-  parse_table_[91][28] = Entry(Item(60, 42, 0, {29}, 42));  // Reduce
-  parse_table_[92][26] = Entry(97);  // Shift
-  parse_table_[92][28] = Entry(98);  // Shift
-  parse_table_[93][26] = Entry(Item(59, 38, 0, {60}, 38));  // Reduce
-  parse_table_[93][28] = Entry(Item(59, 38, 0, {60}, 38));  // Reduce
-  parse_table_[94][8] = Entry(Item(53, 34, 0, {53, 28, 58}, 34));  // Reduce
-  parse_table_[94][16] = Entry(Item(53, 34, 0, {53, 28, 58}, 34));  // Reduce
-  parse_table_[94][28] = Entry(Item(53, 34, 0, {53, 28, 58}, 34));  // Reduce
-  parse_table_[94][30] = Entry(Item(53, 34, 0, {53, 28, 58}, 34));  // Reduce
-  parse_table_[95][14] = Entry(99);  // Shift
-  parse_table_[96][26] = Entry(Item(60, 40, 0, {9, 1}, 40));  // Reduce
-  parse_table_[96][28] = Entry(Item(60, 40, 0, {9, 1}, 40));  // Reduce
-  parse_table_[97][8] = Entry(Item(58, 36, 0, {4, 25, 59, 26}, 36));  // Reduce
-  parse_table_[97][16] = Entry(Item(58, 36, 0, {4, 25, 59, 26}, 36));  // Reduce
-  parse_table_[97][28] = Entry(Item(58, 36, 0, {4, 25, 59, 26}, 36));  // Reduce
-  parse_table_[97][30] = Entry(Item(58, 36, 0, {4, 25, 59, 26}, 36));  // Reduce
-  parse_table_[98][7] = Entry(89);  // Shift
-  parse_table_[98][9] = Entry(90);  // Shift
-  parse_table_[98][29] = Entry(91);  // Shift
-  parse_table_[98][60] = Entry(100);  // Shift
-  parse_table_[99][8] = Entry(Item(54, 44, 0, {30, 4, 14}, 44));  // Reduce
-  parse_table_[99][16] = Entry(Item(54, 44, 0, {30, 4, 14}, 44));  // Reduce
-  parse_table_[100][26] = Entry(Item(59, 37, 0, {59, 28, 60}, 37));  // Reduce
-  parse_table_[100][28] = Entry(Item(59, 37, 0, {59, 28, 60}, 37));  // Reduce
+  parse_table_[81][26] = Entry(88);  // Shift
+  parse_table_[82][26] = Entry(89);  // Shift
+  parse_table_[83][2] = Entry(Item(56, 30, 0, {56, 23, 57}, 30));  // Reduce
+  parse_table_[83][7] = Entry(Item(56, 30, 0, {56, 23, 57}, 30));  // Reduce
+  parse_table_[83][15] = Entry(Item(56, 30, 0, {56, 23, 57}, 30));  // Reduce
+  parse_table_[83][23] = Entry(Item(56, 30, 0, {56, 23, 57}, 30));  // Reduce
+  parse_table_[84][6] = Entry(90);  // Shift
+  parse_table_[84][8] = Entry(91);  // Shift
+  parse_table_[84][29] = Entry(92);  // Shift
+  parse_table_[84][59] = Entry(93);  // Shift
+  parse_table_[84][60] = Entry(94);  // Shift
+  parse_table_[85][3] = Entry(78);  // Shift
+  parse_table_[85][58] = Entry(95);  // Shift
+  parse_table_[86][3] = Entry(96);  // Shift
+  parse_table_[87][7] = Entry(Item(49, 21, 0, {51, 52, 2, 53, 54}, 21));  // Reduce
+  parse_table_[87][15] = Entry(Item(49, 21, 0, {51, 52, 2, 53, 54}, 21));  // Reduce
+  parse_table_[88][2] = Entry(Item(57, 32, 0, {24, 25, 3, 26}, 32));  // Reduce
+  parse_table_[88][7] = Entry(Item(57, 32, 0, {24, 25, 3, 26}, 32));  // Reduce
+  parse_table_[88][15] = Entry(Item(57, 32, 0, {24, 25, 3, 26}, 32));  // Reduce
+  parse_table_[88][23] = Entry(Item(57, 32, 0, {24, 25, 3, 26}, 32));  // Reduce
+  parse_table_[89][2] = Entry(Item(57, 33, 0, {27, 25, 4, 26}, 33));  // Reduce
+  parse_table_[89][7] = Entry(Item(57, 33, 0, {27, 25, 4, 26}, 33));  // Reduce
+  parse_table_[89][15] = Entry(Item(57, 33, 0, {27, 25, 4, 26}, 33));  // Reduce
+  parse_table_[89][23] = Entry(Item(57, 33, 0, {27, 25, 4, 26}, 33));  // Reduce
+  parse_table_[90][23] = Entry(Item(60, 41, 0, {6}, 41));  // Reduce
+  parse_table_[90][26] = Entry(Item(60, 41, 0, {6}, 41));  // Reduce
+  parse_table_[91][23] = Entry(Item(60, 39, 0, {8}, 39));  // Reduce
+  parse_table_[91][26] = Entry(Item(60, 39, 0, {8}, 39));  // Reduce
+  parse_table_[91][28] = Entry(97);  // Shift
+  parse_table_[92][23] = Entry(Item(60, 42, 0, {29}, 42));  // Reduce
+  parse_table_[92][26] = Entry(Item(60, 42, 0, {29}, 42));  // Reduce
+  parse_table_[93][23] = Entry(98);  // Shift
+  parse_table_[93][26] = Entry(99);  // Shift
+  parse_table_[94][23] = Entry(Item(59, 38, 0, {60}, 38));  // Reduce
+  parse_table_[94][26] = Entry(Item(59, 38, 0, {60}, 38));  // Reduce
+  parse_table_[95][7] = Entry(Item(53, 34, 0, {53, 23, 58}, 34));  // Reduce
+  parse_table_[95][15] = Entry(Item(53, 34, 0, {53, 23, 58}, 34));  // Reduce
+  parse_table_[95][23] = Entry(Item(53, 34, 0, {53, 23, 58}, 34));  // Reduce
+  parse_table_[95][30] = Entry(Item(53, 34, 0, {53, 23, 58}, 34));  // Reduce
+  parse_table_[96][13] = Entry(100);  // Shift
+  parse_table_[97][3] = Entry(101);  // Shift
+  parse_table_[98][6] = Entry(90);  // Shift
+  parse_table_[98][8] = Entry(91);  // Shift
+  parse_table_[98][29] = Entry(92);  // Shift
+  parse_table_[98][60] = Entry(102);  // Shift
+  parse_table_[99][7] = Entry(Item(58, 36, 0, {3, 25, 59, 26}, 36));  // Reduce
+  parse_table_[99][15] = Entry(Item(58, 36, 0, {3, 25, 59, 26}, 36));  // Reduce
+  parse_table_[99][23] = Entry(Item(58, 36, 0, {3, 25, 59, 26}, 36));  // Reduce
+  parse_table_[99][30] = Entry(Item(58, 36, 0, {3, 25, 59, 26}, 36));  // Reduce
+  parse_table_[100][7] = Entry(Item(54, 44, 0, {30, 3, 13}, 44));  // Reduce
+  parse_table_[100][15] = Entry(Item(54, 44, 0, {30, 3, 13}, 44));  // Reduce
+  parse_table_[101][23] = Entry(Item(60, 40, 0, {8, 28, 3}, 40));  // Reduce
+  parse_table_[101][26] = Entry(Item(60, 40, 0, {8, 28, 3}, 40));  // Reduce
+  parse_table_[102][23] = Entry(Item(59, 37, 0, {59, 23, 60}, 37));  // Reduce
+  parse_table_[102][26] = Entry(Item(59, 37, 0, {59, 23, 60}, 37));  // Reduce
 
   // Create inverse non-terminal map.
   inverse_nonterminal_map_.emplace(35, "start");
@@ -1945,34 +1945,34 @@ inline void Parser::createLexer() {
   auto lexer_generator = std::make_shared<manta::LexerGenerator>();
 
   // Lexeme "eof" will be automatically added as the first (0-th) lexeme.
-  lexer_generator->AddLexeme("special_symbol", ".(\\@ | _)+", 1);  // Lexeme #1
-  lexer_generator->AddLexeme("lexeme_name", "@(\\@ | _)+", 1);  // Lexeme #2
-  lexer_generator->AddLexeme("colon", ":", 1);  // Lexeme #3
-  lexer_generator->AddLexeme("identifier", "( \\@ | _ )+", 1);  // Lexeme #4
-  lexer_generator->AddLexeme("integer", "\\d+", 1);  // Lexeme #5
-  lexer_generator->AddLexeme("regex", " r ` ( \\\\ ` | [~ `] )* ` ", 1);  // Lexeme #6
-  lexer_generator->AddLexeme("literal", " \" ( \\\\\" | [~\"] )* \" ", 1);  // Lexeme #7
-  lexer_generator->AddLexeme("or", "\\|", 1);  // Lexeme #8
-  lexer_generator->AddLexeme("pos_arg", "$ \\d+", 1);  // Lexeme #9
-  lexer_generator->AddLexeme("null", "$null", 1);  // Lexeme #10
-  lexer_generator->AddLexeme("comment", "# [~\\n]* \\n", 1);  // Lexeme #11
-  lexer_generator->AddLexeme("path", "\\@+/(\\@+/)+\\@+.h", 1);  // Lexeme #12
-  lexer_generator->AddLexeme("classname", "( \\@ | _ )+(::( \\@ | _ )+)*", 1);  // Lexeme #13
-  lexer_generator->AddLexeme("code", " \\{ [~%\\}]* %\\} ", 1);  // Lexeme #14
-  lexer_generator->AddLexeme("spaces", "\\s+", 1);  // Lexeme #15
-  lexer_generator->AddLexeme("newlines", "\\n+", 1);  // Lexeme #16
-  lexer_generator->AddLexeme("continuation", "\\\\ \\n", 1);  // Lexeme #17
-  lexer_generator->AddReserved(".Lexer", 2);  // Lexeme #18
-  lexer_generator->AddReserved(".End", 2);  // Lexeme #19
-  lexer_generator->AddReserved(".Skip", 2);  // Lexeme #20
-  lexer_generator->AddReserved(".Parser", 2);  // Lexeme #21
-  lexer_generator->AddReserved(".Start", 2);  // Lexeme #22
-  lexer_generator->AddReserved("->", 2);  // Lexeme #23
+  lexer_generator->AddLexeme("lexeme_name", "@(\\@ | _)+", 1);  // Lexeme #1
+  lexer_generator->AddLexeme("colon", ":", 1);  // Lexeme #2
+  lexer_generator->AddLexeme("identifier", "( \\@ | _ )+", 1);  // Lexeme #3
+  lexer_generator->AddLexeme("integer", "\\d+", 1);  // Lexeme #4
+  lexer_generator->AddLexeme("regex", " r ` ( \\\\ ` | [~ `] )* ` ", 1);  // Lexeme #5
+  lexer_generator->AddLexeme("literal", " \" ( \\\\\" | [~\"] )* \" ", 1);  // Lexeme #6
+  lexer_generator->AddLexeme("or", "\\|", 1);  // Lexeme #7
+  lexer_generator->AddLexeme("pos_arg", "$ \\d+", 1);  // Lexeme #8
+  lexer_generator->AddLexeme("null", "$null", 1);  // Lexeme #9
+  lexer_generator->AddLexeme("comment", "# [~\\n]* \\n", 1);  // Lexeme #10
+  lexer_generator->AddLexeme("path", "\\@+/(\\@+/)+\\@+.h", 1);  // Lexeme #11
+  lexer_generator->AddLexeme("classname", "( \\@ | _ )+(::( \\@ | _ )+)*", 1);  // Lexeme #12
+  lexer_generator->AddLexeme("code", " \\{ [~%\\}]* %\\} ", 1);  // Lexeme #13
+  lexer_generator->AddLexeme("spaces", "\\s+", 1);  // Lexeme #14
+  lexer_generator->AddLexeme("newlines", "\\n+", 1);  // Lexeme #15
+  lexer_generator->AddLexeme("continuation", "\\\\ \\n", 1);  // Lexeme #16
+  lexer_generator->AddReserved(".Lexer", 2);  // Lexeme #17
+  lexer_generator->AddReserved(".End", 2);  // Lexeme #18
+  lexer_generator->AddReserved(".Skip", 2);  // Lexeme #19
+  lexer_generator->AddReserved(".Parser", 2);  // Lexeme #20
+  lexer_generator->AddReserved(".Start", 2);  // Lexeme #21
+  lexer_generator->AddReserved("->", 2);  // Lexeme #22
+  lexer_generator->AddReserved(",", 2);  // Lexeme #23
   lexer_generator->AddReserved("assoc", 2);  // Lexeme #24
   lexer_generator->AddReserved("(", 2);  // Lexeme #25
   lexer_generator->AddReserved(")", 2);  // Lexeme #26
   lexer_generator->AddReserved("prec", 2);  // Lexeme #27
-  lexer_generator->AddReserved(",", 2);  // Lexeme #28
+  lexer_generator->AddReserved(".", 2);  // Lexeme #28
   lexer_generator->AddReserved("$null", 2);  // Lexeme #29
   lexer_generator->AddReserved("%", 2);  // Lexeme #30
   lexer_generator->AddReserved(".Data", 2);  // Lexeme #31
@@ -2204,11 +2204,12 @@ inline std::shared_ptr<ASTNodeBase> Parser::reduce(unsigned reduction_id, const 
           std::reinterpret_pointer_cast<ASTNode_resolution_atoms>(collected_nodes[1]));
     }
     case 30: {
-      REDUCE_ASSERT(2, 30, collected_nodes.size());
+      REDUCE_ASSERT(3, 30, collected_nodes.size());
       LOG_SEV_TO(logger_, Debug) << "Calling reduce function 'ReduceTo_ASTNode_resolution_atoms_ViaItem_30'.";
       return ReduceTo_ASTNode_resolution_atoms_ViaItem_30(
           std::reinterpret_pointer_cast<ASTNode_resolution_atoms>(collected_nodes[0]),
-          std::reinterpret_pointer_cast<ASTNodeBase_resolution_atom>(collected_nodes[1]));
+          reinterpret_cast<ASTLexeme*>(collected_nodes[1].get())->literal,
+          std::reinterpret_pointer_cast<ASTNodeBase_resolution_atom>(collected_nodes[2]));
     }
     case 31: {
       REDUCE_ASSERT(1, 31, collected_nodes.size());
@@ -2278,11 +2279,12 @@ inline std::shared_ptr<ASTNodeBase> Parser::reduce(unsigned reduction_id, const 
           reinterpret_cast<ASTLexeme*>(collected_nodes[0].get())->literal);
     }
     case 40: {
-      REDUCE_ASSERT(2, 40, collected_nodes.size());
+      REDUCE_ASSERT(3, 40, collected_nodes.size());
       LOG_SEV_TO(logger_, Debug) << "Calling reduce function 'ReduceTo_ASTNode_PosArg_ViaItem_40'.";
       return ReduceTo_ASTNode_PosArg_ViaItem_40(
           reinterpret_cast<ASTLexeme*>(collected_nodes[0].get())->literal,
-          reinterpret_cast<ASTLexeme*>(collected_nodes[1].get())->literal);
+          reinterpret_cast<ASTLexeme*>(collected_nodes[1].get())->literal,
+          reinterpret_cast<ASTLexeme*>(collected_nodes[2].get())->literal);
     }
     case 41: {
       REDUCE_ASSERT(1, 41, collected_nodes.size());
@@ -2752,12 +2754,13 @@ Parser::ReduceTo_ASTNode_17_resolution_ViaItem_29(
 inline std::shared_ptr<ASTNode_resolution_atoms>
 Parser::ReduceTo_ASTNode_resolution_atoms_ViaItem_30(
     [[maybe_unused]] const std::shared_ptr<ASTNode_resolution_atoms>& argument_0,
-    [[maybe_unused]] const std::shared_ptr<ASTNodeBase_resolution_atom>& argument_1) {
+    [[maybe_unused]] const std::string& argument_1,
+    [[maybe_unused]] const std::shared_ptr<ASTNodeBase_resolution_atom>& argument_2) {
   auto new_node = std::make_shared<ASTNode_resolution_atoms>(30);
 
   // Set fields in the new node.
   new_node->atoms.insert(new_node->atoms.end(), argument_0->atoms.cbegin(), argument_0->atoms.cend());
-  new_node->atoms.push_back(argument_1);
+  new_node->atoms.push_back(argument_2);
 
   return new_node;
 }
@@ -2782,7 +2785,7 @@ Parser::ReduceTo_ASTNode_assoc_ViaItem_32(
   auto new_node = std::make_shared<ASTNode_assoc>(32);
 
   // Set fields in the new node.
-  new_node->assoc = argument_1;
+  new_node->assoc = argument_2;
 
   return new_node;
 }
@@ -2796,7 +2799,7 @@ Parser::ReduceTo_ASTNode_prec_ViaItem_33(
   auto new_node = std::make_shared<ASTNode_prec>(33);
 
   // Set fields in the new node.
-  new_node->prec = argument_1;
+  new_node->prec = argument_2;
 
   return new_node;
 }
@@ -2880,12 +2883,13 @@ Parser::ReduceTo_ASTNode_PosArg_ViaItem_39(
 inline std::shared_ptr<ASTNode_PosArg>
 Parser::ReduceTo_ASTNode_PosArg_ViaItem_40(
     [[maybe_unused]] const std::string& argument_0,
-    [[maybe_unused]] const std::string& argument_1) {
+    [[maybe_unused]] const std::string& argument_1,
+    [[maybe_unused]] const std::string& argument_2) {
   auto new_node = std::make_shared<ASTNode_PosArg>(40);
 
   // Set fields in the new node.
   new_node->pos = argument_0;
-  new_node->field_name = argument_1;
+  new_node->field_name = argument_2;
 
   return new_node;
 }
@@ -3055,9 +3059,9 @@ struct ParserGenerator
   void Visit(ASTNodeGeneral_4_newlines& object) override { /* No body defined */ }
   void Visit(ASTNode_0_start& object) override {
     LOG_SEV(Info) << CLR("Starting to parse the description.");
-    Visit(*object.lexer_block);
-    Visit(*object.parser_block);
-    Visit(*object.data_block);
+    object.lexer_block->Accept(*this);
+    object.parser_block->Accept(*this);
+    object.data_block->Accept(*this);
     
     // Shift productions, so all terminals and nonterminals have positive numbers.
     shiftProductionNumbers();
@@ -3088,7 +3092,6 @@ struct ParserGenerator
   }
   void Visit(ASTNode_15_production_and_data& object) override {
     makeNextItem();  // Create the item for this production.
-    // Visit(static_cast<ASTNodeBase_production_and_data&>(object));
     
     LOG_SEV(Info) << "There are " << object.atoms.size() << " atoms and " << object.actions.size() << " actions.";
     for (auto& atom : object.atoms) {
@@ -3113,9 +3116,14 @@ struct ParserGenerator
     }
   }
   void Visit(ASTNode_1_optional_data_block& object) override {
-    Visit(*object.data_block);
+    object.data_block->Accept(*this);
   }
-  void Visit(ASTNode_20_data_definitions& object) override { /* No body defined */ }
+  void Visit(ASTNode_20_data_definitions& object) override {
+    LOG_SEV(Info) << "Processing definitions.";
+    for (auto& definition : object.definitions) {
+      definition->Accept(*this);
+    }
+  }
   void Visit(ASTNode_21_data_definitions& object) override { /* No body defined */ }
   void Visit(ASTNode_22_import_statement& object) override { /* No body defined */ }
   void Visit(ASTNode_23_inherit_statement& object) override { /* No body defined */ }
@@ -3164,8 +3172,7 @@ struct ParserGenerator
     } else if (object.item_id == 40) {
       LOG_SEV(Debug) << "Pos arg: " << object.pos << " with field name: " << object.field_name << " ARG:"
                      << object.pos << object.field_name;
-      // NOTE: Currently not doing anything special here.
-      addArgumentToAction(object.pos.substr(1) + object.field_name);
+      addArgumentToAction(object.pos.substr(1) + "." + object.field_name);
     } 
   }
   void Visit(ASTNode_Skip& object) override {
@@ -3176,12 +3183,9 @@ struct ParserGenerator
     // Remove the quotes.
     auto arg = object.argument.substr(1, object.argument.size() - 2);
     LOG_SEV(Debug) << "String arg: " << CLBG(arg) << " ARG:" << object.argument;
-    
     addArgumentToAction(arg);
   }
   void Visit(ASTNode_action& object) override {
-    // auto node = std::make_shared<ParseNode>(object.fn_name);
-    
     registerAction(object.fn_name);
     for (auto& arg : object.arguments) {
       arg->Accept(*this);

@@ -9,6 +9,7 @@ using namespace manta;
 using namespace lightning;
 using namespace lightning::time;
 
+std::unique_ptr<formatting::BaseMessageFormatter> MakeFormatter();
 void InitializeLogging();
 
 int main(int argc, char** argv) {
@@ -41,6 +42,9 @@ int main(int argc, char** argv) {
 
     auto out = std::make_shared<std::ostringstream>();
     Logger logger(lightning::NewSink<OstreamSink>(out));
+    // Format logger
+    logger.SetAllFormats(MakeFormatter());
+
     generator.SetParserGeneratorLogger(logger);
 
     // Generate parser code and write it to the output file.
@@ -64,20 +68,25 @@ int main(int argc, char** argv) {
     LOG_SEV(Fatal) << "Exception generating code:" << ex;
     return 1;
   }
-  LOG_SEV(Major) << "Program finished. Output is written to '" << output_path << "'. Exiting.";
+  LOG_SEV(Major) << "Program finished. Output is written to " << output_path << ". Exiting.";
 
   return 0;
+}
+
+
+std::unique_ptr<formatting::BaseMessageFormatter> MakeFormatter() {
+  return MakeMsgFormatter("[{}] [{}:{}] [{}] {}",
+                          formatting::DateTimeAttributeFormatter {},
+                          formatting::FileNameAttributeFormatter {},
+                          formatting::FileLineAttributeFormatter {},
+                          formatting::SeverityAttributeFormatter {},
+                          formatting::MSG);
 }
 
 void InitializeLogging() {
   // Set up the global core to an OstreamSink.
   Global::GetCore()->AddSink(NewSink<StdoutSink>());
 
-  auto formatter = MakeMsgFormatter("[{}] [{}:{}] [{}] {}",
-                                    formatting::DateTimeAttributeFormatter {},
-                                    formatting::FileNameAttributeFormatter {},
-                                    formatting::FileLineAttributeFormatter {},
-                                    formatting::SeverityAttributeFormatter {},
-                                    formatting::MSG);
+  auto formatter = MakeFormatter();
   Global::GetCore()->SetAllFormatters(std::move(formatter));
 }

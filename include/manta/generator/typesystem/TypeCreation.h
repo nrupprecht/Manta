@@ -95,7 +95,7 @@ private:
   void determineBaseTypes(TypeDeduction& deduction);
 
   std::tuple<int, NonterminalID, std::optional<std::string>> getSourceData(const std::string& argument_string,
-                                                                           const Item& item);
+                                                                           const Item& item) const;
 
   void createGeneralNode(const std::string& node_type_name,
                          NonterminalID nonterminal_id,

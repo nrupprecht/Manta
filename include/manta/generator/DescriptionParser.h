@@ -100,6 +100,22 @@ struct ProductionRulesData {
     return GetNonterminalName(id);
   }
 
+  NO_DISCARD std::string GetPrettyName(int id) const {
+    if (id < NumTerminals()) {
+      using namespace std::string_literals;
+      using namespace std::string_view_literals;
+      using namespace lightning::formatting;
+
+      auto& lexeme_name = lexer_generator->LexemeName(id);
+      if (std::string_view(lexeme_name).substr(0, 4) == "RES:"sv) {
+        // TODO: Update Lightning to get Format() to work with string_view.
+        return Format("\"{}\"", std::string(std::string_view(lexeme_name).substr(4)));
+      }
+      return "@"s + lexeme_name;
+    }
+    return GetNonterminalName(id);
+  }
+
   NO_DISCARD const std::string& GetNonterminalName(int id) const { return inverse_nonterminal_map.at(id); }
 
   NO_DISCARD int NumNonTerminals() const {
@@ -111,6 +127,26 @@ struct ProductionRulesData {
   NO_DISCARD bool IsNonTerminal(int id) const { return lexer_generator->GetNumLexemes() <= id; }
 
   NO_DISCARD bool IsTerminal(int id) const { return !IsNonTerminal(id); }
+
+  std::string WriteItem(const Item& item) const {
+    // This may be a null production, just a placeholder for a shift.
+    if (item.produced_nonterminal < 0) {
+      return "";
+    }
+    std::string output = GetPrettyName(item.produced_nonterminal) + " -> ";
+    int j              = 0;
+    for (auto symbol : item.rhs) {
+      if (j == item.bookmark) {
+        output += "* ";
+      }
+      output += GetPrettyName(symbol) + " ";
+      ++j;
+    }
+    if (j == item.bookmark) {
+      output += "*";
+    }
+    return output;
+  }
 };
 
 //! \brief Base class for objects that can parse a stream and produce a description of a parser described by
@@ -139,6 +175,8 @@ public:
   //! \brief Reset the production rules data, creating a new one.
   void ResetProductionRulesData() { production_rules_data_ = std::make_shared<ProductionRulesData>(); }
 
+  //! \brief Get the name of a nonterminal by its ID.
+  std::optional<std::string> GetProductionName(NonterminalID id) const;
 protected:
   //! \brief Get the production number associated with a production name, registering it if it has not already
   //!        been registered.
@@ -192,11 +230,11 @@ protected:
   std::optional<unsigned> getCurrentItemNumber() const;
 
   //! \brief Get the instructions node for the current item.
-  ParseNode& getCurrentInstructions() { return *current_item_.instructions; }
+  ParseNode& getCurrentInstructions() const;
 
-  int getCurrentProductionID() {
-    return current_item_.production_item_number;
-  }
+  std::string getCurrentProduction() const;
+
+  int getCurrentProductionID() const;
 
   //! \brief The current item being built.
   Item current_item_ {};
@@ -208,6 +246,10 @@ protected:
   ItemID current_production_id_ = 0;
 
   //! \brief Keep track of which non-terminals are support non-terminals.
+  //!
+  //! Support nonterminals are intended on being used to support things like
+  //! turning parser patterns like A -> (B C)* into something like
+  //! A -> Support_B, Support_B -> Support_B B C | $null.
   std::set<NonterminalID> support_nonterminal_ids_ {};
 
   //! \brief The description of the lexer and parser to create.

@@ -15,6 +15,14 @@ namespace manta {
 //  ProductionRulesBuilder.
 // ====================================================================================
 
+std::optional<std::string> ProductionRulesBuilder::GetProductionName(NonterminalID id) const {
+  auto it = production_rules_data_->inverse_nonterminal_map.find(id);
+  if (it != production_rules_data_->inverse_nonterminal_map.end()) {
+    return it->second;
+  }
+  return {};
+}
+
 int ProductionRulesBuilder::registerProduction(const std::string& production) {
   auto it = production_rules_data_->nonterminal_map.find(production);
   if (it == production_rules_data_->nonterminal_map.end()) {
@@ -192,6 +200,20 @@ std::optional<unsigned> ProductionRulesBuilder::getCurrentItemNumber() const {
   return current_item_.item_number;
 }
 
+ParseNode& ProductionRulesBuilder::getCurrentInstructions() const {
+  return *current_item_.instructions;
+}
+
+std::string ProductionRulesBuilder::getCurrentProduction() const {
+  auto name = GetProductionName(getCurrentProductionID());
+  MANTA_ASSERT(name, "there is no current production, cannot get current production's name");
+  return *name;
+}
+
+int ProductionRulesBuilder::getCurrentProductionID() const {
+  return current_production_id_;
+}
+
 // ====================================================================================
 //  HandWrittenDescriptionParser.
 // ====================================================================================
@@ -314,7 +336,7 @@ std::shared_ptr<ProductionRulesData> HandWrittenDescriptionParser::ParseDescript
     }
     // Start of a comment.
     else if (c == '#') {
-      LOG_SEV(Trace) << "Bypassing comment";
+      LOG_SEV(Trace) << "Bypassing comment.";
       // Pass comments.
       while (c != '\n' && !stream.eof()) {
         stream.get(c);
@@ -467,7 +489,7 @@ inline void HandWrittenDescriptionParser::getProductions(std::istream& in) {
         in.get(c);
       }
 
-      LOG_SEV(Trace) << "Found lexeme: @" << acc;
+      LOG_SEV(Trace) << "Found lexeme: @" << formatting::CLBG(acc);
 
       // Ask the lexer generator for the lexeme ID of the terminal
       int id = getLexemeID(acc);
@@ -519,7 +541,6 @@ inline void HandWrittenDescriptionParser::getProductions(std::istream& in) {
       }
       // Fill in the production's resolution info.
       findResInfo(in, current_item_.res_info);
-      LOG_SEV(Trace) << "Filled in precedence section.";
     }
     // Start of the instructions
     else if (c == ':') {
@@ -552,6 +573,8 @@ inline void HandWrittenDescriptionParser::getProductions(std::istream& in) {
 }
 
 void HandWrittenDescriptionParser::findResInfo(std::istream& in, ResolutionInfo& res_info) {
+  LOG_SEV(Trace) << "Finding precedence section for " << formatting::CLB(getCurrentProduction()) << ".";
+
   auto is_terminator = [](char c) { return c == '\n' || c == '\r' || c == ';'; };
 
   // Note - comments are not allowed in the resolution info section.
@@ -577,7 +600,8 @@ void HandWrittenDescriptionParser::findResInfo(std::istream& in, ResolutionInfo&
       // Expect a '('
       in.get(c);
       if (c != '(') {
-        MANTA_THROW(UnexpectedInput, "in findResInfo, expected (, found " << c);
+        MANTA_THROW(UnexpectedInput,
+                    "in findResInfo, expected '(', found '" << c << "', preceding word '" << word << "'");
       }
 
       // Get the argument. We expect there to be one argument, since the only functions currently accepted
@@ -619,16 +643,19 @@ void HandWrittenDescriptionParser::findResInfo(std::istream& in, ResolutionInfo&
       // Start of the instruction section.
       // Put the ':' back so the calling function will detect the start of the instruction section.
       in.putback(c);
-      return;
+      break;
     }
 
     // Get next character
     in.get(c);
   }
+
+  LOG_SEV(Trace) << "Filled in precedence section.";
 }
 
 void HandWrittenDescriptionParser::getInstructions(std::istream& in) {
-  LOG_SEV(Debug) << "Getting instructions for production " << current_production_id_ << ".";
+  LOG_SEV(Debug) << "Getting instructions for production " << formatting::CLG(getCurrentProduction()) << " ("
+                 << current_production_id_ << ").";
 
   // Setup.
   char c;
@@ -671,7 +698,7 @@ void HandWrittenDescriptionParser::getInstructions(std::istream& in) {
     // Reduction / visitor code.
     else if (c == '%') {
       MANTA_ASSERT(!in.eof(), "unexpected eof while getting reduction code");
-      LOG_SEV(Debug) << "Found reduction / visitor code.";
+      LOG_SEV(Debug) << "Found reduction / visitor code for production " << getCurrentProductionID();
 
       // Get what type of code this is for, a visitor, or a function to be called upon the REDUCE.
       acc.clear();
@@ -724,7 +751,7 @@ void HandWrittenDescriptionParser::getInstructions(std::istream& in) {
         in.get(c);
       } while (isalpha(c) || c == '_');  // letters or underscores
 
-      LOG_SEV(Trace) << "Got identifier: " << acc;
+      LOG_SEV(Trace) << "Got identifier: " << formatting::CLBB(acc);
 
       // Add a node.
       createAction(acc);
@@ -783,9 +810,26 @@ void HandWrittenDescriptionParser::getInstructions(std::istream& in) {
         // String.
         else if (c == '"') {
           in.get(c);
-          // TODO: Handle escaped quotes.
           while (!in.eof() && c != '"') {
-            acc.push_back(c);
+            if (c == '\\') {
+              in.get(c);
+              switch (c) {
+                case 't':
+                  acc.push_back('\t');
+                  break;
+                case 'n':
+                  acc.push_back('\n');
+                  break;
+                case '"':
+                case '\\':
+                default:
+                  acc.push_back(c);
+                  break;
+              }
+            }
+            else {
+              acc.push_back(c);
+            }
             in.get(c);
           }
           // Add child.
@@ -806,9 +850,6 @@ void HandWrittenDescriptionParser::getInstructions(std::istream& in) {
     in.get(c);
   }
   LOG_SEV(Trace) << "Done finding instruction.";
-
-  // Return the instruction.
-  // return instruction;
 }
 
 void HandWrittenDescriptionParser::getData(std::istream& stream) {
