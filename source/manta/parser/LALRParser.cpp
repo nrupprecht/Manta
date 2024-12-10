@@ -1,6 +1,7 @@
 #include "manta/parser/LALRParser.hpp"
 // Other files
 #include <string_view>
+
 #include "manta/utility/Formatting.h"
 
 namespace manta {
@@ -82,16 +83,14 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
       }
 
       if (auto handler = logger_.Log(Severity::Debug)) {
-        handler << "Lexed the literal \"" << CLBG(escape(result->literal))
-                << "\". Matched " << result->accepted_lexemes.size() << " lexeme(s):";
+        handler << "Lexed the literal \"" << CLBG(escape(result->literal)) << "\". Matched "
+                << result->accepted_lexemes.size() << " lexeme(s):";
         int i = 0;
         for (auto& [id, _] : result->accepted_lexemes) {
           if (i != 0) {
             handler << ",";
           }
-          handler << " "
-                  << (i % 2 == 0 ? CLB(lexer_->LexemeName(id))
-                                 : CLM(lexer_->LexemeName(id)))
+          handler << " " << (i % 2 == 0 ? CLB(lexer_->LexemeName(id)) : CLM(lexer_->LexemeName(id)))
                   << " (id = " << id << ")";
           ++i;
         }
@@ -111,11 +110,10 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
       // Check if no valid options could be found.
       if (!any_valid) {
         if (auto handle = logger_.Log(lightning::Severity::Error)) {
-          handle << "No valid transitions could be found for the input."
-                 << lightning::NewLineIndent << "Accepted lexeme(s) (for literal "
-                 << CLBG(result->literal) << ") were: ";
+          handle << "No valid transitions could be found for the input." << lightning::NewLineIndent
+                 << "Accepted lexeme(s) (for literal " << CLBG(result->literal) << ") were: ";
           for (auto& [lexeme_id, _] : result->accepted_lexemes) {
-            handle << lightning::NewLineIndent << CLBB(idToString(lexeme_id));
+            handle << NewLineIndent << CLBB(idToString(lexeme_id));
           }
         }
         printFatalParseError(state);
@@ -128,9 +126,8 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
 
     // For Debugging: Record the step and state of the parser.
     // For Debugging: Record the step and state of the parser.
-    LOG_SEV_TO(logger_, Debug) << "Step " << num_parse_steps_ << ", State: " << state
-                               << ", lexer is at line " << lexer_->GetLine()
-                               << ", column " << lexer_->GetColumn();
+    LOG_SEV_TO(logger_, Debug) << "Step " << num_parse_steps_ << ", State: " << state << ", lexer is at line "
+                               << lexer_->GetLine() << ", column " << lexer_->GetColumn();
 
     if (incoming_symbol < 0 || total_symbols_ <= incoming_symbol) {
       LOG_SEV_TO(logger_, Error) << "Bad symbol: " << incoming_symbol << ", Literal: ["
@@ -142,28 +139,25 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
     if (auto handler = logger_.Log(Severity::Debug)) {
       handler << "Current stack:" << NewLineIndent;
       for (auto& ty : working_stack_types) {
-        handler << "[" << (isLexeme(ty) ? CLM(idToString(ty)) : CLB(idToString(ty)))
-                << "] ";
+        handler << "[" << (isLexeme(ty) ? CLM(idToString(ty)) : CLB(idToString(ty))) << "] ";
       }
       // Separate stack incoming deque.
       handler << " <-->  ";
       // Incoming deque.
       for (auto& d : incoming_deque) {
-        handler << "["
-                << (isLexeme(d.type) ? CLM(idToString(d.type)) : CLB(idToString(d.type)))
-                << "] ";
+        handler << "[" << (isLexeme(d.type) ? CLM(idToString(d.type)) : CLB(idToString(d.type))) << "] ";
       }
     }
 
     // Get action from the parse table.
-    Entry action = parse_table_[state][incoming_symbol];
+    Entry action   = parse_table_[state][incoming_symbol];
     Token transfer = incoming_deque.front();
 
     // If shift
     if (action.IsShift()) {
       transfer.state = action.GetState();  // Set state
-      incoming_deque.pop_front();  // Pop off the incoming stack...
-      working_stack.push(transfer);  // and shift onto the working stack.
+      incoming_deque.pop_front();          // Pop off the incoming stack...
+      working_stack.push(transfer);        // and shift onto the working stack.
 
       // Shift ParseNode
       working_parse_deque.push_front(incoming_parse_deque.front());
@@ -174,14 +168,13 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
       LOG_SEV_TO(logger_, Debug) << "SHIFT. State is now " << action.GetState() << ".";
     }
     else if (action.IsReduce()) {
-      int size = action.GetRule().Size();
+      int size       = action.GetRule().Size();
       int production = action.GetRule().produced_nonterminal;
 
       // Put (newly reduced) production onto the input stack.
       incoming_deque.push_front(Token(production, ""));
       // Create a parse node.
-      auto production_node =
-          std::make_shared<ParseNode>(inverse_production_map_.find(production)->second);
+      auto production_node = std::make_shared<ParseNode>(inverse_production_map_.find(production)->second);
 
       // Take nodes that are to be reduced off the stack, and temporarily store them in
       // the collect vector.
@@ -193,11 +186,11 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
         working_stack_types.pop_back();  // For debugging.
       }
 
-      LOG_SEV_TO(logger_, Debug) << "Reducing " << collect.size() << " collected nodes, checking for instructions.";
+      LOG_SEV_TO(logger_, Debug) << "Reducing " << collect.size()
+                                 << " collected nodes, checking for instructions.";
 
       // Carry out reduction instructions.
-      auto instructions = action.GetRule().instructions;
-      if (instructions) {
+      if (auto instructions = action.GetAnnotatedRule().instructions) {
         for (const auto& instruction : instructions->children) {
           // Get the designator.
           std::string functionName = instruction->designator;
@@ -266,10 +259,10 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
       incoming_parse_deque.push_front(production_node);
 
       // Record the reduction occurring.
-      LOG_SEV_TO(logger_, Debug)
-          << "REDUCE " << size << " collected node. Reduce to a '" << inverse_production_map_.at(production)
-          << "' (non-terminal " << production << ") via item " << action.GetRule().item_number.value_or(-1) << ":"
-          << NewLineIndent << entryToString(action) << ".";
+      LOG_SEV_TO(logger_, Debug) << "REDUCE " << size << " collected node. Reduce to a '"
+                                 << inverse_production_map_.at(production) << "' (non-terminal " << production
+                                 << ") via item " << action.GetAnnotatedRule().production_item_number << ":"
+                                 << NewLineIndent << entryToString(action) << ".";
     }
     else if (action.IsAccept()) {
       // Set start node to be the parsed program.
@@ -330,7 +323,6 @@ std::string LALRParser::PrintTable() const {
   for (std::size_t j = 0; j < lexer_->GetNumLexemes(); ++j) {
     auto name = lexer_->LexemeName(static_cast<int>(j));
     if (name.substr(0, 4) == "RES:") {
-      // if (name[0] == 'R' && name[1] == 'E' && name[2] == 'S' && name[3] == ':') {
       max_size = std::max(max_size, name.size() - 4);
     }
     else {
@@ -345,23 +337,19 @@ std::string LALRParser::PrintTable() const {
     auto name = lexer_->LexemeName(j);
 
     if (name.substr(0, 4) == "RES:") {
-      //}
-      // if (name[0] == 'R' && name[1] == 'E' && name[2] == 'S' && name[3] == ':') {
       std::copy(name.begin() + 4, name.end(), name.begin());
       name.resize(name.size() - 4);
     }
-    buffered_names.push_back(repeat(' ', static_cast<int>(max_size - name.size()))
-                             + name);
+    buffered_names.push_back(repeat(' ', static_cast<int>(max_size - name.size())) + name);
   }
   for (auto& [id, name] : inverse_production_map_) {
-    buffered_names.push_back(repeat(' ', static_cast<int>(max_size - name.size()))
-                             + name);
+    buffered_names.push_back(repeat(' ', static_cast<int>(max_size - name.size())) + name);
   }
 
   for (std::size_t j = 0; j < max_size; ++j) {
     str += "     |";
     for (std::size_t k = 0; k < total_symbols_; ++k) {
-      str += "    " + std::string{buffered_names[k][j]};
+      str += "    " + std::string {buffered_names[k][j]};
       if (k == lexer_->GetNumLexemes() - 1) {
         str += "  |";
       }
@@ -401,7 +389,7 @@ std::string LALRParser::PrintAsMathematica(const std::shared_ptr<ParseNode>& hea
   int nodeNumber = 1;  // Head was 0.
 
   while (!stack.empty()) {
-    auto& pr = stack.front();
+    auto& pr   = stack.front();
     auto& node = pr.first;
     int number = pr.second;
     for (const auto& child : node->children) {
@@ -432,7 +420,7 @@ std::string LALRParser::PrintAsMathematica(const std::shared_ptr<ParseNode>& hea
 
   // First, form connectivity.
   std::string mathematicaCommand = "TreePlot[{";
-  int count = 0;
+  int count                      = 0;
   for (int i = 0; i < connectivity.size(); ++i) {
     auto [first, second] = connectivity[i];
     mathematicaCommand += std::to_string(first) + "->" + std::to_string(second) + "";
@@ -462,7 +450,7 @@ std::shared_ptr<LexerDFA> LALRParser::GetLexer() const {
   return lexer_;
 }
 
-void LALRParser::SetLogger(const lightning::Logger& logger) {
+void LALRParser::SetLogger(const Logger& logger) {
   logger_ = logger;
 }
 
@@ -470,27 +458,24 @@ void LALRParser::SetLogger(const lightning::Logger& logger) {
 //  Action functions
 // ================================================
 
-void LALRParser::instructionNode(LALRParser::Node& self, const std::string& name) {
+void LALRParser::instructionNode(Node& self, const std::string& name) {
   self->designator = name;
 }
 
-void LALRParser::instructionAdd(LALRParser::Node& self, LALRParser::Node& node) {
+void LALRParser::instructionAdd(Node& self, Node& node) {
   self->Add(node);
   node = nullptr;
 }
 
-void LALRParser::instructionAdopt(LALRParser::Node& self, LALRParser::Node& node) {
-  self->children.insert(
-      self->children.end(), node->children.begin(), node->children.end());
+void LALRParser::instructionAdopt(Node& self, Node& node) {
+  self->children.insert(self->children.end(), node->children.begin(), node->children.end());
 }
 
-void LALRParser::instructionReplace(LALRParser::Node& self, LALRParser::Node& node) {
+void LALRParser::instructionReplace(Node& self, Node& node) {
   self = node;
 }
 
-void LALRParser::instructionPush(LALRParser::Node& self,
-                                 const std::string& name,
-                                 LALRParser::Node& node) {
+void LALRParser::instructionPush(Node& self, const std::string& name, Node& node) {
   // Create a new node.
   auto new_node = std::make_shared<ParseNode>(name);
   new_node->Add(node);
@@ -543,14 +528,13 @@ void LALRParser::printFatalParseError(int state) {
   using namespace lightning;
   // Record error in parse trace.
   if (auto handle = logger_.Log(Severity::Error)) {
-    handle << "Lexer is at Line " << lexer_->GetLine() << ", Column "
-           << lexer_->GetColumn() << ".";
+    handle << "Lexer is at Line " << lexer_->GetLine() << ", Column " << lexer_->GetColumn() << ".";
     // Print out what valid options would have been recognized.
     int print_count = 0;
     for (auto& entry : parse_table_[state]) {
       if (!entry.IsError()) {
-        handle << NewLineIndent << "  * Valid: ["
-               << idToString(print_count) + "], Result: <" << entry.Write(0) + ">";
+        handle << NewLineIndent << "  * Valid: [" << idToString(print_count) + "], Result: <"
+               << entry.Write(0) + ">";
       }
       ++print_count;
     }
@@ -559,7 +543,7 @@ void LALRParser::printFatalParseError(int state) {
 
 void CompareParsers(const LALRParser& left, const LALRParser& right) {
   for (auto i = 0u; i < left.parse_table_.size(); ++i) {
-    auto& left_row = left.parse_table_[i];
+    auto& left_row  = left.parse_table_[i];
     auto& right_row = right.parse_table_[i];
     for (auto j = 0u; j < left_row.size(); ++j) {
       if (left_row[j] != right_row[j]) {

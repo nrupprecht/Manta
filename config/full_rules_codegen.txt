@@ -103,7 +103,7 @@
     parser_block -> ".Parser" newlines start_indicator newlines parser_definitions newlines ".End" \
     : node("Parser"), field($2.start_name, "start_name"), field($4.definitions, "definition") %ParserGenerator{
             // Set the start production name.
-            auto id = registerProduction(object.start_name);
+            auto id = registerNonterminal(object.start_name);
             registerStartingProduction(id);
             LOG_SEV(Info) << "Setting production start name to "
                           << CLM(production_rules_data_->start_nonterminal_name) << ".";
@@ -134,7 +134,7 @@
             LOG_SEV(Info) << "Reading definition for non-terminal " << CLY(object.nonterminal_name)
                               << ", there are " << object.productions.size() << " productions.";
 
-            registerProductionDefinition(object.nonterminal_name);
+            registerNonterminalDefinition(object.nonterminal_name);
             LOG_SEV(Debug) << "Registered nonterminal " << CLY(object.nonterminal_name) << " with id " << current_production_id_;
             for (auto& production : object.productions) {
               production->Accept(*this);
@@ -160,7 +160,7 @@
 
     production_and_data -> production_atoms resolution \
         : field($0.atoms), field($1, "resolution") %ParserGenerator{
-            makeNextItem();  // Create the item for this production.
+            makeNextProductionRule();  // Create the item for this production.
             // Production and data with no actions.
             LOG_SEV(Debug) << "Production with no actions.";
             for (auto& atom : object.atoms) {
@@ -171,7 +171,7 @@
         | production_atoms resolution @colon actions code_block \
         : field($0.atoms), field($1, "resolution"), field($3.actions, "actions"), field($4, "code") \
         %ParserGenerator{
-            makeNextItem();  // Create the item for this production.
+            makeNextProductionRule();  // Create the item for this production.
 
             LOG_SEV(Info) << "There are " << object.atoms.size() << " atoms and " << object.actions.size() << " actions.";
             for (auto& atom : object.atoms) {
@@ -200,23 +200,23 @@
 
     production_atom -> @identifier : node("identifier") %ParserGenerator{
             // Indicates a non-terminal.
-            auto id = registerProduction(object.identifier);
+            auto id = registerNonterminal(object.identifier);
             LOG_SEV(Info) << "Non-terminal: '" << object.identifier << "', id = " << id << ".";
-            current_item_.AddToProduction(id);
+            addToProduction(id);
         %} \
         | @literal : node("literal") %ParserGenerator{
             // Get rid of quotes
             auto literal = object.literal.substr(1, object.literal.size() - 2);
             int id = production_rules_data_->lexer_generator->AddReserved(literal);
             LOG_SEV(Info) << "Literal: " << CLBG(literal) << "', id = " << id << ".";
-            current_item_.AddToProduction(id);
+            addToProduction(id);
         %} \
         | @lexeme_name : node("lexeme_name"), field($0, "lexeme_name") %ParserGenerator{
             // Need to get rid of the '@' at the beginning.
             auto name = object.lexeme_name.substr(1);
             int id = getLexemeID(name);
             LOG_SEV(Info) << "Lexeme name: '" << name << "', id = " << id << ".";
-            current_item_.AddToProduction(id);
+            addToProduction(id);
         %}\
         | @null : node("null")  %ParserGenerator{
             // Found a null
@@ -236,11 +236,11 @@
 
     resolution_atom -> "assoc" "(" @identifier ")" : node("assoc"), field($2, "assoc") %ParserGenerator{
             LOG_SEV(Debug) << "Assoc: " << object.assoc;
-            current_item_.res_info.assoc = toAssociation(object.assoc);
+            getCurrentProduction().res_info.assoc = toAssociation(object.assoc);
         %} \
         | "prec" "(" @integer ")" : node("prec"), field($2, "prec") %ParserGenerator{
             LOG_SEV(Debug) << "Prec: " << object.prec;
-            current_item_.res_info.precedence = manta::stoi(object.prec);
+            getCurrentProduction().res_info.precedence = manta::stoi(object.prec);
         %}
 
     actions -> actions "," action \
@@ -362,7 +362,7 @@
         std::shared_ptr<manta::ProductionRulesData> ParseDescription(std::istream& stream) override { return nullptr; }
 
         void storeCurrent() {
-          LOG_SEV(Info) << "Storing item of size " << current_item_.Size() << ".";
+          LOG_SEV(Info) << "Storing item of size " << getCurrentProduction().rule.Size() << ".";
           storeCurrentItem();
         }
 

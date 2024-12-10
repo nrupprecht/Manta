@@ -11,13 +11,18 @@ using namespace lightning;
 
 namespace manta {
 
-struct WritableItem {
-  const Item& item;
+template<typename T>
+struct Writable {
+  const T& object;
   ParserGenerator* generator;
 };
 
-void format_logstream(const WritableItem& item, RefBundle& handler) {
-  handler << item.generator->WriteItem(item.item);
+void format_logstream(const Writable<Item>& item, RefBundle& handler) {
+  handler << item.generator->WriteItem(item.object);
+}
+
+void format_logstream(const Writable<ProductionRule>& rule, RefBundle& handler) {
+  handler << rule.generator->Write(rule.object);
 }
 
 // ====================================================================================
@@ -173,25 +178,29 @@ std::string ParserGenerator::WriteItem(const Item& item) const {
   return production_rules_data_->WriteItem(item);
 }
 
+std::string ParserGenerator::Write(const ProductionRule& rule) const {
+  return production_rules_data_->Write(rule);
+}
+
 void ParserGenerator::createStateDerivesEmpty() {
   // See p. 128 - 130 of "Crafting a Compiler"
   utility::WorkDeque<NonterminalID> work_deque;
-  std::map<Item, bool> rule_derives_empty;
+  std::map<ProductionRule, bool> rule_derives_empty;
   // Count the symbols on the RHS of each production that do not derive empty.
   //  This is updated throughout the algorithm.
-  std::map<Item, int> counts;
+  std::map<ProductionRule, int> counts;
 
   // Start everything as false.
   production_rules_data_->nonterminal_derives_empty.assign(production_rules_data_->nonterminal_map.size(),
                                                            false);
 
-  auto check_for_empty = [&](const Item& item, int count) {
+  auto check_for_empty = [&](const ProductionRule& rule, int count) {
     if (count == 0) {
-      rule_derives_empty[item] = true;
-      auto index               = nonTerminalIndex(item.produced_nonterminal);
+      rule_derives_empty[rule] = true;
+      auto index               = nonTerminalIndex(rule.produced_nonterminal);
       if (!production_rules_data_->nonterminal_derives_empty[index]) {
         production_rules_data_->nonterminal_derives_empty[index] = true;
-        work_deque.Add(item.produced_nonterminal);
+        work_deque.Add(rule.produced_nonterminal);
       }
     }
   };
@@ -201,16 +210,16 @@ void ParserGenerator::createStateDerivesEmpty() {
   std::map<NonterminalID, std::set<int>> productions_containing_symbol;
 
   int i = 0;
-  for (auto& production : production_rules_data_->all_productions) {
+  for (auto& annotated_rule : production_rules_data_->all_productions) {
     // Update the map.
-    for (auto r : production.rhs) {
+    for (auto r : annotated_rule.rule.rhs) {
       productions_containing_symbol[r].insert(i);
     }
 
-    rule_derives_empty[production] = false;
-    auto count                     = static_cast<int>(production.rhs.size());
-    counts[production]             = count;
-    check_for_empty(production, count);
+    rule_derives_empty[annotated_rule.rule] = false;
+    auto count                              = static_cast<int>(annotated_rule.rule.rhs.size());
+    counts[annotated_rule.rule]             = count;
+    check_for_empty(annotated_rule.rule, count);
 
     ++i;
   }
@@ -221,15 +230,15 @@ void ParserGenerator::createStateDerivesEmpty() {
     // Iterate through all productions that include [next]. It is ok if we create an empty entry.
     for (auto production_id : productions_containing_symbol[next]) {
       auto& production = production_rules_data_->all_productions[production_id];
-      --counts[production];
-      check_for_empty(production, counts[production]);
+      --counts[production.rule];
+      check_for_empty(production.rule, counts[production.rule]);
     }
   }
 
   // Log which rules derive empty.
-  for (auto& [item, derives_empty] : rule_derives_empty) {
+  for (auto& [production_rule, derives_empty] : rule_derives_empty) {
     if (derives_empty) {
-      LOG_SEV_TO(logger_, Info) << "Rule (" << WritableItem {item, this} << ") derives empty.";
+      LOG_SEV_TO(logger_, Info) << "Rule (" << Writable {production_rule, this} << ") derives empty.";
     }
   }
 }
@@ -246,15 +255,6 @@ int ParserGenerator::nonTerminalIndex(int id) const {
   return id - NumTerminals();
 }
 
-int ParserGenerator::getProductionIndex(const Item& item) const {
-  auto it = std::find(
-      production_rules_data_->all_productions.begin(), production_rules_data_->all_productions.end(), item);
-  if (it == production_rules_data_->all_productions.end()) {
-    throw std::runtime_error("could not find the item in the productions");
-  }
-  return static_cast<int>(std::distance(production_rules_data_->all_productions.begin(), it));
-}
-
 bool ParserGenerator::computeLR0() {
   status_ = true;
 
@@ -267,8 +267,7 @@ bool ParserGenerator::computeLR0() {
     return status_;
   }
 
-  State start_items = start_nonterminal->second;  // Copy, since we will zero the bookmark.
-  start_items.ZeroBookmarks();
+  State start_items = start_nonterminal->second.ToState();
 
   // Add the start state.
   std::deque<int> work_list;
@@ -305,23 +304,30 @@ void ParserGenerator::computeGoto(int s, std::deque<int>& work_list) {
 
   // Try advancing the dot for every symbol.
   for (int x = 0; x < production_rules_data_->total_symbols; ++x) {
-    const State relevantItems = advanceDot(closed, x);
-    if (!relevantItems.empty()) {
+    const State relevant_items = advanceDot(closed, x);
+    if (!relevant_items.empty()) {
       // Get the resolution info for the shift.
       ResolutionInfo res_info {};
       bool found_res_info     = false;
       bool differing_res_info = false;
-      for (const auto& item : relevantItems) {
-        if (item.res_info != NullResolutionInfo) {
-          if (found_res_info && res_info != item.res_info) {
+      for (const auto& item : relevant_items) {
+        // Look up resolution info by item number.
+        auto& production_res_info = production_rules_data_->all_productions[item.item_number].res_info;
+
+        if (production_res_info != NullResolutionInfo) {
+          if (found_res_info && res_info != production_res_info) {
             differing_res_info = true;
           }
-          res_info       = item.res_info;
+          res_info       = production_res_info;
           found_res_info = true;
         }
       }
 
-      const int state = addState(relevantItems, work_list);
+      const int state = addState(relevant_items, work_list);
+
+      if (differing_res_info) {
+        LOG_SEV(Warning) << "Found differing resolution info for state " << s << ".";
+      }
 
       // Add shift entry, possibly with resolution info.
       if (found_res_info && !differing_res_info) {
@@ -356,10 +362,8 @@ State ParserGenerator::closure(int s) const {
           continue;
         }
 
-        // Productions for next.
-        auto state = it->second;
-        // Set productions' bookmarks so they are like next -> * RHS(next)
-        state.ZeroBookmarks();
+        // Productions for next. Bookmarks are all set to be at zero.
+        auto state = it->second.ToState();
         for (const auto& st : state) {
           if (ans.find(st) == ans.end()) {
             ans.insert(st);
@@ -428,12 +432,12 @@ void ParserGenerator::assertEntry(int state, int symbol, const Entry& action) {
       handler << "Conflict for state " << state << ", symbol " << NameOf(symbol) << NewLineIndent
               << "> Current entry: " << current_entry;
       if (current_entry.IsReduce()) {
-        handler << NewLineIndent << "Current reduction" + WriteItem(current_entry.GetRule());
+        handler << NewLineIndent << "Current reduction" + Write(current_entry.GetRule());
       }
       handler << NewLineIndent << "  Current - Prec: " << current_res_info.precedence
               << ", Assoc: " << current_res_info.assoc << NewLineIndent << "> Proposed entry: " << action;
       if (action.IsReduce()) {
-        handler << NewLineIndent << "  Proposed reduction: [" + WriteItem(action.GetRule()) << "]";
+        handler << NewLineIndent << "  Proposed reduction: [" + Write(action.GetRule()) << "]";
       }
       handler << NewLineIndent << "  Incoming - Prec: " << res_info.precedence
               << ", Assoc: " << res_info.assoc;
@@ -510,7 +514,7 @@ ItemFollowSet ParserGenerator::buildItemForPropGraph() {
     const auto augmented_state = closure(state_id);
 
     for (const auto& item : augmented_state) {
-      StateItem vertex(state_id, item.WithoutInstructions() /* Just in case... */);
+      StateItem vertex(state_id, item);
       propagation_graph_.AddVertex(vertex);
       item_follow[vertex] = {};  // Initialize to empty, the "= {}" is not really needed.
       ++num_items;
@@ -530,15 +534,13 @@ ItemFollowSet ParserGenerator::buildItemForPropGraph() {
 
     for (const auto& item : augmented_state) {
       // Item: A -> alpha * B gamma  : for any (possibly empty) strings alpha, gamma
-      auto cleaned_item = item.WithoutInstructions();
-
       auto el = item.GetElementFollowingBookmark();
       if (!el) {
         continue;
       }
       auto next_element = *el;  // B in the above notation.
 
-      auto [start_vertex, _] = addEdge(state_id, next_element, cleaned_item);
+      auto [start_vertex, _] = addEdge(state_id, next_element, item);
       ++added_edges;
 
       // The 'gamma' part of the item that we are looking at (A -> alpha * B gamma)
@@ -554,7 +556,7 @@ ItemFollowSet ParserGenerator::buildItemForPropGraph() {
         }
 
         // Create vertex {state_id, B -> * gamma}
-        StateItem vertex(state_id, other_item.WithoutInstructions());
+        StateItem vertex(state_id, other_item);
         MANTA_ASSERT(propagation_graph_.HasVertex(vertex), "vertex not in the graph");
 
         item_follow.at(vertex).insert(first_set.begin(), first_set.end());
@@ -611,7 +613,7 @@ std::pair<StateItem, StateItem> ParserGenerator::addEdge(int state_id,
   return {start_vertex, end_vertex};
 }
 
-void ParserGenerator::tryRuleInState(int state, const Item& rule) {
+void ParserGenerator::tryRuleInState(int state, const AnnotatedProductionRule& rule) {
   // Make rule into LHS(rule) -> RHS(rule) *
   auto rule_reduce = rule.MakeReducibleForm();
 
@@ -630,7 +632,7 @@ void ParserGenerator::tryRuleInState(int state, const Item& rule) {
     case ParserType::SLR: {
       // === SLR ===
       if (state_set.Contains(rule_reduce)) {  // If LHS(rule) -> RHS(rule) * is in State(state)
-        auto follow_set = FollowSet(rule.produced_nonterminal);
+        auto follow_set = FollowSet(rule.rule.produced_nonterminal);
         for (int sym : follow_set) {
           assertEntry(state, sym, Entry(rule));
         }
@@ -647,7 +649,7 @@ void ParserGenerator::tryRuleInState(int state, const Item& rule) {
 }
 
 void ParserGenerator::tryRuleInStateLALR(int state_index,
-                                         const Item& rule,
+                                         const AnnotatedProductionRule& rule,
                                          const ItemFollowSet& item_follow) {
   // Make rule into LHS(rule) -> RHS(rule) *
   auto rule_reduce = rule.MakeReducibleForm();
@@ -657,7 +659,7 @@ void ParserGenerator::tryRuleInStateLALR(int state_index,
   if (augmented_state.Contains(rule_reduce)) {  // i.e. if LHS(rule) -> RHS(rule) * is in State(state)
     auto& follow_set = item_follow.at(StateItem(state_index, rule_reduce));
     for (int sym = 0; sym < NumTerminals(); ++sym) {
-      if (auto it = follow_set.find(sym) != follow_set.end()) {
+      if (follow_set.contains(sym)) {
         assertEntry(state_index, sym, Entry(rule));
       }
     }
@@ -692,12 +694,12 @@ std::set<int> ParserGenerator::internalFirst(std::span<const int> symbols, std::
   if (!visited.at(nonterminal_index)) {
     visited[nonterminal_index]          = true;
     const auto& productions_for_initial = production_rules_data_->productions_for.at(initial_symbol);
-    for (const auto& production : productions_for_initial) {
-      if (production.Size() == 0) {  // Lambda production.
+    for (const auto& annotated_production_rule : productions_for_initial) {
+      if (annotated_production_rule.rule.Size() == 0) {  // Lambda production.
         continue;
       }
 
-      auto new_set = internalFirst(production.rhs, visited);
+      auto new_set = internalFirst(annotated_production_rule.rule.rhs, visited);
       potential_first_terminals.insert(new_set.begin(), new_set.end());
     }
   }
@@ -728,14 +730,15 @@ std::set<int> ParserGenerator::internalFollow(int non_terminal, std::vector<bool
   std::set<int> output;
   auto occurences = productionsIncluding(non_terminal);
   for (auto [prod_index, i] : occurences) {
-    const auto& production = production_rules_data_->all_productions[prod_index];
-    const std::span tail(production.rhs.data() + i + 1, production.rhs.size() - i - 1);
+    const auto& annotated_production_rule = production_rules_data_->all_productions[prod_index];
+    const std::span tail(annotated_production_rule.rule.rhs.data() + i + 1,
+                         annotated_production_rule.rule.rhs.size() - i - 1);
     if (!tail.empty()) {
       const auto first_set = FirstSet(tail);
       output.insert(first_set.begin(), first_set.end());
     }
     if (allDeriveEmpty(tail)) {
-      auto follow_set = internalFollow(production.produced_nonterminal, visited);
+      auto follow_set = internalFollow(annotated_production_rule.rule.produced_nonterminal, visited);
       output.insert(follow_set.begin(), follow_set.end());
     }
   }
@@ -747,11 +750,11 @@ std::vector<std::pair<int, int>> ParserGenerator::productionsIncluding(int non_t
   std::vector<std::pair<int, int>> output;
 
   std::size_t production_counter = 0;
-  for (const auto& production : production_rules_data_->all_productions) {
+  for (const auto& annotated_production_rule : production_rules_data_->all_productions) {
     // Look through the production for instances of non_terminal.
-    for (std::size_t i = 0; i < production.rhs.size(); ++i) {
+    for (std::size_t i = 0; i < annotated_production_rule.rule.rhs.size(); ++i) {
       // If this is an occurrence of symbol add it.
-      if (production.rhs[i] == non_terminal) {
+      if (annotated_production_rule.rule.rhs[i] == non_terminal) {
         output.emplace_back(production_counter, i);
       }
     }

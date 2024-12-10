@@ -115,6 +115,9 @@ public:
   //! \brief Write an item (a production rule + bookmark) to a string.
   NO_DISCARD std::string WriteItem(const Item& item) const;
 
+  //! \brief Write a production rule to a string.
+  NO_DISCARD std::string Write(const ProductionRule& rule) const;
+
   // ======================================================
   //  Exceptions
   // ======================================================
@@ -143,9 +146,6 @@ private:
 
   //! \brief Maps non-terminals (which are numbered starting with NumTerminals
   NO_DISCARD int nonTerminalIndex(int id) const;
-
-  //! \brief Get the index of a production.
-  NO_DISCARD int getProductionIndex(const Item& item) const;
 
   //! \brief Compute the LR0 table from the grammar.
   bool computeLR0();
@@ -185,10 +185,12 @@ private:
   std::pair<StateItem, StateItem> addEdge(int state_id, int next_element, const Item& cleaned_item);
 
   //! \brief Fill out a row in the parser table.
-  void tryRuleInState(int state, const Item& rule);
+  void tryRuleInState(int state, const AnnotatedProductionRule& rule);
 
   //! \brief The LALR version of computing what actions should be reduce.
-  void tryRuleInStateLALR(int state_index, const Item& rule, const ItemFollowSet& item_follow);
+  void tryRuleInStateLALR(int state_index,
+                          const AnnotatedProductionRule& rule,
+                          const ItemFollowSet& item_follow);
 
   //! \brief Tries to find a state in all_states_. Returns -1 for failure.
   int findState(const State& items) const;
@@ -237,6 +239,9 @@ private:
   //! primarily concerned right now with just playing around and getting things to work, not making this into
   //! a full production quality product.
   std::vector<std::vector<Entry>> parse_table_;
+
+  //! \brief Resolution info for all entries in the parse table.
+  std::vector<std::vector<ResolutionInfo>> resolution_info_;
 
   //! \brief All the different states.
   std::vector<State> all_states_;

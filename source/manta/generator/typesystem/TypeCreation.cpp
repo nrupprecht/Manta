@@ -150,12 +150,12 @@ ParserTypeData& ParserDataToTypeManager::CreateRelationships(
 
   unsigned item_number = 0, generated_nodes = 0;
   auto& all_productions = parser_data->production_rules_data->all_productions;
-  for (auto& item : all_productions) {
+  for (auto& annotated_production_rule : all_productions) {
     LOG_SEV(Info) << "Processing item number " << item_number << " (" << item_number + 1 << " / "
                   << all_productions.size() << ").";
     // Check for instructions upon a reduction by this rule.
-    auto nonterminal_id    = item.produced_nonterminal;
-    auto& instructions     = item.instructions;
+    auto nonterminal_id    = annotated_production_rule.rule.produced_nonterminal;
+    auto& instructions     = annotated_production_rule.instructions;
     auto& nonterminal_name = parser_data->production_rules_data->GetNonterminalName(nonterminal_id);
     LOG_SEV(Info) << "Non-terminal's name is '" << nonterminal_name << ".";
 
@@ -227,29 +227,33 @@ ParserTypeData& ParserDataToTypeManager::CreateRelationships(
         const auto& field_commands = instructions_by_name["field"];
         LOG_SEV(Debug) << "Type " << type_name << ": " << field_commands.size() << " FIELD commands.";
         for (auto& cmd : field_commands) {
-          processFieldCommand(cmd->children, item, item_number, node_type_description);
+          processFieldCommand(cmd->children, annotated_production_rule, item_number, node_type_description);
         }
 
         // Process all the 'append' commands.
         const auto& append_commands = instructions_by_name["append"];
         LOG_SEV(Debug) << "Type " << type_name << ": " << append_commands.size() << " APPEND commands.";
         for (auto& cmd : append_commands) {
-          processAppendCommand(cmd->children, item, item_number, node_type_description);
+          processAppendCommand(cmd->children, annotated_production_rule, item_number, node_type_description);
         }
 
         // Process all the 'push' commands.
         const auto& push_commands = instructions_by_name["push"];
         LOG_SEV(Debug) << "Type " << type_name << ": " << push_commands.size() << " PUSH commands.";
         for (auto& cmd : push_commands) {
-          processPushCommand(cmd->children, item, item_number, node_type_description);
+          processPushCommand(cmd->children, annotated_production_rule, item_number, node_type_description);
         }
       }
       else {
         LOG_SEV(Debug) << "There are no FIELD, APPEND, or PUSH commands for item " << item_number << ".";
 
         // Update this so we determine the node name beforehand.
-        createGeneralNode(
-            type_name, nonterminal_id, nonterminal_name, item, nonterminals_for_type(), item_number);
+        createGeneralNode(type_name,
+                          nonterminal_id,
+                          nonterminal_name,
+                          annotated_production_rule,
+                          nonterminals_for_type(),
+                          item_number);
       }
     }
     // There are no instructions. Default to including every non-literal in the node
@@ -260,11 +264,16 @@ ParserTypeData& ParserDataToTypeManager::CreateRelationships(
       node_types_for_item()[item_number] = type_name;
       ++generated_nodes;
 
-      LOG_SEV(Debug) << "No instructions for item number " << item_number << " (production: " << item
-                     << ") creating node type named " << formatting::CLBB(type_name) << ".";
+      LOG_SEV(Debug) << "No instructions for item number " << item_number
+                     << " (production: " << annotated_production_rule.rule << ") creating node type named "
+                     << formatting::CLBB(type_name) << ".";
 
-      createGeneralNode(
-          type_name, nonterminal_id, nonterminal_name, item, nonterminals_for_type(), item_number);
+      createGeneralNode(type_name,
+                        nonterminal_id,
+                        nonterminal_name,
+                        annotated_production_rule,
+                        nonterminals_for_type(),
+                        item_number);
     }
 
     ++item_number;
@@ -669,15 +678,15 @@ void ParserDataToTypeManager::determineBaseTypes(TypeDeduction& deduction) {
 }
 
 std::tuple<int, NonterminalID, std::optional<std::string>> ParserDataToTypeManager::getSourceData(
-    const std::string& argument_string, const Item& item) const {
+    const std::string& argument_string, const ProductionRule& rule) const {
   auto segments = split(argument_string, '.');
   MANTA_ASSERT(segments.size() == 1 || segments.size() == 2,
                "argument name must be in one of the forms '$N' or '$N.<field-name>'");
   auto position = manta::stoi(segments[0]);
-  MANTA_REQUIRE(position < item.rhs.size(),
-                "trying to reference argument " << position << " but there are only " << item.rhs.size()
+  MANTA_REQUIRE(position < rule.rhs.size(),
+                "trying to reference argument " << position << " but there are only " << rule.rhs.size()
                                                 << " arguments");
-  auto referenced_type = item.rhs.at(position);
+  auto referenced_type = rule.rhs.at(position);
   if (segments.size() == 1) {
     return {position, referenced_type, {} /* No field name */};
   }
@@ -688,7 +697,7 @@ std::tuple<int, NonterminalID, std::optional<std::string>> ParserDataToTypeManag
 void ParserDataToTypeManager::createGeneralNode(const std::string& type_name,
                                                 NonterminalID nonterminal_id,
                                                 const std::string& nonterminal_name,
-                                                const Item& item,
+                                                const AnnotatedProductionRule& annotated_rule,
                                                 std::map<std::string, NonterminalID>& nonterminals_for_type,
                                                 unsigned item_number) {
   // There are no instructions. Add everything that isn't a "literal" as a field.
@@ -709,7 +718,7 @@ void ParserDataToTypeManager::createGeneralNode(const std::string& type_name,
   std::map<std::string, int> field_counts;
   std::vector<std::string> field_names;
   int index = -1;
-  for (auto referenced_type : item.rhs) {
+  for (auto referenced_type : annotated_rule.rule.rhs) {
     ++index;
     auto& name = production_rules_data_->GetName(referenced_type);
 
@@ -757,7 +766,7 @@ void ParserDataToTypeManager::createGeneralNode(const std::string& type_name,
 
   LOG_SEV(Debug) << "  * Adding all fields to type " << formatting::CLBB(type_name) << ".";
   for (auto i = 0; i < field_names.size(); ++i) {
-    auto& referenced_type = item.rhs[i];
+    auto& referenced_type = annotated_rule.rule.rhs[i];
     auto& field_name      = field_names[i];
 
     if (production_rules_data_->lexer_generator->IsReserved(field_name)) {
@@ -787,11 +796,11 @@ void ParserDataToTypeManager::createGeneralNode(const std::string& type_name,
 }
 
 void ParserDataToTypeManager::processFieldCommand(const std::vector<std::shared_ptr<ParseNode>>& arguments,
-                                                  const Item& item,
+                                                  const AnnotatedProductionRule& annotated_rule,
                                                   unsigned item_number,
                                                   TypeDescriptionStructure* node_type_description) {
-  auto nonterminal_id     = item.produced_nonterminal;
-  auto& instructions      = item.instructions;
+  auto nonterminal_id     = annotated_rule.rule.produced_nonterminal;
+  auto& instructions      = annotated_rule.instructions;
   auto&& nonterminal_name = production_rules_data_->GetNonterminalName(nonterminal_id);
 
   LOG_SEV(Debug) << "  * Processing 'field' command for non-terminal '" << nonterminal_name << "'.";
@@ -803,7 +812,7 @@ void ParserDataToTypeManager::processFieldCommand(const std::vector<std::shared_
   MANTA_ASSERT(num_args == 1 || num_args == 2, "field function needs one or two arguments, not " << num_args);
 
   std::string target_field_name {};
-  auto [position, referenced_type, source_field_name] = getSourceData(get_arg(0), item);
+  auto [position, referenced_type, source_field_name] = getSourceData(get_arg(0), annotated_rule.rule);
   LOG_SEV(Debug) << "    >> Extracted field command: [pos = " << position
                  << "] [ref type = " << referenced_type
                  << "] [src field = " << (source_field_name ? source_field_name.value() : "{}") << "]";
@@ -864,13 +873,13 @@ void ParserDataToTypeManager::processFieldCommand(const std::vector<std::shared_
 }
 
 void ParserDataToTypeManager::processAppendCommand(const std::vector<std::shared_ptr<ParseNode>>& arguments,
-                                                   const Item& item,
+                                                   const AnnotatedProductionRule& annotated_rule,
                                                    unsigned item_number,
                                                    TypeDescriptionStructure* node_type_description) {
   // Form: append($N.field_name_1, field_name_2)
 
-  auto nonterminal_id     = item.produced_nonterminal;
-  auto& instructions      = item.instructions;
+  auto nonterminal_id     = annotated_rule.rule.produced_nonterminal;
+  auto& instructions      = annotated_rule.instructions;
   auto&& nonterminal_name = production_rules_data_->GetNonterminalName(nonterminal_id);
 
   LOG_SEV(Debug) << "  * Processing 'append' command for non-terminal '" << nonterminal_name << "'.";
@@ -880,7 +889,7 @@ void ParserDataToTypeManager::processAppendCommand(const std::vector<std::shared
   MANTA_ASSERT(arguments.size() == 2, "append function needs two arguments, not " << arguments.size());
 
   std::string target_field_name {};
-  auto [position, referenced_type, source_field_name] = getSourceData(get_arg(0), item);
+  auto [position, referenced_type, source_field_name] = getSourceData(get_arg(0), annotated_rule.rule);
   MANTA_ASSERT(source_field_name,
                "append function's first argument must reference a field, item was "
                    << item_number << " for non-terminal " << nonterminal_name);
@@ -903,11 +912,11 @@ void ParserDataToTypeManager::processAppendCommand(const std::vector<std::shared
 }
 
 void ParserDataToTypeManager::processPushCommand(const std::vector<std::shared_ptr<ParseNode>>& arguments,
-                                                 const Item& item,
+                                                 const AnnotatedProductionRule& annotated_rule,
                                                  unsigned item_number,  // item_number
                                                  TypeDescriptionStructure* node_type_description) {
-  auto nonterminal_id     = item.produced_nonterminal;
-  auto& instructions      = item.instructions;
+  auto nonterminal_id     = annotated_rule.rule.produced_nonterminal;
+  auto& instructions      = annotated_rule.instructions;
   auto&& nonterminal_name = production_rules_data_->GetNonterminalName(nonterminal_id);
 
   LOG_SEV(Debug) << "  * Processing 'push' command for non-terminal '" << nonterminal_name << "'.";
@@ -917,7 +926,7 @@ void ParserDataToTypeManager::processPushCommand(const std::vector<std::shared_p
   MANTA_REQUIRE(arguments.size() == 2, "push function needs two arguments, not " << arguments.size());
 
   std::string target_field_name {};
-  auto [position, referenced_type, source_field_name] = getSourceData(get_arg(0), item);
+  auto [position, referenced_type, source_field_name] = getSourceData(get_arg(0), annotated_rule.rule);
 
   LOG_SEV(Debug) << "    >> Extracted field command: [pos = " << position
                  << "] [ref type = " << referenced_type

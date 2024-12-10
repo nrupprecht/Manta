@@ -297,16 +297,13 @@ std::shared_ptr<NodeBase_t> ParserDriverBase<NodeBase_t, LexemeNode_t, Child_t>:
 
       // REDUCTION. This is carried out by the child classes.
 
-      const auto reduction_id = action.GetRule().item_number;
-      MANTA_ASSERT(reduction_id,
-                   "reduction did not have its item number set, table entry was (state="
-                       << state << ", symbol=" << incoming_symbol << ")");
+      const auto reduction_id = action.GetAnnotatedRule().production_item_number;
       LOG_SEV_TO(logger_, Debug) << "Reducing " << collect.size() << " collected nodes using item "
-                                 << *reduction_id << " (" << CLY(naming_.WriteItem(action.GetRule())) << ")";
+                                 << reduction_id << " (" << CLY(naming_.Write(action.GetRule())) << ")";
 
       // CRTP trick - cast ourselves to the child type that we know we are, and call our reduce function.
       // This creates the node via the specific, parser defined reduction function.
-      auto production_node = static_cast<Child_t*>(this)->reduce(*reduction_id, collect);
+      auto production_node = static_cast<Child_t*>(this)->reduce(reduction_id, collect);
 
       // Clear collection vector.
       collect.clear();

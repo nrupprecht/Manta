@@ -47,9 +47,8 @@ constexpr ResolutionInfo NullResolutionInfo {};
 
 //! \brief Encode a production rule, like A -> a X b, etc.
 struct ProductionRule {
-  explicit ProductionRule(NonterminalID production, int label, const std::vector<int> rhs = {})
+  explicit ProductionRule(NonterminalID production, const std::vector<int> rhs = {})
       : produced_nonterminal(production)
-      , production_item_number(label)
       , rhs(rhs) {}
 
   //! \brief Create an empty production rule.
@@ -79,6 +78,15 @@ struct ProductionRule {
     return {rhs.data() + start, rhs.size() - start};
   }
 
+
+  friend std::ostream& operator<<(std::ostream& out, const ProductionRule& rule) {
+    out << rule.produced_nonterminal << " ->";
+    for (int i = 0; i < rule.Size(); ++i) {
+      out << " " << rule.rhs[i];
+    }
+    return out;
+  }
+
   // --- Data items ---
 
   // NOTE(Nate): Check how production and production_label differ - can we consolidate?
@@ -87,21 +95,8 @@ struct ProductionRule {
   //!        production rule.
   NonterminalID produced_nonterminal = -1;
 
-  //! \brief A number for the production, i.e. this is the n-th item.
-  ItemID production_item_number {};
-
   //! \brief The right hand side of the production.
   std::vector<int> rhs;
-
-  //! \brief Instructions associated with the state.
-  //!
-  //! TODO: Keep these in a better, dedicated structure.
-  std::shared_ptr<class ParseNode> instructions = nullptr;
-
-  //! \brief Resolution info, this encodes the precedence and associativity of a  production.
-  //!
-  //! This is actualized by resolving shift/reduce conflicts such that parsing works.
-  ResolutionInfo res_info;
 };
 
 //! \brief Encodes state items like A -> a * X b, etc.
@@ -110,14 +105,18 @@ struct ProductionRule {
 //! A state is a set of state items.
 // TODO: Change Item to be a pointer to a production rule, plus a bookmark.
 struct Item : ProductionRule {
-  Item(NonterminalID production,
-       int label,
-       int bookmark                        = 0,
-       const std::vector<int>& rhs         = {},
-       std::optional<unsigned> item_number = {})
-      : ProductionRule(production, label, rhs)
+  explicit Item(NonterminalID production,
+                unsigned item_number,
+                int bookmark                = 0,
+                const std::vector<int>& rhs = {})
+      : ProductionRule(production, rhs)
       , item_number(item_number)
       , bookmark(bookmark) {}
+
+  explicit Item(const ProductionRule& rule, unsigned item_number, int bookmark = 0)
+      : ProductionRule(rule)
+      , bookmark(bookmark)
+      , item_number(item_number) {}
 
   //! \brief Create an empty item.
   Item() = default;
@@ -136,9 +135,6 @@ struct Item : ProductionRule {
   //!        returns nullopt.
   std::optional<Item> AdvanceDot() const;
 
-  //! \brief Make a new identical Item without any instructions or resolution info
-  Item WithoutInstructions() const;
-
   //! \brief If the bookmark is at the end, returns {}, otherwise, returns the terminal or nonterminal
   //!        immediately following the bookmark.
   std::optional<int> GetElementFollowingBookmark() const;
@@ -152,8 +148,9 @@ struct Item : ProductionRule {
   //  Data
   // =====================================================================================
 
-  //! \brief What the item number for this item is. Used e.g. to find the correct item reduction function.
-  std::optional<ItemID> item_number {};
+  //! \brief What the production number for this item is. Used e.g. to find the correct item reduction
+  //!        function, resolution info, etc.
+  ItemID item_number;
 
   //! \brief The location of the bookmark.
   //!
@@ -187,19 +184,55 @@ struct State {
   std::set<Item>::iterator find(const Item& item);
   friend bool operator==(const State& s1, const State& s2);
 
-  //! \brief True if there exists an Item in the set that is a null production, A -> null
-  bool has_null_production = false;
-
   //! \brief The underlying set of items.
   std::set<Item> item_set;
 };
 
+//! \brief A production rule along with additional information related to parsing.
+struct AnnotatedProductionRule {
+  AnnotatedProductionRule(const ProductionRule& rule, ItemID production_number)
+      : rule(rule)
+      , production_item_number(production_number) {}
+
+  ProductionRule rule;
+
+  //! \brief A number for the production, i.e. this is the n-th item.
+  ItemID production_item_number {};
+
+  //! \brief Instructions associated with the state.
+  //!
+  //! TODO: Keep these in a better, dedicated structure.
+  std::shared_ptr<class ParseNode> instructions = nullptr;
+
+  //! \brief Resolution info, this encodes the precedence and associativity of a  production.
+  //!
+  //! This is actualized by resolving shift/reduce conflicts such that parsing works.
+  ResolutionInfo res_info;
+
+  Item MakeReducibleForm() const { return Item(rule, production_item_number, rule.Size()); }
+
+  Item MakeFreshItem() const { return Item(rule, production_item_number); }
+
+  auto operator<=>(const AnnotatedProductionRule& other) const { return rule <=> other.rule; }
+};
+
+class AnnotatedProductionSet : public std::set<AnnotatedProductionRule> {
+public:
+  State ToState() const {
+    State out;
+    for (const auto& annotated_production_rule : *this) {
+      out.item_set.emplace(annotated_production_rule.rule, annotated_production_rule.production_item_number);
+    }
+    return out;
+  }
+};
+
 //! \brief Table entry action types.
 enum class Action {
-  ERROR,
-  SHIFT,
-  REDUCE,
-  ACCEPT
+  ERROR  = 0,
+  SHIFT  = 1,
+  REDUCE = 2,
+  ACCEPT = 3,
 };
 
 //! \brief Write an action as a string.
@@ -230,15 +263,46 @@ inline void format_logstream(const Action action, lightning::RefBundle& handler)
 //! 1 - Shift.
 //! 2 - Reduce.
 //! 3 - Accept.
-struct Entry {
+class Entry {
+private:
+  struct ErrorState {
+    auto operator<=>(const ErrorState&) const = default;
+  };
+  struct ShiftState {
+    //! \brief Resolution info for the shift.
+    ResolutionInfo res_info;
+
+    //! \brief The state to transition to.
+    StateID state = 0;
+
+    auto operator<=>(const ShiftState& other) const { return state <=> other.state; }
+  };
+  struct ReduceState {
+    //! \brief The reduce rule (if applicable).
+    AnnotatedProductionRule annotated_rule;
+
+    //! \brief The state to transition to.
+    // StateID state = 0;
+    auto operator<=>(const ReduceState& other) const {
+      return annotated_rule.rule <=> other.annotated_rule.rule;
+    }
+  };
+  struct AcceptState {
+    auto operator<=>(const AcceptState&) const = default;
+  };
+
+public:
   //! Create entry as an error
   Entry();
 
-  //! Create entry as a shift.
-  explicit Entry(int s, const ResolutionInfo& res_info = ResolutionInfo {});
+  //! \brief Create entry as a shift.
+  explicit Entry(StateID s, const ResolutionInfo& res_info = ResolutionInfo {});
 
-  //! Create entry as a reduce.
-  explicit Entry(Item r);
+  //! \brief Create entry as a reduce.
+  explicit Entry(AnnotatedProductionRule annotated_production_rule);
+
+  //! \brief Create entry as a reduce.
+  explicit Entry(ProductionRule rule, ItemID reduction_id);
 
   //! \brief Create entry as an accept.
   explicit Entry(bool);
@@ -249,23 +313,58 @@ struct Entry {
   bool IsAccept() const;
 
   //! \brief Get the ResolutionInfo for the production rule associated with this entry.
-  const ResolutionInfo& GetResInfo() const { return rule.res_info; }
-  Action GetAction() const { return action; }
-  StateID GetState() const { return state; }
-  const Item& GetRule() const { return rule; }
+  const ResolutionInfo& GetResInfo() const {
+    if (GetAction() == Action::SHIFT) {
+      return std::get<ShiftState>(state_).res_info;
+    }
+    if (GetAction() == Action::REDUCE) {
+      return std::get<ReduceState>(state_).annotated_rule.res_info;
+    }
+    MANTA_FAIL("cannot get the resolution info from an entry that is not SHIFT or REDUCE");
+  }
+
+  Action GetAction() const { return static_cast<Action>(state_.index()); }
+
+  StateID GetState() const {
+    MANTA_REQUIRE(GetAction() == Action::SHIFT, "cannot get the transition state from a non-shift entry");
+    // Or reduce?
+    return std::get<ShiftState>(state_).state;
+  }
+
+  const ProductionRule& GetRule() const { return GetAnnotatedRule().rule; }
+
+  const AnnotatedProductionRule& GetAnnotatedRule() const {
+    MANTA_REQUIRE(GetAction() == Action::REDUCE, "cannot get the rule from a non-reduce entry");
+    return std::get<ReduceState>(state_).annotated_rule;
+  }
+
   std::string Write(int length) const;
+
+  auto operator<=>(const Entry& rhs) const {
+    if (GetAction() != rhs.GetAction()) {
+      return GetAction() <=> rhs.GetAction();
+    }
+    switch (GetAction()) {
+      case Action::ERROR:
+        return std::get<ErrorState>(state_) <=> std::get<ErrorState>(rhs.state_);
+      case Action::SHIFT:
+        return std::get<ShiftState>(state_) <=> std::get<ShiftState>(rhs.state_);
+      case Action::REDUCE:
+        return std::get<ReduceState>(state_) <=> std::get<ReduceState>(rhs.state_);
+      case Action::ACCEPT:
+        return std::get<AcceptState>(state_) <=> std::get<AcceptState>(rhs.state_);
+      default:
+        MANTA_FAIL("impossible");
+    }
+  }
+
+  auto operator==(const Entry& rhs) const { return *this <=> rhs == 0; }
+  auto operator!=(const Entry& rhs) const { return !(*this == rhs); }
+
   friend std::ostream& operator<<(std::ostream&, const Entry&);
-  bool operator==(const Entry& rhs) const;
 
 private:
-  //! \brief The action.
-  Action action = Action::ERROR;
-
-  //! \brief The state to transition to.
-  StateID state = 0;
-
-  //! \brief The reduce rule (if applicable).
-  Item rule;
+  std::variant<ErrorState, ShiftState, ReduceState, AcceptState> state_;
 };
 
 inline void format_logstream(const Entry& entry, lightning::RefBundle& handler) {

@@ -152,8 +152,8 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
 
   // >>> Write printing visitor
   // code_out << "\n";
-  //codegen.WriteDefinition(code_out, printing_visitor);
-  //code_out << "\n";
+  // codegen.WriteDefinition(code_out, printing_visitor);
+  // code_out << "\n";
 
   std::string parser_class_name = "Parser";
 
@@ -189,9 +189,8 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
       code_out << "  std::shared_ptr<" << node_type_name << ">\n";
       code_out << "  ReduceTo_" + node_type_name << "_ViaItem_" << item_number << "(";
       auto i = 0;
-      LOG_SEV(Debug) << "Writing declaration for item " << item_number << ": "
-                     << CLBG(to_string(item, false));
-      for (auto id : item.rhs) {
+      LOG_SEV(Debug) << "Writing declaration for item " << item_number << ".";
+      for (auto id : item.rule.rhs) {
         if (i != 0) code_out << ",";
         if (parser_data->production_rules_data->IsNonTerminal(id)) {
           // Get the base type for this non-terminal.
@@ -214,9 +213,9 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
 
   // Create item numbers.
 
-  std::map<Item, unsigned> item_numbers;
+  std::map<ProductionRule, unsigned> item_numbers;
   for (auto& item : parser_data->production_rules_data->all_productions) {
-    item_numbers.emplace(item, item_numbers.size());
+    item_numbers.emplace(item.rule, item_numbers.size());
   }
 
   // Note - making this function inline, since right now, these definitions are going into the header.
@@ -228,6 +227,9 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
            << parser_data->parse_table[0].size() << ","
            << "Entry()"
            << "));\n\n";
+
+  // TODO: Serialize this in a better way.
+
   code_out << "  // Create the table. There are better, though more difficult, "
               "ways to serialize this information.\n";
   auto row_it = 0u;
@@ -237,17 +239,17 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
       if (!entry.IsError()) {
         code_out << "  parse_table_[" << row_it << "][" << col_it << "] = ";
         if (entry.IsReduce()) {
-          auto& item = entry.GetRule();
+          auto& annotated_production_rule = entry.GetAnnotatedRule();
 
           // Look up the item number.
-          auto item_number = item_numbers.at(item);
+          auto item_number = annotated_production_rule.production_item_number;
 
-          code_out << "Entry(Item(" << item.produced_nonterminal << ", " << *item.item_number << ", 0, {";
-          for (auto i = 0u; i < item.rhs.size(); ++i) {
+          code_out << "Entry(ProductionRule(" << annotated_production_rule.rule.produced_nonterminal << ", {";
+          for (auto i = 0u; i < annotated_production_rule.rule.rhs.size(); ++i) {
             if (i != 0) code_out << ", ";
-            code_out << item.rhs[i];
+            code_out << annotated_production_rule.rule.rhs[i];
           }
-          code_out << "}, " << item_number << "));  // Reduce\n";
+          code_out << "}), " << item_number << ");  // Reduce\n";
         }
         else if (entry.IsShift()) {
           code_out << "Entry(" << entry.GetState() << ");  // Shift\n";
@@ -332,14 +334,14 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
     unsigned item_number = 0u;
 
     code_out << "  switch (reduction_id) {\n";
-    for (auto& item : parser_data->production_rules_data->all_productions) {
+    for (auto& annotated_production_rule : parser_data->production_rules_data->all_productions) {
       // TODO: Sanitize names.
 
       const auto& node_type_name = node_types_for_item.at(item_number);
       code_out << "    case " << item_number << ": {\n";
 
       // Make sure there are enough nodes in the collect vector.
-      code_out << "      REDUCE_ASSERT(" << item.rhs.size() << ", " << item_number
+      code_out << "      REDUCE_ASSERT(" << annotated_production_rule.rule.rhs.size() << ", " << item_number
                << ", collected_nodes.size());\n";
 
       //      code_out << "      MANTA_REQUIRE(" << item.rhs.size() << " <= collected_nodes.size(), \"in
@@ -351,7 +353,7 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
                << "'.\";\n";
       code_out << "      return " << function_name << "(";
       auto i = 0;
-      for (auto id : item.rhs) {
+      for (auto id : annotated_production_rule.rule.rhs) {
         if (i != 0) code_out << ",";
         if (parser_data->production_rules_data->IsNonTerminal(id)) {
           // Get the base type for this non-terminal.
@@ -381,7 +383,7 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
 
   {
     unsigned item_number = 0u;
-    for (const auto& item : parser_data->production_rules_data->all_productions) {
+    for (const auto& annotated_production_rule : parser_data->production_rules_data->all_productions) {
       const auto& node_type_name = node_types_for_item.at(item_number);
 
       // Note - making this function inline, since right now, these definitions are going into the header.
@@ -397,7 +399,7 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
       // Arguments.
       auto i = 0;
       LOG_SEV(Debug) << "Creating function arguments.";
-      for (auto id : item.rhs) {
+      for (auto id : annotated_production_rule.rule.rhs) {
         LOG_SEV(Debug) << "Looking at element " << i << " in the production, id = " << id << ".";
         if (i != 0) {
           code_out << ",";
@@ -661,7 +663,8 @@ TypeDescriptionStructure* ParserCodegen::createVisitorFromTemplate(
 
   // Invert the node_types_for_item data, grouping items by node type.
   // Store by name instead of pointers so the order is deterministic.
-  std::map<std::string, std::pair<const TypeDescriptionStructure*, std::vector<unsigned>>> node_types_to_items;
+  std::map<std::string, std::pair<const TypeDescriptionStructure*, std::vector<unsigned>>>
+      node_types_to_items;
   for (auto& [item_id, structure_type] : node_types_for_item) {
     auto& rec = node_types_to_items[structure_type->type_name];
     rec.first = structure_type;
@@ -683,7 +686,7 @@ TypeDescriptionStructure* ParserCodegen::createVisitorFromTemplate(
       continue;
     }
     auto& rec = code_for_items[structure_type->type_name];
-    rec.type = structure_type;
+    rec.type  = structure_type;
     rec.code.emplace_back(item_id, it->second);
   }
 

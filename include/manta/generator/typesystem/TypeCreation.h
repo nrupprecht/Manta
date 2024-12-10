@@ -95,27 +95,27 @@ private:
   void determineBaseTypes(TypeDeduction& deduction);
 
   std::tuple<int, NonterminalID, std::optional<std::string>> getSourceData(const std::string& argument_string,
-                                                                           const Item& item) const;
+                                                                           const ProductionRule& item) const;
 
   void createGeneralNode(const std::string& node_type_name,
                          NonterminalID nonterminal_id,
                          const std::string& nonterminal_name,
-                         const Item& item,
+                         const AnnotatedProductionRule& annotated_rule,
                          std::map<std::string, NonterminalID>& nonterminals_for_type,
                          unsigned item_number);
 
   void processFieldCommand(const std::vector<std::shared_ptr<ParseNode>>& arguments,
-                           const Item& item,
+                           const AnnotatedProductionRule& annotated_rule,
                            unsigned item_number,
                            TypeDescriptionStructure* node_type_description);
 
   void processAppendCommand(const std::vector<std::shared_ptr<ParseNode>>& arguments,
-                            const Item& item,
+                            const AnnotatedProductionRule& annotated_rule,
                             unsigned item_number,
                             TypeDescriptionStructure* node_type_description);
 
   void processPushCommand(const std::vector<std::shared_ptr<ParseNode>>& arguments,
-                          const Item& item,
+                          const AnnotatedProductionRule& annotated_rule,
                           unsigned,  // item_number
                           TypeDescriptionStructure* node_type_description);
 

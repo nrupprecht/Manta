@@ -48,7 +48,7 @@ struct NamingUtility {
     return GetNonterminalName(id);
   }
 
-  std::string WriteItem(const Item& item) const {
+  std::string Write(const Item& item) const {
     // This may be a null production, just a placeholder for a shift.
     if (item.produced_nonterminal < 0) {
       return "";
@@ -64,6 +64,20 @@ struct NamingUtility {
     }
     if (j == item.bookmark) {
       output += "*";
+    }
+    return output;
+  }
+
+  std::string Write(const ProductionRule& item) const {
+    // This may be a null production, just a placeholder for a shift.
+    if (item.produced_nonterminal < 0) {
+      return "";
+    }
+    std::string output = GetPrettyName(item.produced_nonterminal) + " -> ";
+    int j              = 0;
+    for (auto symbol : item.rhs) {
+      output += GetPrettyName(symbol) + " ";
+      ++j;
     }
     return output;
   }

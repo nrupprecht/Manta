@@ -4,10 +4,11 @@
 
 #pragma once
 
-#include "manta/generator/LexerGenerator.h"
-#include "manta/utility/ParserUtility.hpp"
 #include <deque>
 #include <stack>
+
+#include "manta/generator/LexerGenerator.h"
+#include "manta/utility/ParserUtility.hpp"
 
 namespace manta {
 
@@ -58,11 +59,11 @@ struct ProductionRulesData {
 
   // TODO: Do we need to do anything to keep track of support non-terminals?
 
-  //! \brief The productions for each non-terminal. A State (here) is essentially a set of production rules.
-  std::map<NonterminalID, State> productions_for;
+  //! \brief The productions for each non-terminal.
+  std::map<NonterminalID, AnnotatedProductionSet> productions_for;
 
   //! \brief All the productions, for all non-terminals.
-  std::vector<Item> all_productions;
+  std::vector<AnnotatedProductionRule> all_productions;
 
   //! \brief Whether a non-terminal can derive empty.
   std::vector<bool> nonterminal_derives_empty;
@@ -135,7 +136,7 @@ struct ProductionRulesData {
     }
     std::string output = GetPrettyName(item.produced_nonterminal) + " -> ";
     int j              = 0;
-    for (auto symbol : item.rhs) {
+    for (const auto symbol : item.rhs) {
       if (j == item.bookmark) {
         output += "* ";
       }
@@ -144,6 +145,20 @@ struct ProductionRulesData {
     }
     if (j == item.bookmark) {
       output += "*";
+    }
+    return output;
+  }
+
+  std::string Write(const ProductionRule& rule) const {
+    // This may be a null production, just a placeholder for a shift.
+    if (rule.produced_nonterminal < 0) {
+      return "";
+    }
+    std::string output = GetPrettyName(rule.produced_nonterminal) + " -> ";
+    int j              = 0;
+    for (const auto symbol : rule.rhs) {
+      output += GetPrettyName(symbol) + " ";
+      ++j;
     }
     return output;
   }
@@ -177,17 +192,16 @@ public:
 
   //! \brief Get the name of a nonterminal by its ID.
   std::optional<std::string> GetProductionName(NonterminalID id) const;
+
 protected:
-  //! \brief Get the production number associated with a production name, registering it if it has not already
+  //! \brief Get the non-terminal id associated with a non-terminal name, registering it if it has not already
   //!        been registered.
-  NonterminalID registerProduction(const std::string& production);
+  NonterminalID registerNonterminal(const std::string& production);
 
-  //! \brief Register a production whose productions are being defined.
-  NonterminalID registerProductionDefinition(const std::string& production);
+  //! \brief Register a non-terminal whose productions are being defined.
+  NonterminalID registerNonterminalDefinition(const std::string& production);
 
-  void addToProduction(int id) {
-    current_item_.AddToProduction(id);
-  }
+  void addToProduction(int id) { getCurrentProduction().rule.AddToProduction(id); }
 
   //! \brief Create a new helper nonterminal.
   NonterminalID createHelperNonterminal(NonterminalID parent_id);
@@ -204,7 +218,7 @@ protected:
 
   //! \brief Generate an item with the next production label, sets the current_item_ to be this new item.
   //!        Also generates a new current_instructions_.
-  Item& makeNextItem();
+  void makeNextProductionRule();
 
   //! \brief Store the current, completed item.
   void storeCurrentItem();
@@ -232,12 +246,12 @@ protected:
   //! \brief Get the instructions node for the current item.
   ParseNode& getCurrentInstructions() const;
 
-  std::string getCurrentProduction() const;
+  AnnotatedProductionRule& getCurrentProduction();
+  const AnnotatedProductionRule& getCurrentProduction() const;
+
+  std::string getCurrentProductionName() const;
 
   int getCurrentProductionID() const;
-
-  //! \brief The current item being built.
-  Item current_item_ {};
 
   //! \brief Keep track of the next production item's ID.
   ItemID item_number_ = 0;
@@ -257,7 +271,7 @@ protected:
 
   //! \brief Items currently being constructed. There will be more than one item in the stack if there are
   //!        special patterns in the grammar, like optional or repeating patterns.
-  std::stack<Item> item_stack_ {};
+  std::stack<AnnotatedProductionRule> productions_stack_ {};
 };
 
 //! \brief Class that can parse the description of a lexer and a parser from a stream.
@@ -292,10 +306,10 @@ private:
   void getProductions(std::istream& in);
 
   //! \brief Find the conflict resolution info for a production.
-  void findResInfo(std::istream& in, ResolutionInfo& res_info);
+  void findResInfo(std::istream& in);
 
   //! \brief Get the instruction for a production.
-  void getInstructions(std::istream& fin);
+  void getInstructions(std::istream& in);
 
   //! \brief Get additional data, including visitor related data and module import data.
   void getData(std::istream& in);

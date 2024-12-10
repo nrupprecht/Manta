@@ -1602,18 +1602,18 @@ inline Parser::Parser() {
   parse_table_[1][37] = Entry(4);  // Shift
   parse_table_[2][15] = Entry(3);  // Shift
   parse_table_[2][37] = Entry(5);  // Shift
-  parse_table_[3][0] = Entry(Item(37, 4, 0, {15}, 4));  // Reduce
-  parse_table_[3][1] = Entry(Item(37, 4, 0, {15}, 4));  // Reduce
-  parse_table_[3][3] = Entry(Item(37, 4, 0, {15}, 4));  // Reduce
-  parse_table_[3][15] = Entry(Item(37, 4, 0, {15}, 4));  // Reduce
-  parse_table_[3][18] = Entry(Item(37, 4, 0, {15}, 4));  // Reduce
-  parse_table_[3][19] = Entry(Item(37, 4, 0, {15}, 4));  // Reduce
-  parse_table_[3][20] = Entry(Item(37, 4, 0, {15}, 4));  // Reduce
-  parse_table_[3][21] = Entry(Item(37, 4, 0, {15}, 4));  // Reduce
-  parse_table_[3][31] = Entry(Item(37, 4, 0, {15}, 4));  // Reduce
-  parse_table_[3][32] = Entry(Item(37, 4, 0, {15}, 4));  // Reduce
-  parse_table_[3][33] = Entry(Item(37, 4, 0, {15}, 4));  // Reduce
-  parse_table_[3][34] = Entry(Item(37, 4, 0, {15}, 4));  // Reduce
+  parse_table_[3][0] = Entry(ProductionRule(37, {15}), 4);  // Reduce
+  parse_table_[3][1] = Entry(ProductionRule(37, {15}), 4);  // Reduce
+  parse_table_[3][3] = Entry(ProductionRule(37, {15}), 4);  // Reduce
+  parse_table_[3][15] = Entry(ProductionRule(37, {15}), 4);  // Reduce
+  parse_table_[3][18] = Entry(ProductionRule(37, {15}), 4);  // Reduce
+  parse_table_[3][19] = Entry(ProductionRule(37, {15}), 4);  // Reduce
+  parse_table_[3][20] = Entry(ProductionRule(37, {15}), 4);  // Reduce
+  parse_table_[3][21] = Entry(ProductionRule(37, {15}), 4);  // Reduce
+  parse_table_[3][31] = Entry(ProductionRule(37, {15}), 4);  // Reduce
+  parse_table_[3][32] = Entry(ProductionRule(37, {15}), 4);  // Reduce
+  parse_table_[3][33] = Entry(ProductionRule(37, {15}), 4);  // Reduce
+  parse_table_[3][34] = Entry(ProductionRule(37, {15}), 4);  // Reduce
   parse_table_[4][1] = Entry(6);  // Shift
   parse_table_[4][15] = Entry(7);  // Shift
   parse_table_[4][19] = Entry(8);  // Shift
@@ -1625,30 +1625,30 @@ inline Parser::Parser() {
   parse_table_[5][20] = Entry(13);  // Shift
   parse_table_[5][38] = Entry(14);  // Shift
   parse_table_[6][2] = Entry(15);  // Shift
-  parse_table_[7][0] = Entry(Item(37, 3, 0, {37, 15}, 3));  // Reduce
-  parse_table_[7][1] = Entry(Item(37, 3, 0, {37, 15}, 3));  // Reduce
-  parse_table_[7][3] = Entry(Item(37, 3, 0, {37, 15}, 3));  // Reduce
-  parse_table_[7][15] = Entry(Item(37, 3, 0, {37, 15}, 3));  // Reduce
-  parse_table_[7][18] = Entry(Item(37, 3, 0, {37, 15}, 3));  // Reduce
-  parse_table_[7][19] = Entry(Item(37, 3, 0, {37, 15}, 3));  // Reduce
-  parse_table_[7][20] = Entry(Item(37, 3, 0, {37, 15}, 3));  // Reduce
-  parse_table_[7][21] = Entry(Item(37, 3, 0, {37, 15}, 3));  // Reduce
-  parse_table_[7][31] = Entry(Item(37, 3, 0, {37, 15}, 3));  // Reduce
-  parse_table_[7][32] = Entry(Item(37, 3, 0, {37, 15}, 3));  // Reduce
-  parse_table_[7][33] = Entry(Item(37, 3, 0, {37, 15}, 3));  // Reduce
-  parse_table_[7][34] = Entry(Item(37, 3, 0, {37, 15}, 3));  // Reduce
+  parse_table_[7][0] = Entry(ProductionRule(37, {37, 15}), 3);  // Reduce
+  parse_table_[7][1] = Entry(ProductionRule(37, {37, 15}), 3);  // Reduce
+  parse_table_[7][3] = Entry(ProductionRule(37, {37, 15}), 3);  // Reduce
+  parse_table_[7][15] = Entry(ProductionRule(37, {37, 15}), 3);  // Reduce
+  parse_table_[7][18] = Entry(ProductionRule(37, {37, 15}), 3);  // Reduce
+  parse_table_[7][19] = Entry(ProductionRule(37, {37, 15}), 3);  // Reduce
+  parse_table_[7][20] = Entry(ProductionRule(37, {37, 15}), 3);  // Reduce
+  parse_table_[7][21] = Entry(ProductionRule(37, {37, 15}), 3);  // Reduce
+  parse_table_[7][31] = Entry(ProductionRule(37, {37, 15}), 3);  // Reduce
+  parse_table_[7][32] = Entry(ProductionRule(37, {37, 15}), 3);  // Reduce
+  parse_table_[7][33] = Entry(ProductionRule(37, {37, 15}), 3);  // Reduce
+  parse_table_[7][34] = Entry(ProductionRule(37, {37, 15}), 3);  // Reduce
   parse_table_[8][3] = Entry(16);  // Shift
   parse_table_[9][15] = Entry(3);  // Shift
   parse_table_[9][37] = Entry(17);  // Shift
-  parse_table_[10][15] = Entry(Item(41, 7, 0, {42}, 7));  // Reduce
-  parse_table_[11][15] = Entry(Item(42, 8, 0, {43}, 8));  // Reduce
-  parse_table_[12][15] = Entry(Item(42, 9, 0, {44}, 9));  // Reduce
+  parse_table_[10][15] = Entry(ProductionRule(41, {42}), 7);  // Reduce
+  parse_table_[11][15] = Entry(ProductionRule(42, {43}), 8);  // Reduce
+  parse_table_[12][15] = Entry(ProductionRule(42, {44}), 9);  // Reduce
   parse_table_[13][15] = Entry(3);  // Shift
   parse_table_[13][37] = Entry(18);  // Shift
   parse_table_[14][15] = Entry(3);  // Shift
   parse_table_[14][37] = Entry(19);  // Shift
   parse_table_[15][5] = Entry(20);  // Shift
-  parse_table_[16][15] = Entry(Item(44, 11, 0, {19, 3}, 11));  // Reduce
+  parse_table_[16][15] = Entry(ProductionRule(44, {19, 3}), 11);  // Reduce
   parse_table_[17][1] = Entry(6);  // Shift
   parse_table_[17][15] = Entry(7);  // Shift
   parse_table_[17][18] = Entry(21);  // Shift
@@ -1659,23 +1659,23 @@ inline Parser::Parser() {
   parse_table_[18][15] = Entry(7);  // Shift
   parse_table_[18][21] = Entry(23);  // Shift
   parse_table_[18][45] = Entry(24);  // Shift
-  parse_table_[19][0] = Entry(Item(39, 2, 0, {}, 2));  // Reduce
+  parse_table_[19][0] = Entry(ProductionRule(39, {}), 2);  // Reduce
   parse_table_[19][15] = Entry(7);  // Shift
   parse_table_[19][31] = Entry(25);  // Shift
   parse_table_[19][39] = Entry(26);  // Shift
   parse_table_[19][40] = Entry(27);  // Shift
-  parse_table_[20][15] = Entry(Item(43, 10, 0, {1, 2, 5}, 10));  // Reduce
-  parse_table_[21][0] = Entry(Item(36, 5, 0, {17, 37, 41, 37, 18}, 5));  // Reduce
-  parse_table_[21][15] = Entry(Item(36, 5, 0, {17, 37, 41, 37, 18}, 5));  // Reduce
-  parse_table_[22][15] = Entry(Item(41, 6, 0, {41, 37, 42}, 6));  // Reduce
+  parse_table_[20][15] = Entry(ProductionRule(43, {1, 2, 5}), 10);  // Reduce
+  parse_table_[21][0] = Entry(ProductionRule(36, {17, 37, 41, 37, 18}), 5);  // Reduce
+  parse_table_[21][15] = Entry(ProductionRule(36, {17, 37, 41, 37, 18}), 5);  // Reduce
+  parse_table_[22][15] = Entry(ProductionRule(41, {41, 37, 42}), 6);  // Reduce
   parse_table_[23][3] = Entry(28);  // Shift
   parse_table_[24][15] = Entry(3);  // Shift
   parse_table_[24][37] = Entry(29);  // Shift
   parse_table_[25][15] = Entry(3);  // Shift
   parse_table_[25][37] = Entry(30);  // Shift
   parse_table_[26][0] = Entry(31);  // Shift
-  parse_table_[27][0] = Entry(Item(39, 1, 0, {40}, 1));  // Reduce
-  parse_table_[28][15] = Entry(Item(45, 13, 0, {21, 3}, 13));  // Reduce
+  parse_table_[27][0] = Entry(ProductionRule(39, {40}), 1);  // Reduce
+  parse_table_[28][15] = Entry(ProductionRule(45, {21, 3}), 13);  // Reduce
   parse_table_[29][3] = Entry(32);  // Shift
   parse_table_[29][15] = Entry(7);  // Shift
   parse_table_[29][46] = Entry(33);  // Shift
@@ -1689,20 +1689,20 @@ inline Parser::Parser() {
   parse_table_[30][63] = Entry(40);  // Shift
   parse_table_[30][64] = Entry(41);  // Shift
   parse_table_[30][65] = Entry(42);  // Shift
-  parse_table_[31][0] = Entry(Item(35, 0, 0, {36, 37, 38, 37, 39, 0}, 0));  // Reduce
+  parse_table_[31][0] = Entry(ProductionRule(35, {36, 37, 38, 37, 39, 0}), 0);  // Reduce
   parse_table_[32][22] = Entry(43);  // Shift
   parse_table_[33][15] = Entry(3);  // Shift
   parse_table_[33][37] = Entry(44);  // Shift
-  parse_table_[34][15] = Entry(Item(46, 15, 0, {47}, 15));  // Reduce
+  parse_table_[34][15] = Entry(ProductionRule(46, {47}), 15);  // Reduce
   parse_table_[35][11] = Entry(45);  // Shift
   parse_table_[36][3] = Entry(46);  // Shift
   parse_table_[37][3] = Entry(47);  // Shift
   parse_table_[38][15] = Entry(3);  // Shift
   parse_table_[38][37] = Entry(48);  // Shift
-  parse_table_[39][15] = Entry(Item(61, 47, 0, {62}, 47));  // Reduce
-  parse_table_[40][15] = Entry(Item(62, 48, 0, {63}, 48));  // Reduce
-  parse_table_[41][15] = Entry(Item(62, 49, 0, {64}, 49));  // Reduce
-  parse_table_[42][15] = Entry(Item(62, 50, 0, {65}, 50));  // Reduce
+  parse_table_[39][15] = Entry(ProductionRule(61, {62}), 47);  // Reduce
+  parse_table_[40][15] = Entry(ProductionRule(62, {63}), 48);  // Reduce
+  parse_table_[41][15] = Entry(ProductionRule(62, {64}), 49);  // Reduce
+  parse_table_[42][15] = Entry(ProductionRule(62, {65}), 50);  // Reduce
   parse_table_[43][1] = Entry(49);  // Shift
   parse_table_[43][3] = Entry(50);  // Shift
   parse_table_[43][6] = Entry(51);  // Shift
@@ -1715,7 +1715,7 @@ inline Parser::Parser() {
   parse_table_[44][15] = Entry(7);  // Shift
   parse_table_[44][18] = Entry(57);  // Shift
   parse_table_[44][47] = Entry(58);  // Shift
-  parse_table_[45][15] = Entry(Item(63, 51, 0, {32, 11}, 51));  // Reduce
+  parse_table_[45][15] = Entry(ProductionRule(63, {32, 11}), 51);  // Reduce
   parse_table_[46][12] = Entry(59);  // Shift
   parse_table_[47][30] = Entry(60);  // Shift
   parse_table_[48][15] = Entry(7);  // Shift
@@ -1727,71 +1727,71 @@ inline Parser::Parser() {
   parse_table_[48][63] = Entry(40);  // Shift
   parse_table_[48][64] = Entry(41);  // Shift
   parse_table_[48][65] = Entry(42);  // Shift
-  parse_table_[49][1] = Entry(Item(55, 26, 0, {1}, 26));  // Reduce
-  parse_table_[49][2] = Entry(Item(55, 26, 0, {1}, 26));  // Reduce
-  parse_table_[49][3] = Entry(Item(55, 26, 0, {1}, 26));  // Reduce
-  parse_table_[49][6] = Entry(Item(55, 26, 0, {1}, 26));  // Reduce
-  parse_table_[49][7] = Entry(Item(55, 26, 0, {1}, 26));  // Reduce
-  parse_table_[49][9] = Entry(Item(55, 26, 0, {1}, 26));  // Reduce
-  parse_table_[49][15] = Entry(Item(55, 26, 0, {1}, 26));  // Reduce
-  parse_table_[49][22] = Entry(Item(55, 26, 0, {1}, 26));  // Reduce
-  parse_table_[50][1] = Entry(Item(55, 24, 0, {3}, 24));  // Reduce
-  parse_table_[50][2] = Entry(Item(55, 24, 0, {3}, 24));  // Reduce
-  parse_table_[50][3] = Entry(Item(55, 24, 0, {3}, 24));  // Reduce
-  parse_table_[50][6] = Entry(Item(55, 24, 0, {3}, 24));  // Reduce
-  parse_table_[50][7] = Entry(Item(55, 24, 0, {3}, 24));  // Reduce
-  parse_table_[50][9] = Entry(Item(55, 24, 0, {3}, 24));  // Reduce
-  parse_table_[50][15] = Entry(Item(55, 24, 0, {3}, 24));  // Reduce
-  parse_table_[50][22] = Entry(Item(55, 24, 0, {3}, 24));  // Reduce
-  parse_table_[51][1] = Entry(Item(55, 25, 0, {6}, 25));  // Reduce
-  parse_table_[51][2] = Entry(Item(55, 25, 0, {6}, 25));  // Reduce
-  parse_table_[51][3] = Entry(Item(55, 25, 0, {6}, 25));  // Reduce
-  parse_table_[51][6] = Entry(Item(55, 25, 0, {6}, 25));  // Reduce
-  parse_table_[51][7] = Entry(Item(55, 25, 0, {6}, 25));  // Reduce
-  parse_table_[51][9] = Entry(Item(55, 25, 0, {6}, 25));  // Reduce
-  parse_table_[51][15] = Entry(Item(55, 25, 0, {6}, 25));  // Reduce
-  parse_table_[51][22] = Entry(Item(55, 25, 0, {6}, 25));  // Reduce
-  parse_table_[52][1] = Entry(Item(55, 27, 0, {9}, 27));  // Reduce
-  parse_table_[52][2] = Entry(Item(55, 27, 0, {9}, 27));  // Reduce
-  parse_table_[52][3] = Entry(Item(55, 27, 0, {9}, 27));  // Reduce
-  parse_table_[52][6] = Entry(Item(55, 27, 0, {9}, 27));  // Reduce
-  parse_table_[52][7] = Entry(Item(55, 27, 0, {9}, 27));  // Reduce
-  parse_table_[52][9] = Entry(Item(55, 27, 0, {9}, 27));  // Reduce
-  parse_table_[52][15] = Entry(Item(55, 27, 0, {9}, 27));  // Reduce
-  parse_table_[52][22] = Entry(Item(55, 27, 0, {9}, 27));  // Reduce
+  parse_table_[49][1] = Entry(ProductionRule(55, {1}), 26);  // Reduce
+  parse_table_[49][2] = Entry(ProductionRule(55, {1}), 26);  // Reduce
+  parse_table_[49][3] = Entry(ProductionRule(55, {1}), 26);  // Reduce
+  parse_table_[49][6] = Entry(ProductionRule(55, {1}), 26);  // Reduce
+  parse_table_[49][7] = Entry(ProductionRule(55, {1}), 26);  // Reduce
+  parse_table_[49][9] = Entry(ProductionRule(55, {1}), 26);  // Reduce
+  parse_table_[49][15] = Entry(ProductionRule(55, {1}), 26);  // Reduce
+  parse_table_[49][22] = Entry(ProductionRule(55, {1}), 26);  // Reduce
+  parse_table_[50][1] = Entry(ProductionRule(55, {3}), 24);  // Reduce
+  parse_table_[50][2] = Entry(ProductionRule(55, {3}), 24);  // Reduce
+  parse_table_[50][3] = Entry(ProductionRule(55, {3}), 24);  // Reduce
+  parse_table_[50][6] = Entry(ProductionRule(55, {3}), 24);  // Reduce
+  parse_table_[50][7] = Entry(ProductionRule(55, {3}), 24);  // Reduce
+  parse_table_[50][9] = Entry(ProductionRule(55, {3}), 24);  // Reduce
+  parse_table_[50][15] = Entry(ProductionRule(55, {3}), 24);  // Reduce
+  parse_table_[50][22] = Entry(ProductionRule(55, {3}), 24);  // Reduce
+  parse_table_[51][1] = Entry(ProductionRule(55, {6}), 25);  // Reduce
+  parse_table_[51][2] = Entry(ProductionRule(55, {6}), 25);  // Reduce
+  parse_table_[51][3] = Entry(ProductionRule(55, {6}), 25);  // Reduce
+  parse_table_[51][6] = Entry(ProductionRule(55, {6}), 25);  // Reduce
+  parse_table_[51][7] = Entry(ProductionRule(55, {6}), 25);  // Reduce
+  parse_table_[51][9] = Entry(ProductionRule(55, {6}), 25);  // Reduce
+  parse_table_[51][15] = Entry(ProductionRule(55, {6}), 25);  // Reduce
+  parse_table_[51][22] = Entry(ProductionRule(55, {6}), 25);  // Reduce
+  parse_table_[52][1] = Entry(ProductionRule(55, {9}), 27);  // Reduce
+  parse_table_[52][2] = Entry(ProductionRule(55, {9}), 27);  // Reduce
+  parse_table_[52][3] = Entry(ProductionRule(55, {9}), 27);  // Reduce
+  parse_table_[52][6] = Entry(ProductionRule(55, {9}), 27);  // Reduce
+  parse_table_[52][7] = Entry(ProductionRule(55, {9}), 27);  // Reduce
+  parse_table_[52][9] = Entry(ProductionRule(55, {9}), 27);  // Reduce
+  parse_table_[52][15] = Entry(ProductionRule(55, {9}), 27);  // Reduce
+  parse_table_[52][22] = Entry(ProductionRule(55, {9}), 27);  // Reduce
   parse_table_[53][7] = Entry(63);  // Shift
-  parse_table_[53][15] = Entry(Item(47, 16, 0, {3, 22, 48}, 16));  // Reduce
+  parse_table_[53][15] = Entry(ProductionRule(47, {3, 22, 48}), 16);  // Reduce
   parse_table_[53][50] = Entry(64);  // Shift
-  parse_table_[54][7] = Entry(Item(48, 17, 0, {49}, 17));  // Reduce
-  parse_table_[54][15] = Entry(Item(48, 17, 0, {49}, 17));  // Reduce
+  parse_table_[54][7] = Entry(ProductionRule(48, {49}), 17);  // Reduce
+  parse_table_[54][15] = Entry(ProductionRule(48, {49}), 17);  // Reduce
   parse_table_[55][1] = Entry(49);  // Shift
-  parse_table_[55][2] = Entry(Item(52, 28, 0, {}, 28));  // Reduce
+  parse_table_[55][2] = Entry(ProductionRule(52, {}), 28);  // Reduce
   parse_table_[55][3] = Entry(50);  // Shift
   parse_table_[55][6] = Entry(51);  // Shift
-  parse_table_[55][7] = Entry(Item(52, 28, 0, {}, 28));  // Reduce
+  parse_table_[55][7] = Entry(ProductionRule(52, {}), 28);  // Reduce
   parse_table_[55][9] = Entry(52);  // Shift
-  parse_table_[55][15] = Entry(Item(52, 28, 0, {}, 28));  // Reduce
+  parse_table_[55][15] = Entry(ProductionRule(52, {}), 28);  // Reduce
   parse_table_[55][22] = Entry(65);  // Shift
   parse_table_[55][52] = Entry(66);  // Shift
   parse_table_[55][55] = Entry(67);  // Shift
-  parse_table_[56][1] = Entry(Item(51, 23, 0, {55}, 23));  // Reduce
-  parse_table_[56][2] = Entry(Item(51, 23, 0, {55}, 23));  // Reduce
-  parse_table_[56][3] = Entry(Item(51, 23, 0, {55}, 23));  // Reduce
-  parse_table_[56][6] = Entry(Item(51, 23, 0, {55}, 23));  // Reduce
-  parse_table_[56][7] = Entry(Item(51, 23, 0, {55}, 23));  // Reduce
-  parse_table_[56][9] = Entry(Item(51, 23, 0, {55}, 23));  // Reduce
-  parse_table_[56][15] = Entry(Item(51, 23, 0, {55}, 23));  // Reduce
-  parse_table_[56][22] = Entry(Item(51, 23, 0, {55}, 23));  // Reduce
-  parse_table_[57][15] = Entry(Item(38, 12, 0, {20, 37, 45, 37, 46, 37, 18}, 12));  // Reduce
-  parse_table_[58][15] = Entry(Item(46, 14, 0, {46, 37, 47}, 14));  // Reduce
-  parse_table_[59][15] = Entry(Item(64, 52, 0, {33, 3, 12}, 52));  // Reduce
+  parse_table_[56][1] = Entry(ProductionRule(51, {55}), 23);  // Reduce
+  parse_table_[56][2] = Entry(ProductionRule(51, {55}), 23);  // Reduce
+  parse_table_[56][3] = Entry(ProductionRule(51, {55}), 23);  // Reduce
+  parse_table_[56][6] = Entry(ProductionRule(51, {55}), 23);  // Reduce
+  parse_table_[56][7] = Entry(ProductionRule(51, {55}), 23);  // Reduce
+  parse_table_[56][9] = Entry(ProductionRule(51, {55}), 23);  // Reduce
+  parse_table_[56][15] = Entry(ProductionRule(51, {55}), 23);  // Reduce
+  parse_table_[56][22] = Entry(ProductionRule(51, {55}), 23);  // Reduce
+  parse_table_[57][15] = Entry(ProductionRule(38, {20, 37, 45, 37, 46, 37, 18}), 12);  // Reduce
+  parse_table_[58][15] = Entry(ProductionRule(46, {46, 37, 47}), 14);  // Reduce
+  parse_table_[59][15] = Entry(ProductionRule(64, {33, 3, 12}), 52);  // Reduce
   parse_table_[60][13] = Entry(68);  // Shift
-  parse_table_[61][0] = Entry(Item(40, 45, 0, {31, 37, 61, 37, 18}, 45));  // Reduce
-  parse_table_[62][15] = Entry(Item(61, 46, 0, {61, 37, 62}, 46));  // Reduce
-  parse_table_[63][1] = Entry(Item(50, 19, 0, {7}, 19));  // Reduce
-  parse_table_[63][3] = Entry(Item(50, 19, 0, {7}, 19));  // Reduce
-  parse_table_[63][6] = Entry(Item(50, 19, 0, {7}, 19));  // Reduce
-  parse_table_[63][9] = Entry(Item(50, 19, 0, {7}, 19));  // Reduce
+  parse_table_[61][0] = Entry(ProductionRule(40, {31, 37, 61, 37, 18}), 45);  // Reduce
+  parse_table_[62][15] = Entry(ProductionRule(61, {61, 37, 62}), 46);  // Reduce
+  parse_table_[63][1] = Entry(ProductionRule(50, {7}), 19);  // Reduce
+  parse_table_[63][3] = Entry(ProductionRule(50, {7}), 19);  // Reduce
+  parse_table_[63][6] = Entry(ProductionRule(50, {7}), 19);  // Reduce
+  parse_table_[63][9] = Entry(ProductionRule(50, {7}), 19);  // Reduce
   parse_table_[64][1] = Entry(49);  // Shift
   parse_table_[64][3] = Entry(50);  // Shift
   parse_table_[64][6] = Entry(51);  // Shift
@@ -1804,29 +1804,29 @@ inline Parser::Parser() {
   parse_table_[65][56] = Entry(72);  // Shift
   parse_table_[65][57] = Entry(73);  // Shift
   parse_table_[66][2] = Entry(74);  // Shift
-  parse_table_[66][7] = Entry(Item(49, 20, 0, {51, 52}, 20));  // Reduce
-  parse_table_[66][15] = Entry(Item(49, 20, 0, {51, 52}, 20));  // Reduce
-  parse_table_[67][1] = Entry(Item(51, 22, 0, {51, 55}, 22));  // Reduce
-  parse_table_[67][2] = Entry(Item(51, 22, 0, {51, 55}, 22));  // Reduce
-  parse_table_[67][3] = Entry(Item(51, 22, 0, {51, 55}, 22));  // Reduce
-  parse_table_[67][6] = Entry(Item(51, 22, 0, {51, 55}, 22));  // Reduce
-  parse_table_[67][7] = Entry(Item(51, 22, 0, {51, 55}, 22));  // Reduce
-  parse_table_[67][9] = Entry(Item(51, 22, 0, {51, 55}, 22));  // Reduce
-  parse_table_[67][15] = Entry(Item(51, 22, 0, {51, 55}, 22));  // Reduce
-  parse_table_[67][22] = Entry(Item(51, 22, 0, {51, 55}, 22));  // Reduce
-  parse_table_[68][15] = Entry(Item(65, 53, 0, {34, 3, 30, 13}, 53));  // Reduce
-  parse_table_[69][7] = Entry(Item(48, 18, 0, {48, 50, 49}, 18));  // Reduce
-  parse_table_[69][15] = Entry(Item(48, 18, 0, {48, 50, 49}, 18));  // Reduce
+  parse_table_[66][7] = Entry(ProductionRule(49, {51, 52}), 20);  // Reduce
+  parse_table_[66][15] = Entry(ProductionRule(49, {51, 52}), 20);  // Reduce
+  parse_table_[67][1] = Entry(ProductionRule(51, {51, 55}), 22);  // Reduce
+  parse_table_[67][2] = Entry(ProductionRule(51, {51, 55}), 22);  // Reduce
+  parse_table_[67][3] = Entry(ProductionRule(51, {51, 55}), 22);  // Reduce
+  parse_table_[67][6] = Entry(ProductionRule(51, {51, 55}), 22);  // Reduce
+  parse_table_[67][7] = Entry(ProductionRule(51, {51, 55}), 22);  // Reduce
+  parse_table_[67][9] = Entry(ProductionRule(51, {51, 55}), 22);  // Reduce
+  parse_table_[67][15] = Entry(ProductionRule(51, {51, 55}), 22);  // Reduce
+  parse_table_[67][22] = Entry(ProductionRule(51, {51, 55}), 22);  // Reduce
+  parse_table_[68][15] = Entry(ProductionRule(65, {34, 3, 30, 13}), 53);  // Reduce
+  parse_table_[69][7] = Entry(ProductionRule(48, {48, 50, 49}), 18);  // Reduce
+  parse_table_[69][15] = Entry(ProductionRule(48, {48, 50, 49}), 18);  // Reduce
   parse_table_[70][25] = Entry(75);  // Shift
   parse_table_[71][25] = Entry(76);  // Shift
-  parse_table_[72][2] = Entry(Item(52, 29, 0, {22, 56}, 29));  // Reduce
-  parse_table_[72][7] = Entry(Item(52, 29, 0, {22, 56}, 29));  // Reduce
-  parse_table_[72][15] = Entry(Item(52, 29, 0, {22, 56}, 29));  // Reduce
+  parse_table_[72][2] = Entry(ProductionRule(52, {22, 56}), 29);  // Reduce
+  parse_table_[72][7] = Entry(ProductionRule(52, {22, 56}), 29);  // Reduce
+  parse_table_[72][15] = Entry(ProductionRule(52, {22, 56}), 29);  // Reduce
   parse_table_[72][23] = Entry(77);  // Shift
-  parse_table_[73][2] = Entry(Item(56, 31, 0, {57}, 31));  // Reduce
-  parse_table_[73][7] = Entry(Item(56, 31, 0, {57}, 31));  // Reduce
-  parse_table_[73][15] = Entry(Item(56, 31, 0, {57}, 31));  // Reduce
-  parse_table_[73][23] = Entry(Item(56, 31, 0, {57}, 31));  // Reduce
+  parse_table_[73][2] = Entry(ProductionRule(56, {57}), 31);  // Reduce
+  parse_table_[73][7] = Entry(ProductionRule(56, {57}), 31);  // Reduce
+  parse_table_[73][15] = Entry(ProductionRule(56, {57}), 31);  // Reduce
+  parse_table_[73][23] = Entry(ProductionRule(56, {57}), 31);  // Reduce
   parse_table_[74][3] = Entry(78);  // Shift
   parse_table_[74][53] = Entry(79);  // Shift
   parse_table_[74][58] = Entry(80);  // Shift
@@ -1836,21 +1836,21 @@ inline Parser::Parser() {
   parse_table_[77][27] = Entry(71);  // Shift
   parse_table_[77][57] = Entry(83);  // Shift
   parse_table_[78][25] = Entry(84);  // Shift
-  parse_table_[79][7] = Entry(Item(54, 43, 0, {}, 43));  // Reduce
-  parse_table_[79][15] = Entry(Item(54, 43, 0, {}, 43));  // Reduce
+  parse_table_[79][7] = Entry(ProductionRule(54, {}), 43);  // Reduce
+  parse_table_[79][15] = Entry(ProductionRule(54, {}), 43);  // Reduce
   parse_table_[79][23] = Entry(85);  // Shift
   parse_table_[79][30] = Entry(86);  // Shift
   parse_table_[79][54] = Entry(87);  // Shift
-  parse_table_[80][7] = Entry(Item(53, 35, 0, {58}, 35));  // Reduce
-  parse_table_[80][15] = Entry(Item(53, 35, 0, {58}, 35));  // Reduce
-  parse_table_[80][23] = Entry(Item(53, 35, 0, {58}, 35));  // Reduce
-  parse_table_[80][30] = Entry(Item(53, 35, 0, {58}, 35));  // Reduce
+  parse_table_[80][7] = Entry(ProductionRule(53, {58}), 35);  // Reduce
+  parse_table_[80][15] = Entry(ProductionRule(53, {58}), 35);  // Reduce
+  parse_table_[80][23] = Entry(ProductionRule(53, {58}), 35);  // Reduce
+  parse_table_[80][30] = Entry(ProductionRule(53, {58}), 35);  // Reduce
   parse_table_[81][26] = Entry(88);  // Shift
   parse_table_[82][26] = Entry(89);  // Shift
-  parse_table_[83][2] = Entry(Item(56, 30, 0, {56, 23, 57}, 30));  // Reduce
-  parse_table_[83][7] = Entry(Item(56, 30, 0, {56, 23, 57}, 30));  // Reduce
-  parse_table_[83][15] = Entry(Item(56, 30, 0, {56, 23, 57}, 30));  // Reduce
-  parse_table_[83][23] = Entry(Item(56, 30, 0, {56, 23, 57}, 30));  // Reduce
+  parse_table_[83][2] = Entry(ProductionRule(56, {56, 23, 57}), 30);  // Reduce
+  parse_table_[83][7] = Entry(ProductionRule(56, {56, 23, 57}), 30);  // Reduce
+  parse_table_[83][15] = Entry(ProductionRule(56, {56, 23, 57}), 30);  // Reduce
+  parse_table_[83][23] = Entry(ProductionRule(56, {56, 23, 57}), 30);  // Reduce
   parse_table_[84][6] = Entry(90);  // Shift
   parse_table_[84][8] = Entry(91);  // Shift
   parse_table_[84][29] = Entry(92);  // Shift
@@ -1859,47 +1859,47 @@ inline Parser::Parser() {
   parse_table_[85][3] = Entry(78);  // Shift
   parse_table_[85][58] = Entry(95);  // Shift
   parse_table_[86][3] = Entry(96);  // Shift
-  parse_table_[87][7] = Entry(Item(49, 21, 0, {51, 52, 2, 53, 54}, 21));  // Reduce
-  parse_table_[87][15] = Entry(Item(49, 21, 0, {51, 52, 2, 53, 54}, 21));  // Reduce
-  parse_table_[88][2] = Entry(Item(57, 32, 0, {24, 25, 3, 26}, 32));  // Reduce
-  parse_table_[88][7] = Entry(Item(57, 32, 0, {24, 25, 3, 26}, 32));  // Reduce
-  parse_table_[88][15] = Entry(Item(57, 32, 0, {24, 25, 3, 26}, 32));  // Reduce
-  parse_table_[88][23] = Entry(Item(57, 32, 0, {24, 25, 3, 26}, 32));  // Reduce
-  parse_table_[89][2] = Entry(Item(57, 33, 0, {27, 25, 4, 26}, 33));  // Reduce
-  parse_table_[89][7] = Entry(Item(57, 33, 0, {27, 25, 4, 26}, 33));  // Reduce
-  parse_table_[89][15] = Entry(Item(57, 33, 0, {27, 25, 4, 26}, 33));  // Reduce
-  parse_table_[89][23] = Entry(Item(57, 33, 0, {27, 25, 4, 26}, 33));  // Reduce
-  parse_table_[90][23] = Entry(Item(60, 41, 0, {6}, 41));  // Reduce
-  parse_table_[90][26] = Entry(Item(60, 41, 0, {6}, 41));  // Reduce
-  parse_table_[91][23] = Entry(Item(60, 39, 0, {8}, 39));  // Reduce
-  parse_table_[91][26] = Entry(Item(60, 39, 0, {8}, 39));  // Reduce
+  parse_table_[87][7] = Entry(ProductionRule(49, {51, 52, 2, 53, 54}), 21);  // Reduce
+  parse_table_[87][15] = Entry(ProductionRule(49, {51, 52, 2, 53, 54}), 21);  // Reduce
+  parse_table_[88][2] = Entry(ProductionRule(57, {24, 25, 3, 26}), 32);  // Reduce
+  parse_table_[88][7] = Entry(ProductionRule(57, {24, 25, 3, 26}), 32);  // Reduce
+  parse_table_[88][15] = Entry(ProductionRule(57, {24, 25, 3, 26}), 32);  // Reduce
+  parse_table_[88][23] = Entry(ProductionRule(57, {24, 25, 3, 26}), 32);  // Reduce
+  parse_table_[89][2] = Entry(ProductionRule(57, {27, 25, 4, 26}), 33);  // Reduce
+  parse_table_[89][7] = Entry(ProductionRule(57, {27, 25, 4, 26}), 33);  // Reduce
+  parse_table_[89][15] = Entry(ProductionRule(57, {27, 25, 4, 26}), 33);  // Reduce
+  parse_table_[89][23] = Entry(ProductionRule(57, {27, 25, 4, 26}), 33);  // Reduce
+  parse_table_[90][23] = Entry(ProductionRule(60, {6}), 41);  // Reduce
+  parse_table_[90][26] = Entry(ProductionRule(60, {6}), 41);  // Reduce
+  parse_table_[91][23] = Entry(ProductionRule(60, {8}), 39);  // Reduce
+  parse_table_[91][26] = Entry(ProductionRule(60, {8}), 39);  // Reduce
   parse_table_[91][28] = Entry(97);  // Shift
-  parse_table_[92][23] = Entry(Item(60, 42, 0, {29}, 42));  // Reduce
-  parse_table_[92][26] = Entry(Item(60, 42, 0, {29}, 42));  // Reduce
+  parse_table_[92][23] = Entry(ProductionRule(60, {29}), 42);  // Reduce
+  parse_table_[92][26] = Entry(ProductionRule(60, {29}), 42);  // Reduce
   parse_table_[93][23] = Entry(98);  // Shift
   parse_table_[93][26] = Entry(99);  // Shift
-  parse_table_[94][23] = Entry(Item(59, 38, 0, {60}, 38));  // Reduce
-  parse_table_[94][26] = Entry(Item(59, 38, 0, {60}, 38));  // Reduce
-  parse_table_[95][7] = Entry(Item(53, 34, 0, {53, 23, 58}, 34));  // Reduce
-  parse_table_[95][15] = Entry(Item(53, 34, 0, {53, 23, 58}, 34));  // Reduce
-  parse_table_[95][23] = Entry(Item(53, 34, 0, {53, 23, 58}, 34));  // Reduce
-  parse_table_[95][30] = Entry(Item(53, 34, 0, {53, 23, 58}, 34));  // Reduce
+  parse_table_[94][23] = Entry(ProductionRule(59, {60}), 38);  // Reduce
+  parse_table_[94][26] = Entry(ProductionRule(59, {60}), 38);  // Reduce
+  parse_table_[95][7] = Entry(ProductionRule(53, {53, 23, 58}), 34);  // Reduce
+  parse_table_[95][15] = Entry(ProductionRule(53, {53, 23, 58}), 34);  // Reduce
+  parse_table_[95][23] = Entry(ProductionRule(53, {53, 23, 58}), 34);  // Reduce
+  parse_table_[95][30] = Entry(ProductionRule(53, {53, 23, 58}), 34);  // Reduce
   parse_table_[96][13] = Entry(100);  // Shift
   parse_table_[97][3] = Entry(101);  // Shift
   parse_table_[98][6] = Entry(90);  // Shift
   parse_table_[98][8] = Entry(91);  // Shift
   parse_table_[98][29] = Entry(92);  // Shift
   parse_table_[98][60] = Entry(102);  // Shift
-  parse_table_[99][7] = Entry(Item(58, 36, 0, {3, 25, 59, 26}, 36));  // Reduce
-  parse_table_[99][15] = Entry(Item(58, 36, 0, {3, 25, 59, 26}, 36));  // Reduce
-  parse_table_[99][23] = Entry(Item(58, 36, 0, {3, 25, 59, 26}, 36));  // Reduce
-  parse_table_[99][30] = Entry(Item(58, 36, 0, {3, 25, 59, 26}, 36));  // Reduce
-  parse_table_[100][7] = Entry(Item(54, 44, 0, {30, 3, 13}, 44));  // Reduce
-  parse_table_[100][15] = Entry(Item(54, 44, 0, {30, 3, 13}, 44));  // Reduce
-  parse_table_[101][23] = Entry(Item(60, 40, 0, {8, 28, 3}, 40));  // Reduce
-  parse_table_[101][26] = Entry(Item(60, 40, 0, {8, 28, 3}, 40));  // Reduce
-  parse_table_[102][23] = Entry(Item(59, 37, 0, {59, 23, 60}, 37));  // Reduce
-  parse_table_[102][26] = Entry(Item(59, 37, 0, {59, 23, 60}, 37));  // Reduce
+  parse_table_[99][7] = Entry(ProductionRule(58, {3, 25, 59, 26}), 36);  // Reduce
+  parse_table_[99][15] = Entry(ProductionRule(58, {3, 25, 59, 26}), 36);  // Reduce
+  parse_table_[99][23] = Entry(ProductionRule(58, {3, 25, 59, 26}), 36);  // Reduce
+  parse_table_[99][30] = Entry(ProductionRule(58, {3, 25, 59, 26}), 36);  // Reduce
+  parse_table_[100][7] = Entry(ProductionRule(54, {30, 3, 13}), 44);  // Reduce
+  parse_table_[100][15] = Entry(ProductionRule(54, {30, 3, 13}), 44);  // Reduce
+  parse_table_[101][23] = Entry(ProductionRule(60, {8, 28, 3}), 40);  // Reduce
+  parse_table_[101][26] = Entry(ProductionRule(60, {8, 28, 3}), 40);  // Reduce
+  parse_table_[102][23] = Entry(ProductionRule(59, {59, 23, 60}), 37);  // Reduce
+  parse_table_[102][26] = Entry(ProductionRule(59, {59, 23, 60}), 37);  // Reduce
 
   // Create inverse non-terminal map.
   inverse_nonterminal_map_.emplace(35, "start");
@@ -3082,7 +3082,7 @@ struct ParserGenerator
     }
   }
   void Visit(ASTNode_14_production_and_data& object) override {
-    makeNextItem();  // Create the item for this production.
+    makeNextProductionRule();  // Create the item for this production.
     // Production and data with no actions.
     LOG_SEV(Debug) << "Production with no actions.";
     for (auto& atom : object.atoms) {
@@ -3091,7 +3091,7 @@ struct ParserGenerator
     storeCurrent(); // Done creating the item, store it.
   }
   void Visit(ASTNode_15_production_and_data& object) override {
-    makeNextItem();  // Create the item for this production.
+    makeNextProductionRule();  // Create the item for this production.
     
     LOG_SEV(Info) << "There are " << object.atoms.size() << " atoms and " << object.actions.size() << " actions.";
     for (auto& atom : object.atoms) {
@@ -3157,7 +3157,7 @@ struct ParserGenerator
   void Visit(ASTNode_NullArg& object) override { /* No body defined */ }
   void Visit(ASTNode_Parser& object) override {
     // Set the start production name.
-    auto id = registerProduction(object.start_name);
+    auto id = registerNonterminal(object.start_name);
     registerStartingProduction(id);
     LOG_SEV(Info) << "Setting production start name to "
                   << CLM(production_rules_data_->start_nonterminal_name) << ".";
@@ -3205,7 +3205,7 @@ struct ParserGenerator
   void Visit(ASTNode_arguments& object) override { /* No body defined */ }
   void Visit(ASTNode_assoc& object) override {
     LOG_SEV(Debug) << "Assoc: " << object.assoc;
-    current_item_.res_info.assoc = toAssociation(object.assoc);
+    getCurrentProduction().res_info.assoc = toAssociation(object.assoc);
   }
   void Visit(ASTNode_code_block& object) override {
     LOG_SEV(Info) << "Code block: " << CLBB(object.code_body);
@@ -3235,9 +3235,9 @@ struct ParserGenerator
   }
   void Visit(ASTNode_identifier& object) override {
     // Indicates a non-terminal.
-    auto id = registerProduction(object.identifier);
+    auto id = registerNonterminal(object.identifier);
     LOG_SEV(Info) << "Non-terminal: '" << object.identifier << "', id = " << id << ".";
-    current_item_.AddToProduction(id);
+    addToProduction(id);
   }
   void Visit(ASTNode_import& object) override {
     LOG_SEV(Info) << "Import " << object.path << ".";
@@ -3252,14 +3252,14 @@ struct ParserGenerator
     auto name = object.lexeme_name.substr(1);
     int id = getLexemeID(name);
     LOG_SEV(Info) << "Lexeme name: '" << name << "', id = " << id << ".";
-    current_item_.AddToProduction(id);
+    addToProduction(id);
   }
   void Visit(ASTNode_literal& object) override {
     // Get rid of quotes
     auto literal = object.literal.substr(1, object.literal.size() - 2);
     int id = production_rules_data_->lexer_generator->AddReserved(literal);
     LOG_SEV(Info) << "Literal: " << CLBG(literal) << "', id = " << id << ".";
-    current_item_.AddToProduction(id);
+    addToProduction(id);
   }
   void Visit(ASTNode_null& object) override {
     // Found a null
@@ -3280,7 +3280,7 @@ struct ParserGenerator
     LOG_SEV(Info) << "Reading definition for non-terminal " << CLY(object.nonterminal_name)
                       << ", there are " << object.productions.size() << " productions.";
     
-    registerProductionDefinition(object.nonterminal_name);
+    registerNonterminalDefinition(object.nonterminal_name);
     LOG_SEV(Debug) << "Registered nonterminal " << CLY(object.nonterminal_name) << " with id " << current_production_id_;
     for (auto& production : object.productions) {
       production->Accept(*this);
@@ -3288,7 +3288,7 @@ struct ParserGenerator
   }
   void Visit(ASTNode_prec& object) override {
     LOG_SEV(Debug) << "Prec: " << object.prec;
-    current_item_.res_info.precedence = manta::stoi(object.prec);
+    getCurrentProduction().res_info.precedence = manta::stoi(object.prec);
   }
   void Visit(ASTNode_production_atoms& object) override {
     if (object.item_id == 22) {
@@ -3323,7 +3323,7 @@ struct ParserGenerator
   std::shared_ptr<manta::ProductionRulesData> ParseDescription(std::istream& stream) override { return nullptr; }
 
   void storeCurrent() {
-    LOG_SEV(Info) << "Storing item of size " << current_item_.Size() << ".";
+    LOG_SEV(Info) << "Storing item of size " << getCurrentProduction().rule.Size() << ".";
     storeCurrentItem();
   }
 

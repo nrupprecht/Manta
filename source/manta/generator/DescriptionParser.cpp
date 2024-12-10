@@ -23,7 +23,7 @@ std::optional<std::string> ProductionRulesBuilder::GetProductionName(Nonterminal
   return {};
 }
 
-int ProductionRulesBuilder::registerProduction(const std::string& production) {
+int ProductionRulesBuilder::registerNonterminal(const std::string& production) {
   auto it = production_rules_data_->nonterminal_map.find(production);
   if (it == production_rules_data_->nonterminal_map.end()) {
     production_rules_data_->nonterminal_map.emplace(production, production_rules_data_->num_productions);
@@ -34,8 +34,8 @@ int ProductionRulesBuilder::registerProduction(const std::string& production) {
   return it->second;
 }
 
-NonterminalID ProductionRulesBuilder::registerProductionDefinition(const std::string& production) {
-  current_production_id_ = registerProduction(production);
+NonterminalID ProductionRulesBuilder::registerNonterminalDefinition(const std::string& production) {
+  current_production_id_ = registerNonterminal(production);
   return current_production_id_;
 }
 
@@ -62,11 +62,11 @@ void ProductionRulesBuilder::shiftProductionNumbers() {
   }
 
   // Shift the ids in all productions
-  for (auto& item : production_rules_data_->all_productions) {
+  for (auto& annotated_rule : production_rules_data_->all_productions) {
     // Correct production.
-    item.produced_nonterminal = lids - item.produced_nonterminal;
+    annotated_rule.rule.produced_nonterminal = lids - annotated_rule.rule.produced_nonterminal;
     // Correct productions in the rhs.
-    for (auto& i : item.rhs) {
+    for (auto& i : annotated_rule.rule.rhs) {
       if (i < 0) {
         i = lids - i;
       }
@@ -86,21 +86,21 @@ void ProductionRulesBuilder::shiftProductionNumbers() {
   production_rules_data_->start_nonterminal = lids - production_rules_data_->start_nonterminal;
 
   // Shift the ids in productions_for_.
-  std::map<int, State> new_productions_for;
+  std::map<int, AnnotatedProductionSet> new_productions_for;
   for (auto& p : production_rules_data_->productions_for) {
-    State state;
-    for (auto item : p.second) {
+    AnnotatedProductionSet production_rules;
+    for (auto production_rule : p.second) {
       // Correct production.
-      item.produced_nonterminal = lids - item.produced_nonterminal;
+      production_rule.rule.produced_nonterminal = lids - production_rule.rule.produced_nonterminal;
       // Correct productions in the rhs.
-      for (auto& i : item.rhs) {
+      for (auto& i : production_rule.rule.rhs) {
         if (i < 0) {
           i = lids - i;
         }
       }
-      state.insert(item);
+      production_rules.insert(production_rule);
     }
-    new_productions_for.insert(std::pair<int, State>(lids - p.first, state));
+    new_productions_for.emplace(lids - p.first, production_rules);
   }
   production_rules_data_->productions_for = new_productions_for;
   // Set total_symbols_.
@@ -112,37 +112,42 @@ int ProductionRulesBuilder::getLexemeID(const std::string& lexeme_name) const {
   return production_rules_data_->lexer_generator->LexemeID(lexeme_name);
 }
 
-Item& ProductionRulesBuilder::makeNextItem() {
-  auto item_number           = item_number_++;
-  current_item_              = {current_production_id_, item_number};
-  current_item_.item_number  = item_number;
-  current_item_.instructions = std::make_shared<ParseNode>("I");
-
-  return current_item_;
+void ProductionRulesBuilder::makeNextProductionRule() {
+  // Push a rule onto the stack.
+  productions_stack_.push(AnnotatedProductionRule{ProductionRule(current_production_id_), item_number_++});
+  auto& current = productions_stack_.top();
+  current.instructions = std::make_shared<ParseNode>("I");
 }
 
 void ProductionRulesBuilder::storeCurrentItem() {
-  auto nonterminal_id = current_item_.produced_nonterminal;
+  MANTA_REQUIRE(!productions_stack_.empty(), "productions stack is empty, no item to store.");
+
+  auto& current_production = productions_stack_.top();
+
+  auto nonterminal_id = getCurrentProduction().rule.produced_nonterminal;
 
   // If there are no instructions, just get rid of the instructions node.
-  if (current_item_.instructions->children.empty()) {
-    current_item_.instructions = nullptr;
+  if (current_production.instructions->children.empty()) {
+    current_production.instructions = nullptr;
   }
 
   // Done finding the rule. Store the rule.
   auto prod = production_rules_data_->productions_for.find(nonterminal_id);
   if (prod == production_rules_data_->productions_for.end()) {
-    production_rules_data_->productions_for.emplace(nonterminal_id, State {});
+    production_rules_data_->productions_for.emplace(nonterminal_id, AnnotatedProductionSet{});
     prod = production_rules_data_->productions_for.find(nonterminal_id);
   }
 
   // Add production to the productions for production_id
-  prod->second.insert(current_item_);
+  prod->second.insert(current_production);
   // Add production to all productions.
-  production_rules_data_->all_productions.push_back(current_item_);
+  production_rules_data_->all_productions.push_back(current_production);
 
   LOG_SEV(Trace) << "Storing current item (" << nonterminal_id << "), there are now "
                  << production_rules_data_->all_productions.size() << " productions.";
+
+  // Pop production off the productions stack.
+  productions_stack_.pop();
 }
 
 void ProductionRulesBuilder::createAction(std::string name) {
@@ -158,7 +163,7 @@ void ProductionRulesBuilder::addArgumentToAction(std::string argument) {
 
 
 std::shared_ptr<const ParseNode> ProductionRulesBuilder::getCurrentAction() const {
-  return current_item_.instructions->children.back();
+  return getCurrentProduction().instructions->children.back();
 }
 
 void ProductionRulesBuilder::addImport(const std::string& import_name) {
@@ -197,14 +202,24 @@ void ProductionRulesBuilder::findStartProduction() {
 }
 
 std::optional<unsigned> ProductionRulesBuilder::getCurrentItemNumber() const {
-  return current_item_.item_number;
+  return getCurrentProduction().production_item_number;
 }
 
 ParseNode& ProductionRulesBuilder::getCurrentInstructions() const {
-  return *current_item_.instructions;
+  return *getCurrentProduction().instructions;
 }
 
-std::string ProductionRulesBuilder::getCurrentProduction() const {
+AnnotatedProductionRule& ProductionRulesBuilder::getCurrentProduction() {
+  MANTA_REQUIRE(!productions_stack_.empty(), "no production rules in stack");
+  return productions_stack_.top();
+}
+
+const AnnotatedProductionRule& ProductionRulesBuilder::getCurrentProduction() const {
+  MANTA_REQUIRE(!productions_stack_.empty(), "no production rules in stack");
+  return productions_stack_.top();
+}
+
+std::string ProductionRulesBuilder::getCurrentProductionName() const {
   auto name = GetProductionName(getCurrentProductionID());
   MANTA_ASSERT(name, "there is no current production, cannot get current production's name");
   return *name;
@@ -291,7 +306,7 @@ std::shared_ptr<ProductionRulesData> HandWrittenDescriptionParser::ParseDescript
 
       // Get the production number associated with the production name, registering it if it has not
       // already been registered.
-      registerProductionDefinition(production_name);
+      registerNonterminalDefinition(production_name);
       LOG_SEV(Trace) << "Production " << formatting::CLB(production_name) << " given temporary id "
                      << current_production_id_ << ".";
 
@@ -426,7 +441,7 @@ std::shared_ptr<ProductionRulesData> HandWrittenDescriptionParser::ParseDescript
 
 inline void HandWrittenDescriptionParser::getProductions(std::istream& in) {
   // Create an "item" to represent the production.
-  makeNextItem();
+  makeNextProductionRule();
 
   auto is_terminator = [](char c) { return c == '\n' || c == '\r' || c == ';'; };
 
@@ -468,7 +483,7 @@ inline void HandWrittenDescriptionParser::getProductions(std::istream& in) {
       LOG_SEV(Debug) << "Found production: " << formatting::CLB(acc);
 
       // Found the production. Get its production number.
-      int id = registerProduction(acc);
+      int id = registerNonterminal(acc);
       // If this is the start state, register the start production id.
       // TODO: Register "start" at the construction of the parser generator so it always
       //  has the first id.
@@ -540,7 +555,7 @@ inline void HandWrittenDescriptionParser::getProductions(std::istream& in) {
         MANTA_THROW(UnexpectedInput, "expected a >, got " << c);
       }
       // Fill in the production's resolution info.
-      findResInfo(in, current_item_.res_info);
+      findResInfo(in);
     }
     // Start of the instructions
     else if (c == ':') {
@@ -572,8 +587,10 @@ inline void HandWrittenDescriptionParser::getProductions(std::istream& in) {
   storeCurrentItem();
 }
 
-void HandWrittenDescriptionParser::findResInfo(std::istream& in, ResolutionInfo& res_info) {
-  LOG_SEV(Trace) << "Finding precedence section for " << formatting::CLB(getCurrentProduction()) << ".";
+void HandWrittenDescriptionParser::findResInfo(std::istream& in) {
+  LOG_SEV(Trace) << "Finding precedence section for " << formatting::CLB(getCurrentProductionName()) << ".";
+
+  auto& res_info = getCurrentProduction().res_info;
 
   auto is_terminator = [](char c) { return c == '\n' || c == '\r' || c == ';'; };
 
@@ -654,7 +671,7 @@ void HandWrittenDescriptionParser::findResInfo(std::istream& in, ResolutionInfo&
 }
 
 void HandWrittenDescriptionParser::getInstructions(std::istream& in) {
-  LOG_SEV(Debug) << "Getting instructions for production " << formatting::CLG(getCurrentProduction()) << " ("
+  LOG_SEV(Debug) << "Getting instructions for production " << formatting::CLG(getCurrentProductionName()) << " ("
                  << current_production_id_ << ").";
 
   // Setup.

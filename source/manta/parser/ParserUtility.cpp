@@ -31,7 +31,7 @@ bool Item::IsBookmarkAtEnd() const {
 }
 
 Item Item::MakeReducibleForm() const {
-  auto copy = *this;
+  auto copy     = *this;
   copy.bookmark = static_cast<int>(rhs.size());
   return copy;
 }
@@ -45,13 +45,6 @@ std::optional<Item> Item::AdvanceDot() const {
   return copy;
 }
 
-Item Item::WithoutInstructions() const {
-  auto copy = *this;
-  copy.res_info = ResolutionInfo();
-  copy.instructions = nullptr;
-  return copy;
-}
-
 std::optional<int> Item::GetElementFollowingBookmark() const {
   if (rhs.size() <= bookmark) {
     return {};
@@ -60,16 +53,13 @@ std::optional<int> Item::GetElementFollowingBookmark() const {
 }
 
 void State::insert(const Item& item) {
-  // Check if the item is a null production.
-  if (item.Size() == 0)
-    has_null_production = true;
   // Insert the item into the set.
   item_set.insert(item);
 }
 
 void State::ZeroBookmarks() {
   for (auto& item : item_set) {
-    const int* i = &item.bookmark;
+    const int* i         = &item.bookmark;
     *const_cast<int*>(i) = 0;
   }
 }
@@ -132,35 +122,30 @@ std::set<Item>::iterator State::find(const Item& item) {
 
 Entry::Entry() = default;
 
-Entry::Entry(int s, const ResolutionInfo& res_info)
-    : action(Action::SHIFT)
-    , state(s) {
-  // Store the resolution info in the rule, even though the rule is empty.
-  rule.res_info = res_info;
-};
+Entry::Entry(StateID s, const ResolutionInfo& res_info)
+    : state_(ShiftState {.res_info = res_info, .state = s}) {}
 
-Entry::Entry(Item r)
-    : action(Action::REDUCE)
-    , state(0)
-    , rule(std::move(r)) {};
+Entry::Entry(AnnotatedProductionRule r) : state_(ReduceState {std::move(r)}) {}
 
-Entry::Entry(bool)
-    : action(Action::ACCEPT) {};
+Entry::Entry(ProductionRule rule, ItemID reduction_id)
+    : state_(ReduceState {AnnotatedProductionRule(rule, reduction_id)}) {}
+
+Entry::Entry(bool) : state_(AcceptState {}) {};
 
 bool Entry::IsError() const {
-  return action == Action::ERROR;
+  return GetAction() == Action::ERROR;
 }
 
 bool Entry::IsShift() const {
-  return action == Action::SHIFT;
+  return GetAction() == Action::SHIFT;
 }
 
 bool Entry::IsReduce() const {
-  return action == Action::REDUCE;
+  return GetAction() == Action::REDUCE;
 }
 
 bool Entry::IsAccept() const {
-  return action == Action::ACCEPT;
+  return GetAction() == Action::ACCEPT;
 }
 
 bool operator==(const State& s1, const State& s2) {
@@ -214,17 +199,17 @@ std::string to_string(const Item& item, bool print_marker) {
 
 std::string Entry::Write(int length) const {
   std::string str;
-  switch (action) {
+  switch (GetAction()) {
     case Action::ERROR: {
-      str = " "; // x
+      str = " ";  // x
       break;
     }
     case Action::SHIFT: {
-      str = "S" + std::to_string(state);
+      str = "S" + std::to_string(GetState());
       break;
     }
     case Action::REDUCE: {
-      str = "R" + std::to_string(*rule.item_number);
+      str = "R" + std::to_string(GetAnnotatedRule().production_item_number);
       break;
     }
     case Action::ACCEPT: {
@@ -238,10 +223,6 @@ std::string Entry::Write(int length) const {
   }
   // Make sure the string is of the correct length.
   return buffered(str, length);
-}
-
-bool Entry::operator==(const Entry& rhs) const {
-  return std::tie(action, state) == std::tie(rhs.action, rhs.state);
 }
 
 std::ostream& operator<<(std::ostream& out, const Entry& entry) {
@@ -270,4 +251,4 @@ std::ostream& operator<<(std::ostream& out, const Entry& entry) {
 
   return out;
 }
-} // namespace manta
+}  // namespace manta
