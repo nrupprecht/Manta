@@ -393,7 +393,6 @@ inline const char* to_string(NonterminalType type) {
 //! \brief Base visitor class.
 struct ASTNodeVisitor {
   virtual ~ASTNodeVisitor() = default;
-
   virtual void Visit(ASTNode_0_start& object) = 0;
   virtual void Visit(ASTNode_5_lexer_block& object) = 0;
   virtual void Visit(ASTNodeBase_newlines& object) = 0;
@@ -478,9 +477,7 @@ struct ASTLexeme : ASTNodeBase {
 
   std::string literal{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 // ============================================================
@@ -495,9 +492,7 @@ struct ASTNode_0_start : ASTNodeBase {
   std::shared_ptr<ASTNode_5_lexer_block> lexer_block{};
   std::shared_ptr<ASTNode_Parser> parser_block{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 // ============================================================
@@ -510,9 +505,7 @@ struct ASTNode_5_lexer_block : ASTNodeBase {
 
   std::vector<std::shared_ptr<ASTNodeBase_lexeme_line>> definitions{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 // ============================================================
@@ -526,9 +519,7 @@ struct ASTNodeBase_newlines : ASTNodeBase {
 
   std::string newlines{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 struct ASTNodeGeneral_3_newlines : ASTNodeBase_newlines {
@@ -537,19 +528,14 @@ struct ASTNodeGeneral_3_newlines : ASTNodeBase_newlines {
 
   std::shared_ptr<ASTNodeBase_newlines> newlines_node{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 struct ASTNodeGeneral_4_newlines : ASTNodeBase_newlines {
   explicit ASTNodeGeneral_4_newlines(const ItemID& item_id)
     : ASTNodeBase_newlines(ASTNodeType::Type_ASTNodeGeneral_4_newlines, item_id) {}
 
-
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 // ============================================================
@@ -563,9 +549,7 @@ struct ASTNode_Parser : ASTNodeBase {
   std::vector<std::shared_ptr<ASTNode_parser>> definition{};
   std::string start_name{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 // ============================================================
@@ -577,20 +561,14 @@ struct ASTNodeBase_optional_data_block : ASTNodeBase {
   ASTNodeBase_optional_data_block(const ASTNodeType& node_type, const ItemID& item_id)
     : ASTNodeBase(node_type, NonterminalType::optional_data_block, item_id) {}
 
-
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 struct ASTNodeGeneral_2_optional_data_block : ASTNodeBase_optional_data_block {
   explicit ASTNodeGeneral_2_optional_data_block(const ItemID& item_id)
     : ASTNodeBase_optional_data_block(ASTNodeType::Type_ASTNodeGeneral_2_optional_data_block, item_id) {}
 
-
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 struct ASTNode_1_optional_data_block : ASTNodeBase_optional_data_block {
@@ -599,9 +577,7 @@ struct ASTNode_1_optional_data_block : ASTNodeBase_optional_data_block {
 
   std::shared_ptr<ASTNode_19_data_block> data_block{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 // ============================================================
@@ -614,9 +590,7 @@ struct ASTNode_19_data_block : ASTNodeBase {
 
   std::vector<std::shared_ptr<ASTNodeBase_data_definition>> definitions{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 // ============================================================
@@ -630,29 +604,21 @@ struct ASTNodeBase_lexer_definitions : ASTNodeBase {
 
   std::vector<std::shared_ptr<ASTNodeBase_lexeme_line>> definitions{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 struct ASTNode_6_lexer_definitions : ASTNodeBase_lexer_definitions {
   explicit ASTNode_6_lexer_definitions(const ItemID& item_id)
     : ASTNodeBase_lexer_definitions(ASTNodeType::Type_ASTNode_6_lexer_definitions, item_id) {}
 
-
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 struct ASTNode_7_lexer_definitions : ASTNodeBase_lexer_definitions {
   explicit ASTNode_7_lexer_definitions(const ItemID& item_id)
     : ASTNodeBase_lexer_definitions(ASTNodeType::Type_ASTNode_7_lexer_definitions, item_id) {}
 
-
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 // ============================================================
@@ -664,10 +630,7 @@ struct ASTNodeBase_lexeme_line : ASTNodeBase {
   ASTNodeBase_lexeme_line(const ASTNodeType& node_type, const ItemID& item_id)
     : ASTNodeBase(node_type, NonterminalType::lexeme_line, item_id) {}
 
-
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 struct ASTNode_Lexeme : ASTNodeBase_lexeme_line {
@@ -677,9 +640,7 @@ struct ASTNode_Lexeme : ASTNodeBase_lexeme_line {
   std::string name{};
   std::string regex{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 struct ASTNode_Skip : ASTNodeBase_lexeme_line {
@@ -688,9 +649,7 @@ struct ASTNode_Skip : ASTNodeBase_lexeme_line {
 
   std::string identifier{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 // ============================================================
@@ -704,9 +663,7 @@ struct ASTNode_8_lexeme_definition : ASTNodeBase {
   std::string name{};
   std::string regex{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 // ============================================================
@@ -719,9 +676,7 @@ struct ASTNode_9_skip_indicator : ASTNodeBase {
 
   std::string identifier{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 // ============================================================
@@ -734,9 +689,7 @@ struct ASTNode_10_start_indicator : ASTNodeBase {
 
   std::string start_name{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 // ============================================================
@@ -750,29 +703,21 @@ struct ASTNodeBase_parser_definitions : ASTNodeBase {
 
   std::vector<std::shared_ptr<ASTNode_parser>> definitions{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 struct ASTNode_11_parser_definitions : ASTNodeBase_parser_definitions {
   explicit ASTNode_11_parser_definitions(const ItemID& item_id)
     : ASTNodeBase_parser_definitions(ASTNodeType::Type_ASTNode_11_parser_definitions, item_id) {}
 
-
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 struct ASTNode_12_parser_definitions : ASTNodeBase_parser_definitions {
   explicit ASTNode_12_parser_definitions(const ItemID& item_id)
     : ASTNodeBase_parser_definitions(ASTNodeType::Type_ASTNode_12_parser_definitions, item_id) {}
 
-
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 // ============================================================
@@ -786,9 +731,7 @@ struct ASTNode_parser : ASTNodeBase {
   std::string nonterminal_name{};
   std::vector<std::shared_ptr<ASTNodeBase_production_and_data>> productions{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 // ============================================================
@@ -801,9 +744,7 @@ struct ASTNode_options : ASTNodeBase {
 
   std::vector<std::shared_ptr<ASTNodeBase_production_and_data>> productions{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 // ============================================================
@@ -818,19 +759,14 @@ struct ASTNodeBase_production_and_data : ASTNodeBase {
   std::vector<std::shared_ptr<ASTNodeBase_production_atom>> atoms{};
   std::shared_ptr<ASTNodeBase_resolution> resolution{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 struct ASTNode_14_production_and_data : ASTNodeBase_production_and_data {
   explicit ASTNode_14_production_and_data(const ItemID& item_id)
     : ASTNodeBase_production_and_data(ASTNodeType::Type_ASTNode_14_production_and_data, item_id) {}
 
-
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 struct ASTNode_15_production_and_data : ASTNodeBase_production_and_data {
@@ -840,9 +776,7 @@ struct ASTNode_15_production_and_data : ASTNodeBase_production_and_data {
   std::vector<std::shared_ptr<ASTNode_action>> actions{};
   std::shared_ptr<ASTNodeBase_code_block> code{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 // ============================================================
@@ -855,9 +789,7 @@ struct ASTNodeGeneral_13_or : ASTNodeBase {
 
   std::string or_{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 // ============================================================
@@ -870,9 +802,7 @@ struct ASTNode_production_atoms : ASTNodeBase {
 
   std::vector<std::shared_ptr<ASTNodeBase_production_atom>> atoms{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 // ============================================================
@@ -884,20 +814,14 @@ struct ASTNodeBase_resolution : ASTNodeBase {
   ASTNodeBase_resolution(const ASTNodeType& node_type, const ItemID& item_id)
     : ASTNodeBase(node_type, NonterminalType::resolution, item_id) {}
 
-
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 struct ASTNodeGeneral_16_resolution : ASTNodeBase_resolution {
   explicit ASTNodeGeneral_16_resolution(const ItemID& item_id)
     : ASTNodeBase_resolution(ASTNodeType::Type_ASTNodeGeneral_16_resolution, item_id) {}
 
-
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 struct ASTNode_17_resolution : ASTNodeBase_resolution {
@@ -906,9 +830,7 @@ struct ASTNode_17_resolution : ASTNodeBase_resolution {
 
   std::vector<std::shared_ptr<ASTNodeBase_resolution_atom>> atoms{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 // ============================================================
@@ -921,9 +843,7 @@ struct ASTNode_actions : ASTNodeBase {
 
   std::vector<std::shared_ptr<ASTNode_action>> actions{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 // ============================================================
@@ -935,20 +855,14 @@ struct ASTNodeBase_code_block : ASTNodeBase {
   ASTNodeBase_code_block(const ASTNodeType& node_type, const ItemID& item_id)
     : ASTNodeBase(node_type, NonterminalType::code_block, item_id) {}
 
-
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 struct ASTNodeGeneral_18_code_block : ASTNodeBase_code_block {
   explicit ASTNodeGeneral_18_code_block(const ItemID& item_id)
     : ASTNodeBase_code_block(ASTNodeType::Type_ASTNodeGeneral_18_code_block, item_id) {}
 
-
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 struct ASTNode_code_block : ASTNodeBase_code_block {
@@ -958,9 +872,7 @@ struct ASTNode_code_block : ASTNodeBase_code_block {
   std::string code_body{};
   std::string visitor_name{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 // ============================================================
@@ -972,10 +884,7 @@ struct ASTNodeBase_production_atom : ASTNodeBase {
   ASTNodeBase_production_atom(const ASTNodeType& node_type, const ItemID& item_id)
     : ASTNodeBase(node_type, NonterminalType::production_atom, item_id) {}
 
-
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 struct ASTNode_identifier : ASTNodeBase_production_atom {
@@ -984,9 +893,7 @@ struct ASTNode_identifier : ASTNodeBase_production_atom {
 
   std::string identifier{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 struct ASTNode_lexeme_name : ASTNodeBase_production_atom {
@@ -995,9 +902,7 @@ struct ASTNode_lexeme_name : ASTNodeBase_production_atom {
 
   std::string lexeme_name{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 struct ASTNode_literal : ASTNodeBase_production_atom {
@@ -1006,9 +911,7 @@ struct ASTNode_literal : ASTNodeBase_production_atom {
 
   std::string literal{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 struct ASTNode_null : ASTNodeBase_production_atom {
@@ -1017,9 +920,7 @@ struct ASTNode_null : ASTNodeBase_production_atom {
 
   std::string null{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 // ============================================================
@@ -1032,9 +933,7 @@ struct ASTNode_resolution_atoms : ASTNodeBase {
 
   std::vector<std::shared_ptr<ASTNodeBase_resolution_atom>> atoms{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 // ============================================================
@@ -1046,10 +945,7 @@ struct ASTNodeBase_resolution_atom : ASTNodeBase {
   ASTNodeBase_resolution_atom(const ASTNodeType& node_type, const ItemID& item_id)
     : ASTNodeBase(node_type, NonterminalType::resolution_atom, item_id) {}
 
-
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 struct ASTNode_assoc : ASTNodeBase_resolution_atom {
@@ -1058,9 +954,7 @@ struct ASTNode_assoc : ASTNodeBase_resolution_atom {
 
   std::string assoc{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 struct ASTNode_prec : ASTNodeBase_resolution_atom {
@@ -1069,9 +963,7 @@ struct ASTNode_prec : ASTNodeBase_resolution_atom {
 
   std::string prec{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 // ============================================================
@@ -1085,9 +977,7 @@ struct ASTNode_action : ASTNodeBase {
   std::vector<std::shared_ptr<ASTNodeBase_arg>> arguments{};
   std::string fn_name{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 // ============================================================
@@ -1100,9 +990,7 @@ struct ASTNode_arguments : ASTNodeBase {
 
   std::vector<std::shared_ptr<ASTNodeBase_arg>> arguments{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 // ============================================================
@@ -1114,20 +1002,14 @@ struct ASTNodeBase_arg : ASTNodeBase {
   ASTNodeBase_arg(const ASTNodeType& node_type, const ItemID& item_id)
     : ASTNodeBase(node_type, NonterminalType::arg, item_id) {}
 
-
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 struct ASTNode_NullArg : ASTNodeBase_arg {
   explicit ASTNode_NullArg(const ItemID& item_id)
     : ASTNodeBase_arg(ASTNodeType::Type_ASTNode_NullArg, item_id) {}
 
-
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 struct ASTNode_PosArg : ASTNodeBase_arg {
@@ -1137,9 +1019,7 @@ struct ASTNode_PosArg : ASTNodeBase_arg {
   std::string field_name{};
   std::string pos{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 struct ASTNode_StringArg : ASTNodeBase_arg {
@@ -1148,9 +1028,7 @@ struct ASTNode_StringArg : ASTNodeBase_arg {
 
   std::string argument{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 // ============================================================
@@ -1164,29 +1042,21 @@ struct ASTNodeBase_data_definitions : ASTNodeBase {
 
   std::vector<std::shared_ptr<ASTNodeBase_data_definition>> definitions{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 struct ASTNode_20_data_definitions : ASTNodeBase_data_definitions {
   explicit ASTNode_20_data_definitions(const ItemID& item_id)
     : ASTNodeBase_data_definitions(ASTNodeType::Type_ASTNode_20_data_definitions, item_id) {}
 
-
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 struct ASTNode_21_data_definitions : ASTNodeBase_data_definitions {
   explicit ASTNode_21_data_definitions(const ItemID& item_id)
     : ASTNodeBase_data_definitions(ASTNodeType::Type_ASTNode_21_data_definitions, item_id) {}
 
-
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 // ============================================================
@@ -1198,10 +1068,7 @@ struct ASTNodeBase_data_definition : ASTNodeBase {
   ASTNodeBase_data_definition(const ASTNodeType& node_type, const ItemID& item_id)
     : ASTNodeBase(node_type, NonterminalType::data_definition, item_id) {}
 
-
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 struct ASTNode_define_code_block : ASTNodeBase_data_definition {
@@ -1211,9 +1078,7 @@ struct ASTNode_define_code_block : ASTNodeBase_data_definition {
   std::string class_name{};
   std::string code{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 struct ASTNode_import : ASTNodeBase_data_definition {
@@ -1222,9 +1087,7 @@ struct ASTNode_import : ASTNodeBase_data_definition {
 
   std::string path{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 struct ASTNode_inherit : ASTNodeBase_data_definition {
@@ -1234,9 +1097,7 @@ struct ASTNode_inherit : ASTNodeBase_data_definition {
   std::string base{};
   std::string visitor_name{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 // ============================================================
@@ -1249,9 +1110,7 @@ struct ASTNode_22_import_statement : ASTNodeBase {
 
   std::string path{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 // ============================================================
@@ -1265,9 +1124,7 @@ struct ASTNode_23_inherit_statement : ASTNodeBase {
   std::string base{};
   std::string visitor_name{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 // ============================================================
@@ -1281,9 +1138,7 @@ struct ASTNode_24_general_code_block : ASTNodeBase {
   std::string class_name{};
   std::string code{};
 
-  void Accept(ASTNodeVisitor& visitor) override {
-    visitor.Visit(*this);
-  }
+  void Accept(ASTNodeVisitor& visitor) override { visitor.Visit(*this); }
 };
 
 // ========================================================================
@@ -2392,8 +2247,6 @@ Parser::ReduceTo_ASTNode_0_start_ViaItem_0(
     [[maybe_unused]] const std::shared_ptr<ASTNodeBase_optional_data_block>& argument_4,
     [[maybe_unused]] const std::string& argument_5) {
   auto new_node = std::make_shared<ASTNode_0_start>(0);
-
-  // Set fields in the new node.
   new_node->lexer_block = argument_0;
   new_node->parser_block = argument_2;
   new_node->data_block = argument_4;
@@ -2405,8 +2258,6 @@ inline std::shared_ptr<ASTNode_1_optional_data_block>
 Parser::ReduceTo_ASTNode_1_optional_data_block_ViaItem_1(
     [[maybe_unused]] const std::shared_ptr<ASTNode_19_data_block>& argument_0) {
   auto new_node = std::make_shared<ASTNode_1_optional_data_block>(1);
-
-  // Set fields in the new node.
   new_node->data_block = argument_0;
 
   return new_node;
@@ -2422,8 +2273,6 @@ Parser::ReduceTo_ASTNodeGeneral_3_newlines_ViaItem_3(
     [[maybe_unused]] const std::shared_ptr<ASTNodeBase_newlines>& argument_0,
     [[maybe_unused]] const std::string& argument_1) {
   auto new_node = std::make_shared<ASTNodeGeneral_3_newlines>(3);
-
-  // Set fields in the new node.
   new_node->newlines_node = argument_0;
   new_node->newlines = argument_1;
 
@@ -2434,8 +2283,6 @@ inline std::shared_ptr<ASTNodeGeneral_4_newlines>
 Parser::ReduceTo_ASTNodeGeneral_4_newlines_ViaItem_4(
     [[maybe_unused]] const std::string& argument_0) {
   auto new_node = std::make_shared<ASTNodeGeneral_4_newlines>(4);
-
-  // Set fields in the new node.
   new_node->newlines = argument_0;
 
   return new_node;
@@ -2449,8 +2296,6 @@ Parser::ReduceTo_ASTNode_5_lexer_block_ViaItem_5(
     [[maybe_unused]] const std::shared_ptr<ASTNodeBase_newlines>& argument_3,
     [[maybe_unused]] const std::string& argument_4) {
   auto new_node = std::make_shared<ASTNode_5_lexer_block>(5);
-
-  // Set fields in the new node.
   new_node->definitions = argument_2->definitions;
 
   return new_node;
@@ -2462,8 +2307,6 @@ Parser::ReduceTo_ASTNode_6_lexer_definitions_ViaItem_6(
     [[maybe_unused]] const std::shared_ptr<ASTNodeBase_newlines>& argument_1,
     [[maybe_unused]] const std::shared_ptr<ASTNodeBase_lexeme_line>& argument_2) {
   auto new_node = std::make_shared<ASTNode_6_lexer_definitions>(6);
-
-  // Set fields in the new node.
   new_node->definitions.insert(new_node->definitions.end(), argument_0->definitions.cbegin(), argument_0->definitions.cend());
   new_node->definitions.push_back(argument_2);
 
@@ -2474,8 +2317,6 @@ inline std::shared_ptr<ASTNode_7_lexer_definitions>
 Parser::ReduceTo_ASTNode_7_lexer_definitions_ViaItem_7(
     [[maybe_unused]] const std::shared_ptr<ASTNodeBase_lexeme_line>& argument_0) {
   auto new_node = std::make_shared<ASTNode_7_lexer_definitions>(7);
-
-  // Set fields in the new node.
   new_node->definitions.push_back(argument_0);
 
   return new_node;
@@ -2485,8 +2326,6 @@ inline std::shared_ptr<ASTNode_Lexeme>
 Parser::ReduceTo_ASTNode_Lexeme_ViaItem_8(
     [[maybe_unused]] const std::shared_ptr<ASTNode_8_lexeme_definition>& argument_0) {
   auto new_node = std::make_shared<ASTNode_Lexeme>(8);
-
-  // Set fields in the new node.
   new_node->name = argument_0->name;
   new_node->regex = argument_0->regex;
 
@@ -2497,8 +2336,6 @@ inline std::shared_ptr<ASTNode_Skip>
 Parser::ReduceTo_ASTNode_Skip_ViaItem_9(
     [[maybe_unused]] const std::shared_ptr<ASTNode_9_skip_indicator>& argument_0) {
   auto new_node = std::make_shared<ASTNode_Skip>(9);
-
-  // Set fields in the new node.
   new_node->identifier = argument_0->identifier;
 
   return new_node;
@@ -2510,8 +2347,6 @@ Parser::ReduceTo_ASTNode_8_lexeme_definition_ViaItem_10(
     [[maybe_unused]] const std::string& argument_1,
     [[maybe_unused]] const std::string& argument_2) {
   auto new_node = std::make_shared<ASTNode_8_lexeme_definition>(10);
-
-  // Set fields in the new node.
   new_node->name = argument_0;
   new_node->regex = argument_2;
 
@@ -2523,8 +2358,6 @@ Parser::ReduceTo_ASTNode_9_skip_indicator_ViaItem_11(
     [[maybe_unused]] const std::string& argument_0,
     [[maybe_unused]] const std::string& argument_1) {
   auto new_node = std::make_shared<ASTNode_9_skip_indicator>(11);
-
-  // Set fields in the new node.
   new_node->identifier = argument_1;
 
   return new_node;
@@ -2540,8 +2373,6 @@ Parser::ReduceTo_ASTNode_Parser_ViaItem_12(
     [[maybe_unused]] const std::shared_ptr<ASTNodeBase_newlines>& argument_5,
     [[maybe_unused]] const std::string& argument_6) {
   auto new_node = std::make_shared<ASTNode_Parser>(12);
-
-  // Set fields in the new node.
   new_node->start_name = argument_2->start_name;
   new_node->definition = argument_4->definitions;
 
@@ -2553,8 +2384,6 @@ Parser::ReduceTo_ASTNode_10_start_indicator_ViaItem_13(
     [[maybe_unused]] const std::string& argument_0,
     [[maybe_unused]] const std::string& argument_1) {
   auto new_node = std::make_shared<ASTNode_10_start_indicator>(13);
-
-  // Set fields in the new node.
   new_node->start_name = argument_1;
 
   return new_node;
@@ -2566,8 +2395,6 @@ Parser::ReduceTo_ASTNode_11_parser_definitions_ViaItem_14(
     [[maybe_unused]] const std::shared_ptr<ASTNodeBase_newlines>& argument_1,
     [[maybe_unused]] const std::shared_ptr<ASTNode_parser>& argument_2) {
   auto new_node = std::make_shared<ASTNode_11_parser_definitions>(14);
-
-  // Set fields in the new node.
   new_node->definitions.insert(new_node->definitions.end(), argument_0->definitions.cbegin(), argument_0->definitions.cend());
   new_node->definitions.push_back(argument_2);
 
@@ -2578,8 +2405,6 @@ inline std::shared_ptr<ASTNode_12_parser_definitions>
 Parser::ReduceTo_ASTNode_12_parser_definitions_ViaItem_15(
     [[maybe_unused]] const std::shared_ptr<ASTNode_parser>& argument_0) {
   auto new_node = std::make_shared<ASTNode_12_parser_definitions>(15);
-
-  // Set fields in the new node.
   new_node->definitions.push_back(argument_0);
 
   return new_node;
@@ -2591,8 +2416,6 @@ Parser::ReduceTo_ASTNode_parser_ViaItem_16(
     [[maybe_unused]] const std::string& argument_1,
     [[maybe_unused]] const std::shared_ptr<ASTNode_options>& argument_2) {
   auto new_node = std::make_shared<ASTNode_parser>(16);
-
-  // Set fields in the new node.
   new_node->nonterminal_name = argument_0;
   new_node->productions = argument_2->productions;
 
@@ -2603,8 +2426,6 @@ inline std::shared_ptr<ASTNode_options>
 Parser::ReduceTo_ASTNode_options_ViaItem_17(
     [[maybe_unused]] const std::shared_ptr<ASTNodeBase_production_and_data>& argument_0) {
   auto new_node = std::make_shared<ASTNode_options>(17);
-
-  // Set fields in the new node.
   new_node->productions.push_back(argument_0);
 
   return new_node;
@@ -2616,8 +2437,6 @@ Parser::ReduceTo_ASTNode_options_ViaItem_18(
     [[maybe_unused]] const std::shared_ptr<ASTNodeGeneral_13_or>& argument_1,
     [[maybe_unused]] const std::shared_ptr<ASTNodeBase_production_and_data>& argument_2) {
   auto new_node = std::make_shared<ASTNode_options>(18);
-
-  // Set fields in the new node.
   new_node->productions.insert(new_node->productions.end(), argument_0->productions.cbegin(), argument_0->productions.cend());
   new_node->productions.push_back(argument_2);
 
@@ -2628,8 +2447,6 @@ inline std::shared_ptr<ASTNodeGeneral_13_or>
 Parser::ReduceTo_ASTNodeGeneral_13_or_ViaItem_19(
     [[maybe_unused]] const std::string& argument_0) {
   auto new_node = std::make_shared<ASTNodeGeneral_13_or>(19);
-
-  // Set fields in the new node.
   new_node->or_ = argument_0;
 
   return new_node;
@@ -2640,8 +2457,6 @@ Parser::ReduceTo_ASTNode_14_production_and_data_ViaItem_20(
     [[maybe_unused]] const std::shared_ptr<ASTNode_production_atoms>& argument_0,
     [[maybe_unused]] const std::shared_ptr<ASTNodeBase_resolution>& argument_1) {
   auto new_node = std::make_shared<ASTNode_14_production_and_data>(20);
-
-  // Set fields in the new node.
   new_node->atoms = argument_0->atoms;
   new_node->resolution = argument_1;
 
@@ -2656,8 +2471,6 @@ Parser::ReduceTo_ASTNode_15_production_and_data_ViaItem_21(
     [[maybe_unused]] const std::shared_ptr<ASTNode_actions>& argument_3,
     [[maybe_unused]] const std::shared_ptr<ASTNodeBase_code_block>& argument_4) {
   auto new_node = std::make_shared<ASTNode_15_production_and_data>(21);
-
-  // Set fields in the new node.
   new_node->atoms = argument_0->atoms;
   new_node->resolution = argument_1;
   new_node->actions = argument_3->actions;
@@ -2671,8 +2484,6 @@ Parser::ReduceTo_ASTNode_production_atoms_ViaItem_22(
     [[maybe_unused]] const std::shared_ptr<ASTNode_production_atoms>& argument_0,
     [[maybe_unused]] const std::shared_ptr<ASTNodeBase_production_atom>& argument_1) {
   auto new_node = std::make_shared<ASTNode_production_atoms>(22);
-
-  // Set fields in the new node.
   new_node->atoms.insert(new_node->atoms.end(), argument_0->atoms.cbegin(), argument_0->atoms.cend());
   new_node->atoms.push_back(argument_1);
 
@@ -2683,8 +2494,6 @@ inline std::shared_ptr<ASTNode_production_atoms>
 Parser::ReduceTo_ASTNode_production_atoms_ViaItem_23(
     [[maybe_unused]] const std::shared_ptr<ASTNodeBase_production_atom>& argument_0) {
   auto new_node = std::make_shared<ASTNode_production_atoms>(23);
-
-  // Set fields in the new node.
   new_node->atoms.push_back(argument_0);
 
   return new_node;
@@ -2694,8 +2503,6 @@ inline std::shared_ptr<ASTNode_identifier>
 Parser::ReduceTo_ASTNode_identifier_ViaItem_24(
     [[maybe_unused]] const std::string& argument_0) {
   auto new_node = std::make_shared<ASTNode_identifier>(24);
-
-  // Set fields in the new node.
   new_node->identifier = argument_0;
 
   return new_node;
@@ -2705,8 +2512,6 @@ inline std::shared_ptr<ASTNode_literal>
 Parser::ReduceTo_ASTNode_literal_ViaItem_25(
     [[maybe_unused]] const std::string& argument_0) {
   auto new_node = std::make_shared<ASTNode_literal>(25);
-
-  // Set fields in the new node.
   new_node->literal = argument_0;
 
   return new_node;
@@ -2716,8 +2521,6 @@ inline std::shared_ptr<ASTNode_lexeme_name>
 Parser::ReduceTo_ASTNode_lexeme_name_ViaItem_26(
     [[maybe_unused]] const std::string& argument_0) {
   auto new_node = std::make_shared<ASTNode_lexeme_name>(26);
-
-  // Set fields in the new node.
   new_node->lexeme_name = argument_0;
 
   return new_node;
@@ -2727,8 +2530,6 @@ inline std::shared_ptr<ASTNode_null>
 Parser::ReduceTo_ASTNode_null_ViaItem_27(
     [[maybe_unused]] const std::string& argument_0) {
   auto new_node = std::make_shared<ASTNode_null>(27);
-
-  // Set fields in the new node.
   new_node->null = argument_0;
 
   return new_node;
@@ -2744,8 +2545,6 @@ Parser::ReduceTo_ASTNode_17_resolution_ViaItem_29(
     [[maybe_unused]] const std::string& argument_0,
     [[maybe_unused]] const std::shared_ptr<ASTNode_resolution_atoms>& argument_1) {
   auto new_node = std::make_shared<ASTNode_17_resolution>(29);
-
-  // Set fields in the new node.
   new_node->atoms = argument_1->atoms;
 
   return new_node;
@@ -2757,8 +2556,6 @@ Parser::ReduceTo_ASTNode_resolution_atoms_ViaItem_30(
     [[maybe_unused]] const std::string& argument_1,
     [[maybe_unused]] const std::shared_ptr<ASTNodeBase_resolution_atom>& argument_2) {
   auto new_node = std::make_shared<ASTNode_resolution_atoms>(30);
-
-  // Set fields in the new node.
   new_node->atoms.insert(new_node->atoms.end(), argument_0->atoms.cbegin(), argument_0->atoms.cend());
   new_node->atoms.push_back(argument_2);
 
@@ -2769,8 +2566,6 @@ inline std::shared_ptr<ASTNode_resolution_atoms>
 Parser::ReduceTo_ASTNode_resolution_atoms_ViaItem_31(
     [[maybe_unused]] const std::shared_ptr<ASTNodeBase_resolution_atom>& argument_0) {
   auto new_node = std::make_shared<ASTNode_resolution_atoms>(31);
-
-  // Set fields in the new node.
   new_node->atoms.push_back(argument_0);
 
   return new_node;
@@ -2783,8 +2578,6 @@ Parser::ReduceTo_ASTNode_assoc_ViaItem_32(
     [[maybe_unused]] const std::string& argument_2,
     [[maybe_unused]] const std::string& argument_3) {
   auto new_node = std::make_shared<ASTNode_assoc>(32);
-
-  // Set fields in the new node.
   new_node->assoc = argument_2;
 
   return new_node;
@@ -2797,8 +2590,6 @@ Parser::ReduceTo_ASTNode_prec_ViaItem_33(
     [[maybe_unused]] const std::string& argument_2,
     [[maybe_unused]] const std::string& argument_3) {
   auto new_node = std::make_shared<ASTNode_prec>(33);
-
-  // Set fields in the new node.
   new_node->prec = argument_2;
 
   return new_node;
@@ -2810,8 +2601,6 @@ Parser::ReduceTo_ASTNode_actions_ViaItem_34(
     [[maybe_unused]] const std::string& argument_1,
     [[maybe_unused]] const std::shared_ptr<ASTNode_action>& argument_2) {
   auto new_node = std::make_shared<ASTNode_actions>(34);
-
-  // Set fields in the new node.
   new_node->actions.insert(new_node->actions.end(), argument_0->actions.cbegin(), argument_0->actions.cend());
   new_node->actions.push_back(argument_2);
 
@@ -2822,8 +2611,6 @@ inline std::shared_ptr<ASTNode_actions>
 Parser::ReduceTo_ASTNode_actions_ViaItem_35(
     [[maybe_unused]] const std::shared_ptr<ASTNode_action>& argument_0) {
   auto new_node = std::make_shared<ASTNode_actions>(35);
-
-  // Set fields in the new node.
   new_node->actions.push_back(argument_0);
 
   return new_node;
@@ -2836,8 +2623,6 @@ Parser::ReduceTo_ASTNode_action_ViaItem_36(
     [[maybe_unused]] const std::shared_ptr<ASTNode_arguments>& argument_2,
     [[maybe_unused]] const std::string& argument_3) {
   auto new_node = std::make_shared<ASTNode_action>(36);
-
-  // Set fields in the new node.
   new_node->fn_name = argument_0;
   new_node->arguments = argument_2->arguments;
 
@@ -2850,8 +2635,6 @@ Parser::ReduceTo_ASTNode_arguments_ViaItem_37(
     [[maybe_unused]] const std::string& argument_1,
     [[maybe_unused]] const std::shared_ptr<ASTNodeBase_arg>& argument_2) {
   auto new_node = std::make_shared<ASTNode_arguments>(37);
-
-  // Set fields in the new node.
   new_node->arguments.insert(new_node->arguments.end(), argument_0->arguments.cbegin(), argument_0->arguments.cend());
   new_node->arguments.push_back(argument_2);
 
@@ -2862,8 +2645,6 @@ inline std::shared_ptr<ASTNode_arguments>
 Parser::ReduceTo_ASTNode_arguments_ViaItem_38(
     [[maybe_unused]] const std::shared_ptr<ASTNodeBase_arg>& argument_0) {
   auto new_node = std::make_shared<ASTNode_arguments>(38);
-
-  // Set fields in the new node.
   new_node->arguments.push_back(argument_0);
 
   return new_node;
@@ -2873,8 +2654,6 @@ inline std::shared_ptr<ASTNode_PosArg>
 Parser::ReduceTo_ASTNode_PosArg_ViaItem_39(
     [[maybe_unused]] const std::string& argument_0) {
   auto new_node = std::make_shared<ASTNode_PosArg>(39);
-
-  // Set fields in the new node.
   new_node->pos = argument_0;
 
   return new_node;
@@ -2886,8 +2665,6 @@ Parser::ReduceTo_ASTNode_PosArg_ViaItem_40(
     [[maybe_unused]] const std::string& argument_1,
     [[maybe_unused]] const std::string& argument_2) {
   auto new_node = std::make_shared<ASTNode_PosArg>(40);
-
-  // Set fields in the new node.
   new_node->pos = argument_0;
   new_node->field_name = argument_2;
 
@@ -2898,8 +2675,6 @@ inline std::shared_ptr<ASTNode_StringArg>
 Parser::ReduceTo_ASTNode_StringArg_ViaItem_41(
     [[maybe_unused]] const std::string& argument_0) {
   auto new_node = std::make_shared<ASTNode_StringArg>(41);
-
-  // Set fields in the new node.
   new_node->argument = argument_0;
 
   return new_node;
@@ -2922,8 +2697,6 @@ Parser::ReduceTo_ASTNode_code_block_ViaItem_44(
     [[maybe_unused]] const std::string& argument_1,
     [[maybe_unused]] const std::string& argument_2) {
   auto new_node = std::make_shared<ASTNode_code_block>(44);
-
-  // Set fields in the new node.
   new_node->visitor_name = argument_1;
   new_node->code_body = argument_2;
 
@@ -2938,8 +2711,6 @@ Parser::ReduceTo_ASTNode_19_data_block_ViaItem_45(
     [[maybe_unused]] const std::shared_ptr<ASTNodeBase_newlines>& argument_3,
     [[maybe_unused]] const std::string& argument_4) {
   auto new_node = std::make_shared<ASTNode_19_data_block>(45);
-
-  // Set fields in the new node.
   new_node->definitions = argument_2->definitions;
 
   return new_node;
@@ -2951,8 +2722,6 @@ Parser::ReduceTo_ASTNode_20_data_definitions_ViaItem_46(
     [[maybe_unused]] const std::shared_ptr<ASTNodeBase_newlines>& argument_1,
     [[maybe_unused]] const std::shared_ptr<ASTNodeBase_data_definition>& argument_2) {
   auto new_node = std::make_shared<ASTNode_20_data_definitions>(46);
-
-  // Set fields in the new node.
   new_node->definitions.insert(new_node->definitions.end(), argument_0->definitions.cbegin(), argument_0->definitions.cend());
   new_node->definitions.push_back(argument_2);
 
@@ -2963,8 +2732,6 @@ inline std::shared_ptr<ASTNode_21_data_definitions>
 Parser::ReduceTo_ASTNode_21_data_definitions_ViaItem_47(
     [[maybe_unused]] const std::shared_ptr<ASTNodeBase_data_definition>& argument_0) {
   auto new_node = std::make_shared<ASTNode_21_data_definitions>(47);
-
-  // Set fields in the new node.
   new_node->definitions.push_back(argument_0);
 
   return new_node;
@@ -2974,8 +2741,6 @@ inline std::shared_ptr<ASTNode_import>
 Parser::ReduceTo_ASTNode_import_ViaItem_48(
     [[maybe_unused]] const std::shared_ptr<ASTNode_22_import_statement>& argument_0) {
   auto new_node = std::make_shared<ASTNode_import>(48);
-
-  // Set fields in the new node.
   new_node->path = argument_0->path;
 
   return new_node;
@@ -2985,8 +2750,6 @@ inline std::shared_ptr<ASTNode_inherit>
 Parser::ReduceTo_ASTNode_inherit_ViaItem_49(
     [[maybe_unused]] const std::shared_ptr<ASTNode_23_inherit_statement>& argument_0) {
   auto new_node = std::make_shared<ASTNode_inherit>(49);
-
-  // Set fields in the new node.
   new_node->visitor_name = argument_0->visitor_name;
   new_node->base = argument_0->base;
 
@@ -2997,8 +2760,6 @@ inline std::shared_ptr<ASTNode_define_code_block>
 Parser::ReduceTo_ASTNode_define_code_block_ViaItem_50(
     [[maybe_unused]] const std::shared_ptr<ASTNode_24_general_code_block>& argument_0) {
   auto new_node = std::make_shared<ASTNode_define_code_block>(50);
-
-  // Set fields in the new node.
   new_node->class_name = argument_0->class_name;
   new_node->code = argument_0->code;
 
@@ -3010,8 +2771,6 @@ Parser::ReduceTo_ASTNode_22_import_statement_ViaItem_51(
     [[maybe_unused]] const std::string& argument_0,
     [[maybe_unused]] const std::string& argument_1) {
   auto new_node = std::make_shared<ASTNode_22_import_statement>(51);
-
-  // Set fields in the new node.
   new_node->path = argument_1;
 
   return new_node;
@@ -3023,8 +2782,6 @@ Parser::ReduceTo_ASTNode_23_inherit_statement_ViaItem_52(
     [[maybe_unused]] const std::string& argument_1,
     [[maybe_unused]] const std::string& argument_2) {
   auto new_node = std::make_shared<ASTNode_23_inherit_statement>(52);
-
-  // Set fields in the new node.
   new_node->visitor_name = argument_1;
   new_node->base = argument_2;
 
@@ -3038,8 +2795,6 @@ Parser::ReduceTo_ASTNode_24_general_code_block_ViaItem_53(
     [[maybe_unused]] const std::string& argument_2,
     [[maybe_unused]] const std::string& argument_3) {
   auto new_node = std::make_shared<ASTNode_24_general_code_block>(53);
-
-  // Set fields in the new node.
   new_node->class_name = argument_1;
   new_node->code = argument_3;
 
@@ -3050,14 +2805,13 @@ struct ParserGenerator
   : ASTNodeVisitor
   , manta::DescriptionParser
   , manta::ProductionRulesBuilder {
-
-  void Visit(ASTNodeGeneral_13_or& object) override { /* No body defined */ }
-  void Visit(ASTNodeGeneral_16_resolution& object) override { /* No body defined */ }
-  void Visit(ASTNodeGeneral_18_code_block& object) override { /* No body defined */ }
-  void Visit(ASTNodeGeneral_2_optional_data_block& object) override { /* No body defined */ }
-  void Visit(ASTNodeGeneral_3_newlines& object) override { /* No body defined */ }
-  void Visit(ASTNodeGeneral_4_newlines& object) override { /* No body defined */ }
-  void Visit(ASTNode_0_start& object) override {
+  void Visit(ASTNodeGeneral_13_or& object) override { }
+  void Visit(ASTNodeGeneral_16_resolution& object) override { }
+  void Visit(ASTNodeGeneral_18_code_block& object) override { }
+  void Visit(ASTNodeGeneral_2_optional_data_block& object) override { }
+  void Visit(ASTNodeGeneral_3_newlines& object) override { }
+  void Visit(ASTNodeGeneral_4_newlines& object) override { }
+  void Visit(ASTNode_0_start& object) override { 
     LOG_SEV(Info) << CLR("Starting to parse the description.");
     object.lexer_block->Accept(*this);
     object.parser_block->Accept(*this);
@@ -3067,21 +2821,21 @@ struct ParserGenerator
     shiftProductionNumbers();
     findStartProduction();
   }
-  void Visit(ASTNode_10_start_indicator& object) override {
+  void Visit(ASTNode_10_start_indicator& object) override { 
     // Set the start non-terminal
     production_rules_data_->start_nonterminal_name = object.start_name;
   }
-  void Visit(ASTNode_11_parser_definitions& object) override {
+  void Visit(ASTNode_11_parser_definitions& object) override { 
     for (auto& definition : object.definitions) {
       definition->Accept(*this);
     }
   }
-  void Visit(ASTNode_12_parser_definitions& object) override {
+  void Visit(ASTNode_12_parser_definitions& object) override { 
     for (auto& definition : object.definitions) {
       definition->Accept(*this);
     }
   }
-  void Visit(ASTNode_14_production_and_data& object) override {
+  void Visit(ASTNode_14_production_and_data& object) override { 
     makeNextProductionRule();  // Create the item for this production.
     // Production and data with no actions.
     LOG_SEV(Debug) << "Production with no actions.";
@@ -3090,7 +2844,7 @@ struct ParserGenerator
     }
     storeCurrent(); // Done creating the item, store it.
   }
-  void Visit(ASTNode_15_production_and_data& object) override {
+  void Visit(ASTNode_15_production_and_data& object) override { 
     makeNextProductionRule();  // Create the item for this production.
     
     LOG_SEV(Info) << "There are " << object.atoms.size() << " atoms and " << object.actions.size() << " actions.";
@@ -3104,49 +2858,47 @@ struct ParserGenerator
     
     storeCurrent(); // Done creating the item, store it.
   }
-  void Visit(ASTNode_17_resolution& object) override {
+  void Visit(ASTNode_17_resolution& object) override { 
     for (auto& atom : object.atoms) {
       atom->Accept(*this);
     }
   }
-  void Visit(ASTNode_19_data_block& object) override {
+  void Visit(ASTNode_19_data_block& object) override { 
     LOG_SEV(Info) << "Getting definitions.";
     for (auto& definition : object.definitions) {
       definition->Accept(*this);
     }
   }
-  void Visit(ASTNode_1_optional_data_block& object) override {
-    object.data_block->Accept(*this);
-  }
-  void Visit(ASTNode_20_data_definitions& object) override {
+  void Visit(ASTNode_1_optional_data_block& object) override { object.data_block->Accept(*this); }
+  void Visit(ASTNode_20_data_definitions& object) override { 
     LOG_SEV(Info) << "Processing definitions.";
     for (auto& definition : object.definitions) {
       definition->Accept(*this);
     }
   }
-  void Visit(ASTNode_21_data_definitions& object) override { /* No body defined */ }
-  void Visit(ASTNode_22_import_statement& object) override { /* No body defined */ }
-  void Visit(ASTNode_23_inherit_statement& object) override { /* No body defined */ }
-  void Visit(ASTNode_24_general_code_block& object) override { /* No body defined */ }
-  void Visit(ASTNode_5_lexer_block& object) override {
+  void Visit(ASTNode_21_data_definitions& object) override { }
+  void Visit(ASTNode_22_import_statement& object) override { }
+  void Visit(ASTNode_23_inherit_statement& object) override { }
+  void Visit(ASTNode_24_general_code_block& object) override { }
+  void Visit(ASTNode_5_lexer_block& object) override { 
     LOG_SEV(Info) << "Getting lexer definitions.";
     for (auto& definition : object.definitions) {
       definition->Accept(*this);
     }
   }
-  void Visit(ASTNode_6_lexer_definitions& object) override {
+  void Visit(ASTNode_6_lexer_definitions& object) override { 
     for (auto& definition : object.definitions) {
       definition->Accept(*this);
     }
   }
-  void Visit(ASTNode_7_lexer_definitions& object) override {
+  void Visit(ASTNode_7_lexer_definitions& object) override { 
     for (auto& definition : object.definitions) {
       definition->Accept(*this);
     }
   }
-  void Visit(ASTNode_8_lexeme_definition& object) override { /* No body defined */ }
-  void Visit(ASTNode_9_skip_indicator& object) override { /* No body defined */ }
-  void Visit(ASTNode_Lexeme& object) override {
+  void Visit(ASTNode_8_lexeme_definition& object) override { }
+  void Visit(ASTNode_9_skip_indicator& object) override { }
+  void Visit(ASTNode_Lexeme& object) override { 
     std::string_view name_view = object.name;
     std::string name{name_view.substr(1, name_view.size() - 1)};  // Remove the @
     // Get the r` and ` off the regex.
@@ -3154,8 +2906,8 @@ struct ParserGenerator
     LOG_SEV(Debug) << "Adding lexeme: " << CLBG(name) << " with regex " << CLBB(regex) << ".";
     production_rules_data_->lexer_generator->AddLexeme(name, regex);
   }
-  void Visit(ASTNode_NullArg& object) override { /* No body defined */ }
-  void Visit(ASTNode_Parser& object) override {
+  void Visit(ASTNode_NullArg& object) override { }
+  void Visit(ASTNode_Parser& object) override { 
     // Set the start production name.
     auto id = registerNonterminal(object.start_name);
     registerStartingProduction(id);
@@ -3165,7 +2917,7 @@ struct ParserGenerator
       definition->Accept(*this);
     }
   }
-  void Visit(ASTNode_PosArg& object) override {
+  void Visit(ASTNode_PosArg& object) override { 
     if (object.item_id == 39) {
       LOG_SEV(Debug) << "Pos arg: ARG:" << object.pos;
       addArgumentToAction(object.pos.substr(1));
@@ -3175,23 +2927,23 @@ struct ParserGenerator
       addArgumentToAction(object.pos.substr(1) + "." + object.field_name);
     } 
   }
-  void Visit(ASTNode_Skip& object) override {
+  void Visit(ASTNode_Skip& object) override { 
     LOG_SEV(Debug) << "Setting lexeme " << object.identifier << " to be a skip lexeme.";
     production_rules_data_->lexer_generator->AddSkip(object.identifier);
   }
-  void Visit(ASTNode_StringArg& object) override {
+  void Visit(ASTNode_StringArg& object) override { 
     // Remove the quotes.
     auto arg = object.argument.substr(1, object.argument.size() - 2);
     LOG_SEV(Debug) << "String arg: " << CLBG(arg) << " ARG:" << object.argument;
     addArgumentToAction(arg);
   }
-  void Visit(ASTNode_action& object) override {
+  void Visit(ASTNode_action& object) override { 
     registerAction(object.fn_name);
     for (auto& arg : object.arguments) {
       arg->Accept(*this);
     }
   }
-  void Visit(ASTNode_actions& object) override {
+  void Visit(ASTNode_actions& object) override { 
     if (object.item_id == 34) {
       for (auto& action : object.actions) {
         action->Accept(*this);
@@ -3202,12 +2954,12 @@ struct ParserGenerator
       }
     } 
   }
-  void Visit(ASTNode_arguments& object) override { /* No body defined */ }
-  void Visit(ASTNode_assoc& object) override {
+  void Visit(ASTNode_arguments& object) override { }
+  void Visit(ASTNode_assoc& object) override { 
     LOG_SEV(Debug) << "Assoc: " << object.assoc;
     getCurrentProduction().res_info.assoc = toAssociation(object.assoc);
   }
-  void Visit(ASTNode_code_block& object) override {
+  void Visit(ASTNode_code_block& object) override { 
     LOG_SEV(Info) << "Code block: " << CLBB(object.code_body);
     
     // Have to take off the beginning "{" and ending "% }".
@@ -3227,45 +2979,45 @@ struct ParserGenerator
         code);
     }
   }
-  void Visit(ASTNode_define_code_block& object) override {
+  void Visit(ASTNode_define_code_block& object) override { 
     LOG_SEV(Info) << "General code block:\n" << object.code;
     // Take off leading "{" and trailing "% }".
     auto code = object.code.substr(1, object.code.size() - 3);
     addGeneralCodeToVisitor(object.class_name, code);
   }
-  void Visit(ASTNode_identifier& object) override {
+  void Visit(ASTNode_identifier& object) override { 
     // Indicates a non-terminal.
     auto id = registerNonterminal(object.identifier);
     LOG_SEV(Info) << "Non-terminal: '" << object.identifier << "', id = " << id << ".";
-    addToProduction(id);
+    addToCurrentProduction(id);
   }
-  void Visit(ASTNode_import& object) override {
+  void Visit(ASTNode_import& object) override { 
     LOG_SEV(Info) << "Import " << object.path << ".";
     addImport(object.path);
   }
-  void Visit(ASTNode_inherit& object) override {
+  void Visit(ASTNode_inherit& object) override { 
     LOG_SEV(Info) << "Inherits " << object.visitor_name << " from " << object.base << ".";
     addParentClassForVisitor(object.visitor_name, object.base);
   }
-  void Visit(ASTNode_lexeme_name& object) override {
+  void Visit(ASTNode_lexeme_name& object) override { 
     // Need to get rid of the '@' at the beginning.
     auto name = object.lexeme_name.substr(1);
     int id = getLexemeID(name);
     LOG_SEV(Info) << "Lexeme name: '" << name << "', id = " << id << ".";
-    addToProduction(id);
+    addToCurrentProduction(id);
   }
-  void Visit(ASTNode_literal& object) override {
+  void Visit(ASTNode_literal& object) override { 
     // Get rid of quotes
     auto literal = object.literal.substr(1, object.literal.size() - 2);
     int id = production_rules_data_->lexer_generator->AddReserved(literal);
     LOG_SEV(Info) << "Literal: " << CLBG(literal) << "', id = " << id << ".";
-    addToProduction(id);
+    addToCurrentProduction(id);
   }
-  void Visit(ASTNode_null& object) override {
+  void Visit(ASTNode_null& object) override { 
     // Found a null
     LOG_SEV(Debug) << "Null found.";
   }
-  void Visit(ASTNode_options& object) override {
+  void Visit(ASTNode_options& object) override { 
     if (object.item_id == 17) {
       for (auto& production : object.productions) {
         production->Accept(*this);
@@ -3276,21 +3028,21 @@ struct ParserGenerator
       }
     } 
   }
-  void Visit(ASTNode_parser& object) override {
+  void Visit(ASTNode_parser& object) override { 
     LOG_SEV(Info) << "Reading definition for non-terminal " << CLY(object.nonterminal_name)
                       << ", there are " << object.productions.size() << " productions.";
     
     registerNonterminalDefinition(object.nonterminal_name);
-    LOG_SEV(Debug) << "Registered nonterminal " << CLY(object.nonterminal_name) << " with id " << current_production_id_;
+    LOG_SEV(Debug) << "Registered nonterminal " << CLY(object.nonterminal_name) << " with id " << getCurrentProductionID();
     for (auto& production : object.productions) {
       production->Accept(*this);
     }
   }
-  void Visit(ASTNode_prec& object) override {
+  void Visit(ASTNode_prec& object) override { 
     LOG_SEV(Debug) << "Prec: " << object.prec;
     getCurrentProduction().res_info.precedence = manta::stoi(object.prec);
   }
-  void Visit(ASTNode_production_atoms& object) override {
+  void Visit(ASTNode_production_atoms& object) override { 
     if (object.item_id == 22) {
       for (auto& atom : object.atoms) {
         atom->Accept(*this);
@@ -3301,21 +3053,21 @@ struct ParserGenerator
       }
     } 
   }
-  void Visit(ASTNode_resolution_atoms& object) override { /* No body defined */ }
-  void Visit(ASTNodeBase_newlines& object) override { /* No body defined */ }
-  void Visit(ASTNodeBase_optional_data_block& object) override { /* No body defined */ }
-  void Visit(ASTNodeBase_lexer_definitions& object) override { /* No body defined */ }
-  void Visit(ASTNodeBase_lexeme_line& object) override { /* No body defined */ }
-  void Visit(ASTNodeBase_parser_definitions& object) override { /* No body defined */ }
-  void Visit(ASTNodeBase_production_and_data& object) override { /* No body defined */ }
-  void Visit(ASTNodeBase_resolution& object) override { /* No body defined */ }
-  void Visit(ASTNodeBase_code_block& object) override { /* No body defined */ }
-  void Visit(ASTNodeBase_production_atom& object) override { /* No body defined */ }
-  void Visit(ASTNodeBase_resolution_atom& object) override { /* No body defined */ }
-  void Visit(ASTNodeBase_arg& object) override { /* No body defined */ }
-  void Visit(ASTNodeBase_data_definitions& object) override { /* No body defined */ }
-  void Visit(ASTNodeBase_data_definition& object) override { /* No body defined */ }
-  void Visit(ASTLexeme& object) override { /* No body defined */ }
+  void Visit(ASTNode_resolution_atoms& object) override { }
+  void Visit(ASTNodeBase_newlines& object) override { }
+  void Visit(ASTNodeBase_optional_data_block& object) override { }
+  void Visit(ASTNodeBase_lexer_definitions& object) override { }
+  void Visit(ASTNodeBase_lexeme_line& object) override { }
+  void Visit(ASTNodeBase_parser_definitions& object) override { }
+  void Visit(ASTNodeBase_production_and_data& object) override { }
+  void Visit(ASTNodeBase_resolution& object) override { }
+  void Visit(ASTNodeBase_code_block& object) override { }
+  void Visit(ASTNodeBase_production_atom& object) override { }
+  void Visit(ASTNodeBase_resolution_atom& object) override { }
+  void Visit(ASTNodeBase_arg& object) override { }
+  void Visit(ASTNodeBase_data_definitions& object) override { }
+  void Visit(ASTNodeBase_data_definition& object) override { }
+  void Visit(ASTLexeme& object) override { }
 
   // Ad-hoc code.
   ParserGenerator() = default;
@@ -3328,7 +3080,7 @@ struct ParserGenerator
   }
 
   void registerAction(const std::string& action) {
-    LOG_SEV(Debug) << "Registering action '" << action << "' for production " << current_production_id_ << ".";
+    LOG_SEV(Debug) << "Registering action '" << action << "' for production " << getCurrentProductionID() << ".";
     createAction(action);
   }
 

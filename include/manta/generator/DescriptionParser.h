@@ -198,13 +198,17 @@ protected:
   //!        been registered.
   NonterminalID registerNonterminal(const std::string& production);
 
+  //! \brief Pop the top non-terminal off the non-terminals stack.
+  NonterminalID finishNonterminal();
+
   //! \brief Register a non-terminal whose productions are being defined.
   NonterminalID registerNonterminalDefinition(const std::string& production);
 
-  void addToProduction(int id) { getCurrentProduction().rule.AddToProduction(id); }
+  //! \brief Add an ID to the current (top) production.
+  void addToCurrentProduction(int id);
 
-  //! \brief Create a new helper nonterminal.
-  NonterminalID createHelperNonterminal(NonterminalID parent_id);
+  //! \brief Create a new helper nonterminal for the current non-terminal.
+  NonterminalID createHelperNonterminal();
 
   //! \brief Register a production as starting production.
   void registerStartingProduction(int id);
@@ -256,8 +260,11 @@ protected:
   //! \brief Keep track of the next production item's ID.
   ItemID item_number_ = 0;
 
-  //! \brief The production id of the currently registered production.
-  ItemID current_production_id_ = 0;
+  //! \brief The stack for non-terminals that are currently being defined.
+  //!
+  //! There will be more than one item in the stack if there are special patterns in the grammar, like
+  //! optional or repeating patterns.
+  std::stack<ItemID> nonterminal_ids_{};
 
   //! \brief Keep track of which non-terminals are support non-terminals.
   //!

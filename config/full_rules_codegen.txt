@@ -135,7 +135,7 @@
                               << ", there are " << object.productions.size() << " productions.";
 
             registerNonterminalDefinition(object.nonterminal_name);
-            LOG_SEV(Debug) << "Registered nonterminal " << CLY(object.nonterminal_name) << " with id " << current_production_id_;
+            LOG_SEV(Debug) << "Registered nonterminal " << CLY(object.nonterminal_name) << " with id " << getCurrentProductionID();
             for (auto& production : object.productions) {
               production->Accept(*this);
             }
@@ -202,21 +202,21 @@
             // Indicates a non-terminal.
             auto id = registerNonterminal(object.identifier);
             LOG_SEV(Info) << "Non-terminal: '" << object.identifier << "', id = " << id << ".";
-            addToProduction(id);
+            addToCurrentProduction(id);
         %} \
         | @literal : node("literal") %ParserGenerator{
             // Get rid of quotes
             auto literal = object.literal.substr(1, object.literal.size() - 2);
             int id = production_rules_data_->lexer_generator->AddReserved(literal);
             LOG_SEV(Info) << "Literal: " << CLBG(literal) << "', id = " << id << ".";
-            addToProduction(id);
+            addToCurrentProduction(id);
         %} \
         | @lexeme_name : node("lexeme_name"), field($0, "lexeme_name") %ParserGenerator{
             // Need to get rid of the '@' at the beginning.
             auto name = object.lexeme_name.substr(1);
             int id = getLexemeID(name);
             LOG_SEV(Info) << "Lexeme name: '" << name << "', id = " << id << ".";
-            addToProduction(id);
+            addToCurrentProduction(id);
         %}\
         | @null : node("null")  %ParserGenerator{
             // Found a null
@@ -367,7 +367,7 @@
         }
 
         void registerAction(const std::string& action) {
-          LOG_SEV(Debug) << "Registering action '" << action << "' for production " << current_production_id_ << ".";
+          LOG_SEV(Debug) << "Registering action '" << action << "' for production " << getCurrentProductionID() << ".";
           createAction(action);
         }
 

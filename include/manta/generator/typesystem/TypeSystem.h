@@ -13,6 +13,7 @@
 #include "manta/utility/utility.hpp"
 
 namespace manta {
+
 //! \brief The general Type System category enum.
 enum class TSGeneralType {
   Vector,
@@ -47,7 +48,7 @@ struct TypeDescription {
   }
 
   //! \brief Hash a description of the type, this can be used to determine if types are
-  //! structurally equal.
+  //!        structurally equal.
   NO_DISCARD virtual std::size_t HashStructure() const { return static_cast<std::size_t>(general_type); }
 
   //! \brief Hash the identifier of the type.
@@ -78,7 +79,7 @@ struct ElaboratedType {
 //! \brief Type description for a "basic" type.
 //!
 //! Basic types will be mapped to types in target programming languages in a language dependent way.
-struct BasicTypeDescription : public TypeDescription {
+struct BasicTypeDescription : TypeDescription {
   explicit BasicTypeDescription(TSGeneralType type) : TypeDescription(type) {}
 };
 
@@ -134,7 +135,7 @@ struct StructureConstructor {
 };
 
 //! \brief Type description for a function.
-struct FunctionType : public TypeDescription {
+struct FunctionType : TypeDescription {
   FunctionType() : TypeDescription(TSGeneralType::Function) {}
 
   //! \brief The function's arguments.
@@ -264,7 +265,7 @@ struct FunctionValue {
 };
 
 //! \brief A structure that represents a function of a record or structure, a bound function.
-struct StructureFunction : public FunctionValue {
+struct StructureFunction : FunctionValue {
   StructureFunction() = default;
 
   StructureFunction(FunctionValue value) {
@@ -312,7 +313,7 @@ struct StructureFunction : public FunctionValue {
 //!
 //! This is the most complex type, as I also allow it to have constructors which can do different types of
 //! initializations.
-struct TypeDescriptionStructure final : public TypeDescription {
+struct TypeDescriptionStructure final : TypeDescription {
   explicit TypeDescriptionStructure(std::string name);
 
   //! \brief Add a field to the structure.
@@ -357,7 +358,7 @@ struct TypeDescriptionStructure final : public TypeDescription {
   std::deque<StructureFunction> functions;
 
   //! \brief Field for injecting arbitrary user defined code into the structure. This could include things
-  //! like additional function or variable definitions.
+  //!        like additional function or variable definitions.
   std::string adhoc_code {};
 };
 
@@ -373,7 +374,7 @@ inline StructureFunction& FunctionValue::BindToStructure(TypeDescriptionStructur
 
 
 //! \brief Represents a vector or ordered collection of objects of some other type.
-struct TypeDescriptionVector final : public BasicTypeDescription {
+struct TypeDescriptionVector final : BasicTypeDescription {
   explicit TypeDescriptionVector(const TypeDescription* element_type);
 
   NO_DISCARD std::string Write() const override;
@@ -388,7 +389,7 @@ struct TypeDescriptionVector final : public BasicTypeDescription {
 };
 
 //! \brief Represents a shared pointer to an object of some other type.
-struct TypeDescriptionSharedPointer final : public BasicTypeDescription {
+struct TypeDescriptionSharedPointer final : BasicTypeDescription {
   explicit TypeDescriptionSharedPointer(const TypeDescription* type);
 
   NO_DISCARD std::string Write() const override;
@@ -403,7 +404,7 @@ struct TypeDescriptionSharedPointer final : public BasicTypeDescription {
 };
 
 //! \brief Represents an enumeration type.
-struct TypeDescriptionEnum final : public BasicTypeDescription {
+struct TypeDescriptionEnum final : BasicTypeDescription {
   explicit TypeDescriptionEnum(const std::string& enum_name);
 
   NO_DISCARD std::string Write() const override;
@@ -425,17 +426,17 @@ private:
 };
 
 //! \brief Represents a string field.
-struct TypeDescriptionString final : public TypeDescription {
+struct TypeDescriptionString final : TypeDescription {
   TypeDescriptionString() : TypeDescription(TSGeneralType::String) {}
 };
 
 //! \brief Represents an integer field.
-struct TypeDescriptionInteger final : public TypeDescription {
+struct TypeDescriptionInteger final : TypeDescription {
   TypeDescriptionInteger() : TypeDescription(TSGeneralType::Integer) {}
 };
 
 //! \brief Represents an floating point field.
-struct TypeDescriptionFloat final : public TypeDescription {
+struct TypeDescriptionFloat final : TypeDescription {
   TypeDescriptionFloat() : TypeDescription(TSGeneralType::Float) {}
 };
 
@@ -443,7 +444,7 @@ struct TypeDescriptionFloat final : public TypeDescription {
 //!
 //! This is useful for things like defining functions in arbitrary code, like reduction functions, that return
 //! some language specific type.
-struct TypeDescriptionCustom : public TypeDescription {
+struct TypeDescriptionCustom final : TypeDescription {
   explicit TypeDescriptionCustom(const std::string& type_declaration) noexcept
       : TypeDescription(TSGeneralType::Custom)
       , type_declaration(type_declaration) {}

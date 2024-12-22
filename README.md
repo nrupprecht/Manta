@@ -90,7 +90,7 @@ int max3(int a, b, c) return a:>: b:>: c;
 
 The parser code generated from this grammar can be
 found in [include/manta/generatedparsers/CminusParser.h](include/manta/generatedparsers/CminusParser.h). The generated
-parser code is quite long, roughly 10,000 lines. Finding a more efficient way to represent the parse table is a work in
+parser code is quite long, roughly 7,000 lines. Finding a more efficient way to represent the parse table is a work in
 progress, since my current method is very easy to read and understand, but not very efficient.
 
 I also set up

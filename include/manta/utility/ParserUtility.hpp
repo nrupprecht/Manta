@@ -87,10 +87,6 @@ struct ProductionRule {
     return out;
   }
 
-  // --- Data items ---
-
-  // NOTE(Nate): Check how production and production_label differ - can we consolidate?
-
   //! \brief The non-terminal symbol, by ID, that this is a rule for. I.e., the left hand side of a
   //!        production rule.
   NonterminalID produced_nonterminal = -1;

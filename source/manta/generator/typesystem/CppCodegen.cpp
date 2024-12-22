@@ -9,6 +9,33 @@
 using namespace std::literals;
 
 namespace manta {
+
+namespace {
+
+bool bodyIsShort(std::string_view body) {
+  while (!body.empty() && std::isspace(body.front())) {
+    body.remove_prefix(1);
+  }
+  while (!body.empty() && std::isspace(body.back())) {
+    body.remove_suffix(1);
+  }
+  // Count number of newlines within the body.
+  const auto num_newlines = std::ranges::count(body, '\n');
+  return body.size() < 80 && num_newlines == 0;
+}
+
+void writeNoSpaces(std::ostream& out, std::string_view body) {
+  while (!body.empty() && std::isspace(body.front())) {
+    body.remove_prefix(1);
+  }
+  while (!body.empty() && std::isspace(body.back())) {
+    body.remove_suffix(1);
+  }
+  out << body;
+}
+
+}  // namespace
+
 void CppCodeGen::WriteHeader(std::ostream& out) const {
   out << "#pragma once\n\n";
 }
@@ -135,7 +162,9 @@ void CppCodeGen::WriteDefinition(std::ostream& out, const TypeDescriptionStructu
   for (auto& [field, type] : structure->fields) {
     out << "  " << WriteName(type) << " " << field << "{};\n";
   }
-  AddBreak(out);
+  if (!structure->fields.empty()) {
+    AddBreak(out);
+  }
 
   // Write all functions.
   for (auto& function : structure->functions) {
@@ -171,21 +200,30 @@ void CppCodeGen::WriteDefinition(std::ostream& out, const TypeDescriptionStructu
     }
     else {
       if (function.function_body->empty()) {
-        out << " { /* No body defined */ }\n";
+        out << " { }\n";
       }
       else {
-        out << " {\n";
-        // Write function body. Indent after every newline. function_body is not nullopt, since the function
-        // is not virtual.
-        out << "    ";  // Indent.
-        for (auto c : *function.function_body) {
-          out << c;
-          if (c == '\n') {
-            out << "    ";
-          }
+        out << " { ";
+
+        if (bodyIsShort(*function.function_body)) {
+          writeNoSpaces(out, *function.function_body);
+          out << " ";
         }
-        // Write closing '}'
-        out << "\n  }\n";
+        else {
+          out << "\n";
+          // Write function body. Indent after every newline. function_body is not nullopt, since the function
+          // is not virtual.
+          out << "    ";  // Indent.
+          for (auto c : *function.function_body) {
+            out << c;
+            if (c == '\n') {
+              out << "    ";
+            }
+          }
+          // Newline and indent for the closing '}'
+          out << "\n  ";
+        }
+        out << "}\n";
       }
     }
   }
@@ -337,10 +375,20 @@ void CppCodeGen::writeFunction(std::ostream& out,
   }
   out << " {";
   if (function->function_body && !function->function_body->empty()) {
-    out << "\n";
-    writeBody(out, *function->function_body);
+    // Check if the function should be written in a single line
+
+    if (bodyIsShort(*function->function_body)) {
+      out << " ";
+      writeNoSpaces(out, *function->function_body);
+      out << " ";
+    }
+    else {
+      out << "\n";
+      writeBody(out, *function->function_body);
+      out << "\n";
+    }
   }
-  out << "\n}";
+  out << "}";
 }
 
 void CppCodeGen::writeBody(std::ostream& out, std::string_view body) const {

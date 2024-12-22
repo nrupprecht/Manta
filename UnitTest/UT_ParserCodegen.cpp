@@ -30,7 +30,7 @@ TEST(ParserCodegen, FreeFunction_Basic) {
   std::stringstream stream;
   codegen.WriteDefinition(stream, &function_value);
 
-  EXPECT_EQ(stream.str(), "int item_1(int X, int Y, int Z) {\n  return X + Y + Z;\n}");
+  EXPECT_EQ(stream.str(), "int item_1(int X, int Y, int Z) { return X + Y + Z; }");
 }
 
 TEST(ParserCodegen, FreeFunction_Void) {
@@ -53,7 +53,7 @@ TEST(ParserCodegen, FreeFunction_Void) {
   codegen.WriteDefinition(stream, &function_value);
 
   EXPECT_EQ(stream.str(),
-            "void void_function(int X, int Y, int Z) {\n  std::cout << X + Y + Z << std::endl;\n}");
+            "void void_function(int X, int Y, int Z) { std::cout << X + Y + Z << std::endl; }");
 }
 
 TEST(ParserCodegen, FreeFunction_Indentation) {

@@ -3,7 +3,7 @@
 #include <Lightning/Lightning.h>
 
 #include "manta/generator/typesystem/CppCodegen.h"
-#include "manta/generator/typesystem/TypeCreation.h"
+#include "manta/generator/typesystem/ParserTypeCreation.h"
 #include "manta/utility/Formatting.h"
 
 using namespace manta;
@@ -29,7 +29,7 @@ std::string treatLiteral(const std::string& input) {
   // remove these types of escapes, but keep escapes for newlines, tabs, etc., and also
   // add escapes for quotes, since we are going to be writing the result of this to file.
 
-  static std::set<char> lexeme_escapes {'\\', '|', '(', ')', '[', ']'};
+  static std::set lexeme_escapes {'\\', '|', '(', ')', '[', ']'};
 
   std::string output;
   output.reserve(input.size());
@@ -422,11 +422,8 @@ void ParserCodegen::GenerateParserCode(std::ostream& code_out,
       LOG_SEV(Debug) << "Done creating function arguments.";
       code_out << ") {\n";
 
-
       if (auto it = relationships.find(node_type_name); it != relationships.end()) {
-        code_out << "  auto new_node = std::make_shared<" << node_type_name << ">(" << item_number
-                 << ");\n\n";
-        code_out << "  // Set fields in the new node.\n";
+        code_out << "  auto new_node = std::make_shared<" << node_type_name << ">(" << item_number << ");\n";
 
         // Get relationships for this node. We only keep the ones for this item number.
         auto& relationships_for_node = it->second;

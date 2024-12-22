@@ -34,18 +34,29 @@ int ProductionRulesBuilder::registerNonterminal(const std::string& production) {
   return it->second;
 }
 
-NonterminalID ProductionRulesBuilder::registerNonterminalDefinition(const std::string& production) {
-  current_production_id_ = registerNonterminal(production);
-  return current_production_id_;
+NonterminalID ProductionRulesBuilder::finishNonterminal() {
+  if (!nonterminal_ids_.empty()) {
+    const auto id = nonterminal_ids_.top();
+    nonterminal_ids_.pop();
+    return id;
+  }
+  return -1;
 }
 
-NonterminalID ProductionRulesBuilder::createHelperNonterminal(NonterminalID parent_id) {
+NonterminalID ProductionRulesBuilder::registerNonterminalDefinition(const std::string& production) {
+  nonterminal_ids_.push(registerNonterminal(production));
+  return nonterminal_ids_.top();
+}
+
+void ProductionRulesBuilder::addToCurrentProduction(int id) {
+  getCurrentProduction().rule.AddToProduction(id);
+}
+
+NonterminalID ProductionRulesBuilder::createHelperNonterminal() {
   // Helper nonterminals can't be referenced explicitly, since they are created by the parser generator, not
   // by the user. Each one is unique. So we never have to check if on "already exists."
-  auto name = lightning::formatting::Format("SUPPORT_{}_{}", parent_id, support_nonterminal_ids_.size());
-  auto id   = production_rules_data_->num_productions--;
-  support_nonterminal_ids_.insert(id);
-  return id++;
+  auto name = lightning::formatting::Format("SUPPORT_{}_{}", getCurrentProductionID(), support_nonterminal_ids_.size());
+  return registerNonterminalDefinition(name);
 }
 
 void ProductionRulesBuilder::registerStartingProduction(int id) {
@@ -114,7 +125,8 @@ int ProductionRulesBuilder::getLexemeID(const std::string& lexeme_name) const {
 
 void ProductionRulesBuilder::makeNextProductionRule() {
   // Push a rule onto the stack.
-  productions_stack_.push(AnnotatedProductionRule{ProductionRule(current_production_id_), item_number_++});
+  auto production_id = getCurrentProductionID();
+  productions_stack_.push(AnnotatedProductionRule{ProductionRule(production_id), item_number_++});
   auto& current = productions_stack_.top();
   current.instructions = std::make_shared<ParseNode>("I");
 }
@@ -226,7 +238,8 @@ std::string ProductionRulesBuilder::getCurrentProductionName() const {
 }
 
 int ProductionRulesBuilder::getCurrentProductionID() const {
-  return current_production_id_;
+  MANTA_REQUIRE(!nonterminal_ids_.empty(), "no nonterminal is being defined");
+  return nonterminal_ids_.top();
 }
 
 // ====================================================================================
@@ -291,6 +304,9 @@ std::shared_ptr<ProductionRulesData> HandWrittenDescriptionParser::ParseDescript
       ;
     // Start of production
     else if (isalpha(c)) {
+      // We must be done with the last non-terminal (if any). Pop it off the stack.
+      finishNonterminal();
+
       // Get the production name.
       production_name.clear();
       do {
@@ -308,7 +324,7 @@ std::shared_ptr<ProductionRulesData> HandWrittenDescriptionParser::ParseDescript
       // already been registered.
       registerNonterminalDefinition(production_name);
       LOG_SEV(Trace) << "Production " << formatting::CLB(production_name) << " given temporary id "
-                     << current_production_id_ << ".";
+                     << getCurrentProductionID() << ".";
 
       // Find '->'
       stream.get(c);
@@ -463,7 +479,7 @@ inline void HandWrittenDescriptionParser::getProductions(std::istream& in) {
       if (!acc.empty()) {
         int id = production_rules_data_->lexer_generator->AddReserved(acc);
         // Add to production
-        addToProduction(id);
+        addToCurrentProduction(id);
       }
       // Clear accumulator.
       acc.clear();
@@ -491,11 +507,10 @@ inline void HandWrittenDescriptionParser::getProductions(std::istream& in) {
         registerStartingProduction(id);
       }
       // Add production to rule.
-      addToProduction(id);
+      addToCurrentProduction(id);
       // Clear accumulator.
       acc.clear();
     }
-
     // Start of a lexeme indicator.
     else if (c == '@') {
       in.get(c);
@@ -511,7 +526,7 @@ inline void HandWrittenDescriptionParser::getProductions(std::istream& in) {
       if (id < 0) {
         MANTA_THROW(UnexpectedInput, "visitor_name " << acc << " not a valid lexeme type");
       }
-      addToProduction(id);
+      addToCurrentProduction(id);
 
       // Clear accumulator.
       acc.clear();
@@ -672,7 +687,7 @@ void HandWrittenDescriptionParser::findResInfo(std::istream& in) {
 
 void HandWrittenDescriptionParser::getInstructions(std::istream& in) {
   LOG_SEV(Debug) << "Getting instructions for production " << formatting::CLG(getCurrentProductionName()) << " ("
-                 << current_production_id_ << ").";
+                 << getCurrentProductionID() << ").";
 
   // Setup.
   char c;
@@ -715,7 +730,7 @@ void HandWrittenDescriptionParser::getInstructions(std::istream& in) {
     // Reduction / visitor code.
     else if (c == '%') {
       MANTA_ASSERT(!in.eof(), "unexpected eof while getting reduction code");
-      LOG_SEV(Debug) << "Found reduction / visitor code for production " << getCurrentProductionID();
+      LOG_SEV(Debug) << "Found reduction / visitor code for non-terminal " << getCurrentProductionID();
 
       // Get what type of code this is for, a visitor, or a function to be called upon the REDUCE.
       acc.clear();

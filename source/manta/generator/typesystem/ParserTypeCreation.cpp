@@ -2,7 +2,7 @@
 // Created by Nathaniel Rupprecht on 4/12/23.
 //
 
-#include "manta/generator/typesystem/TypeCreation.h"
+#include "manta/generator/typesystem/ParserTypeCreation.h"
 // Other files.
 #include "manta/generator/typesystem/TypeDeduction.h"
 #include "manta/generator/typesystem/TypeRelationship.h"
