@@ -4,7 +4,6 @@
 
 #include <gtest/gtest.h>
 // Includes
-#include "manta/generator/typesystem/CppCodegen.h"
 #include "manta/generator/typesystem/HigherTypeSystem.h"
 
 using namespace manta::typesystem;

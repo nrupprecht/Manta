@@ -336,7 +336,6 @@ public:
   struct Field {
     std::string field_name;
     ElaboratedType type;
-    std::vector<std::size_t> bindings;
   };
 
   //! \brief Create an object. Objects have nominative typing, if they have different names, they are
@@ -425,6 +424,12 @@ public:
   //! \brief Returns true if the generalized type is a type constructor (has free type variables).
   bool IsTypeConstructor() const { return !IsType(); }
 
+  //! \brief Returns whether the generalized type has any substitutions.
+  bool HasSubstitutions() const {
+    return std::ranges::any_of(substituted_vars_,
+                               [](const GeneralizedType* type) { return type != nullptr; });
+  }
+
   //! \brief Get the number of free type variables in the generalized type.
   std::size_t GetNumFreeVars() const { return free_vars_.size(); }
 
@@ -433,6 +438,39 @@ public:
 
   //! \brief Get the prototype.
   const Prototype* GetPrototype() const { return prototype_; }
+
+  const GeneralizedType* GetSubstitution(std::size_t index) const {
+    MANTA_REQUIRE(index < substituted_vars_.size(), "index out of bounds");
+    return substituted_vars_[index];
+  }
+
+  //! \brief From a span of items representing a 1-1 mapping with the free variables of this type, select
+  //!        the items that corresponds to feeding the variables to the index-th substituted type.
+  template<typename T>
+  std::vector<T> Select(std::span<T> vars, std::size_t index) const {
+    MANTA_REQUIRE(vars.size() == free_vars_.size(),
+                  "vars must be the same size as the number of free vars, sizes " << vars.size() << " and "
+                                                                                  << free_vars_.size());
+    if (vars.empty()) {
+      return {};
+    }
+    MANTA_REQUIRE(
+        index < substituted_vars_.size(),
+        "index out of bounds, index = " << index << ", num substituted types = " << substituted_vars_.size());
+
+    auto ptr = substituted_vars_[index];
+    std::vector<T> selected(ptr ? ptr->GetNumFreeVars() : 1);
+    std::ranges::fill(selected, std::numeric_limits<std::size_t>::max());
+    for (std::size_t idx = 0; idx < free_vars_.size(); ++idx) {
+      for (auto& [subst_index, var_in_subst] : free_vars_[idx].mapping) {
+        if (subst_index == index) {
+          selected[var_in_subst] = vars[idx];
+        }
+      }
+    }
+
+    return selected;
+  }
 
   friend class GeneralizedTypeSystem;
 

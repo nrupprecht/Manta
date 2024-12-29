@@ -126,7 +126,7 @@ void ObjectPrototype::Accept(ProtoypeVisitor& visitor) const {
 void ObjectPrototype::AddField(const std::string& field_name,
                                const GeneralizedType* field_type,
                                std::vector<std::size_t> binding) {
-  fields_.emplace_back(Field {field_name, field_type, binding});
+  fields_.emplace_back(Field {field_name, ElaboratedType{.type=field_type, .bindings=std::move(binding)}});
 }
 
 bool ObjectPrototype::RemoveField(const std::string& field_name) {
