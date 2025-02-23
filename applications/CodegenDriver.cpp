@@ -16,11 +16,13 @@ int main(int argc, char** argv) {
   // Set up the global logger.
   InitializeLogging();
 
-  // std::filesystem::path input_path = "../../examples/C-/C- grammar.txt";
-  // std::filesystem::path output_path = "../../include/manta/generatedparsers/CminusParser.h";
+  // std::filesystem::path input_path = "examples/C-/C- grammar.txt";
+  // std::filesystem::path output_path = "manta/generatedparsers/CminusParser.h";
 
-  std::filesystem::path input_path  = "../../config/full_rules_codegen.txt";
-  std::filesystem::path output_path = "../../include/manta/generatedparsers/ParserRepresentation.h";
+  std::filesystem::path input_path  = "config/full_rules_codegen.txt";
+  std::filesystem::path output_path = "manta/generatedparsers/ParserRepresentation.h";
+
+  LOG_SEV(Info) << "Current path is " << std::filesystem::current_path() << ".";
 
   std::ofstream fout(output_path);
   if (fout.fail()) {
@@ -32,7 +34,7 @@ int main(int argc, char** argv) {
   // Open a stream to the input path.
   std::ifstream fin(input_path);
   if (fin.fail()) {
-    LOG_SEV(Fatal) << "Error opening file to read parser description.";
+    LOG_SEV(Fatal) << "Error opening file " << input_path << " to read parser description.";
     return 0;
   }
   LOG_SEV(Info) << "Opened file " << input_path << " to read parser description.";

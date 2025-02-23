@@ -20,8 +20,8 @@ auto main() -> int {
   Parser parser;
   parser.SetLogger(logger);
 
-  // parser.SetInput(manta::utility::IStreamContainer::OpenFile("../../examples/codefile.txt"));
-  parser.SetInput(manta::utility::IStreamContainer::OpenFile("../../examples/C-/C- code.cmm"));
+  // parser.SetInput(manta::utility::IStreamContainer::OpenFile("examples/codefile.txt"));
+  parser.SetInput(manta::utility::IStreamContainer::OpenFile("examples/C-/C- code.cmm"));
 
   manta::utility::Timer timer {};
   std::shared_ptr<ASTNodeBase> node {};

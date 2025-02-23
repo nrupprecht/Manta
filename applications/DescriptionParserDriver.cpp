@@ -15,8 +15,8 @@ int main(int argc, char** argv) {
   // Set up the global core to an OstreamSink.
   InitializeLogging();
 
-  std::ifstream fin("../../config/full_rules_codegen.txt");
-  std::ofstream fout("../../include/manta/generatedparsers/TestParser-2.h");
+  std::ifstream fin("config/full_rules_codegen.txt");
+  std::ofstream fout("manta/generatedparsers/TestParser-2.h");
 
   manta::ParserCodegen parser_codegen;
   parser_codegen.SetDescriptionParser(std::make_shared<manta::generator::parser::ParsingDescriptionParser>());

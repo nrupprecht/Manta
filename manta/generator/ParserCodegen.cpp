@@ -1,0 +1,821 @@
+#include "manta/generator/ParserCodegen.h"
+// Other files.
+#include <Lightning/Lightning.h>
+
+#include "manta/generator/typesystem/CppCodegen.h"
+#include "manta/generator/typesystem/ParserTypeCreation.h"
+#include "manta/utility/Formatting.h"
+
+using namespace manta;
+using namespace manta::formatting;
+using namespace manta::typesystem;
+using lightning::formatting::Format;
+
+namespace {
+
+std::string escape(const std::string& input) {
+  std::string output;
+  output.reserve(input.size());
+  std::for_each(input.begin(), input.end(), [&output](auto c) {
+    if (c == '\\' || c == '"') output.push_back('\\');
+    output.push_back(c);
+  });
+  return output;
+}
+
+std::string treatLiteral(const std::string& input) {
+  // When a literal was added to the Lexer, the lexer will have "escaped" it to turn it
+  // into a valid lexeme regex. For example, "(" will be turned into "\(". We need to
+  // remove these types of escapes, but keep escapes for newlines, tabs, etc., and also
+  // add escapes for quotes, since we are going to be writing the result of this to file.
+
+  static std::set lexeme_escapes {'\\', '|', '(', ')', '[', ']'};
+
+  std::string output;
+  output.reserve(input.size());
+  for (auto i = 0u; i < input.size(); ++i) {
+    char c = input[i];
+    if (c != '\\') {
+      if (c == '"') {
+        output.push_back('\\');
+      }
+      output.push_back(c);
+    }
+    else {
+      MANTA_ASSERT(i + 1 < input.size(), "cannot escape the end-of-string");
+      // If the next char is in the set of lexeme escapes, drop the '\', since it will be
+      // added back by the lexer.
+      // Otherwise, we need to escape the '\'
+      if (!lexeme_escapes.contains(input[i + 1])) {
+        output += R"(\\)";
+      }
+    }
+  }
+  return output;
+}
+
+}  // namespace
+
+namespace manta::typesystem {
+
+void format_logstream(const TypeDescription& type_description, lightning::RefBundle& handler) {
+  handler << lightning::AnsiColor8Bit(type_description.Write(),
+                                      lightning::formatting::AnsiForegroundColor::BrightBlue);
+}
+
+}  // namespace manta::typesystem
+
+void ParserCodegen::GenerateParserCode(std::ostream& code_out,
+                                       const std::shared_ptr<const ParserData>& parser_data) {
+  LOG_SEV(Info) << "Generating parser code. Creating relationships.";
+
+  ParserDataToTypeManager manager(false, true);
+  // Find all relationships between nodes and create all node types.
+  auto& [node_manager, relationships, nonterminals_for_type, node_types_for_item] =
+      manager.CreateRelationships(parser_data);
+
+  LOG_SEV(Info) << "Done creating relationships. Deducing types.";
+  auto deduced_types = manager.DeduceTypes();
+  LOG_SEV(Info) << "Done deducing types. Filling in type descriptions for all nonterminals' types.";
+
+  // Fill in all type descriptions from the deduced types.
+  for (const auto& [nonterminal_id, nonterminals_types] : deduced_types.GetTypesData()) {
+    LOG_SEV(Debug) << "  * Filling type descriptions for " << nonterminals_types.NumSubTypes()
+                   << " types for non-terminal " << nonterminal_id;
+    for (const auto& [type_name, description] : nonterminals_types.sub_types) {
+      LOG_SEV(Debug) << "    >> Filling in type description for " << type_name << ", getting fields for type "
+                     << CLBB(type_name) << ".";
+      const auto& field_names = nonterminals_types.GetFields(type_name);
+      LOG_SEV(Debug) << "    >> There are " << field_names.size() << " field(s) for " << CLBB(type_name)
+                     << ".";
+      for (const auto& field_name : field_names) {
+        LOG_SEV(Debug) << "     - Looking for type of field '" << field_name << "'.";
+        const auto* type = nonterminals_types.GetFieldType(field_name);
+
+        MANTA_ASSERT(type, "could not deduce the type of '" << type_name << "::" << field_name);
+        description->SetFieldType(field_name, type);
+        LOG_SEV(Debug) << "     - Field " << CLBB(type_name) << "::" << field_name << " has type " << *type
+                       << ".";
+      }
+    }
+  }
+  LOG_SEV(Info) << "Done filling in all type descriptions.";
+
+  LOG_SEV(Info) << "Creating the base visitor class.";
+  createBaseVisitor(node_manager);  // Fills in the base visitor.
+
+  // TEST: Generate a printing visitor.
+  // auto printing_visitor = createPrintingVisitor(node_manager);
+
+  // ==============================================================================
+  //  Generate code.
+  // ==============================================================================
+
+  CppCodeGen codegen;
+
+  LOG_SEV(Info) << "Generating code.";
+
+  // Print a timestamp and generation message.
+  std::string buffer(26, ' ');
+  lightning::formatting::FormatDateTo(buffer.data(), buffer.data() + 26, lightning::time::DateTime::Now());
+  // codegen.AddComment(code_out,
+  //                    "============================================================================");
+  // codegen.AddComment(code_out, " Code automatically generated by Manta at time " + buffer + ".");
+  // codegen.AddComment(code_out, "");
+  // codegen.AddComment(code_out,
+  //                    "============================================================================");
+  // codegen.AddBreak(code_out);
+
+  codegen.WriteHeader(code_out);
+
+  // Write any user specified imports.
+  for (const auto& name : parser_data->production_rules_data->file_data.import_names) {
+    codegen.WriteImport(code_out, name, false);
+  }
+
+  // Write the guard and includes.
+  codegen.WriteImports(code_out);
+
+  // Write any typedefs
+  code_out << "using namespace manta::formatting;\n";
+  code_out << "using manta::ItemID;\n\n";
+
+  code_out << "#define REDUCE_ASSERT(count, item, size) \\\n"
+              "  MANTA_REQUIRE(count <= size, \"in reduction \"  #item  \", not enough nodes in the "
+              "collect vector, needed at least \" #count \", actual size was \" << size)\n\n";
+
+  // Create the node class definitions.
+  LOG_SEV(Info) << "Generating code for all AST node definitions.";
+
+  // Write all node class definitions.
+  node_manager.CreateAllDefinitions(code_out, codegen);
+
+  // >>> Write printing visitor
+  // code_out << "\n";
+  // codegen.WriteDefinition(code_out, printing_visitor);
+  // code_out << "\n";
+
+  std::string parser_class_name = "Parser";
+
+  // Write parser definitions
+  code_out << "// ========================================================================\n";
+  code_out << "//  LALR Parser.\n";
+  code_out << "// ========================================================================\n";
+  code_out << std::endl;
+  code_out << "class Parser : public manta::ParserDriverBase<ASTNodeBase, ASTLexeme,"
+              "Parser> {\n";
+  code_out << "  friend class manta::ParserDriverBase<ASTNodeBase, ASTLexeme, Parser>;\n";
+  code_out << "public:\n";
+  code_out << "  //! \\brief Constructor, initializes the parser.\n";
+  code_out << "  Parser();\n\n";
+  code_out << "  //! \\brief Function to parse the input.\n";
+  code_out << "  std::shared_ptr<ASTNodeBase> ParseInput();\n\n";
+  code_out << "protected:\n";
+  code_out << "  //! \\brief Function that sets up the lexer.\n";
+  code_out << "  void createLexer();\n\n";
+  code_out << "  //! \\brief The reduce function, which allows this parser to "
+              "call the reduction functions.\n";
+  code_out << "  std::shared_ptr<ASTNodeBase> reduce(unsigned reduction_id, const "
+              "std::vector<std::shared_ptr<ASTNodeBase>>& collected_nodes);\n\n";
+
+  {
+    LOG_SEV(Info) << "Generating declarations of all reduce functions.";
+    auto item_number = 0u;
+    for (auto& item : parser_data->production_rules_data->all_productions) {
+      LOG_SEV(Debug) << "Looking for node type name for item " << item_number << ".";
+      auto& node_type_name = node_types_for_item.at(item_number);
+      LOG_SEV(Debug) << "Node type name for item " << item_number << " is " << CLBB(node_type_name);
+
+      code_out << "  std::shared_ptr<" << node_type_name << ">\n";
+      code_out << "  ReduceTo_" + node_type_name << "_ViaItem_" << item_number << "(";
+      auto i = 0;
+      LOG_SEV(Debug) << "Writing declaration for item " << item_number << ".";
+      for (auto id : item.rule.rhs) {
+        if (i != 0) code_out << ",";
+        if (parser_data->production_rules_data->IsNonTerminal(id)) {
+          // Get the base type for this non-terminal.
+          auto& base_type = deduced_types.GetBaseTypeName(id);
+          code_out << "\n      const std::shared_ptr<" << base_type << ">& argument_" << i;
+        }
+        else {
+          code_out << "\n      const std::string& argument_" << i;
+        }
+        ++i;
+      }
+      code_out << ");\n\n";
+
+      ++item_number;
+    }
+    code_out << "};\n\n";
+  }
+
+  LOG_SEV(Info) << "Generating definitions of Parser's functions.";
+
+  // Create item numbers.
+
+  std::map<ProductionRule, unsigned> item_numbers;
+  for (auto& item : parser_data->production_rules_data->all_productions) {
+    item_numbers.emplace(item.rule, item_numbers.size());
+  }
+
+  // Note - making this function inline, since right now, these definitions are going into the header.
+  code_out << "inline Parser::Parser() {\n";
+  code_out << "  using namespace manta;\n\n";
+  code_out << "  start_nonterminal_ = " << parser_data->production_rules_data->start_nonterminal << ";\n";
+  code_out << "  // Allocate space for the parser table.\n";
+  code_out << "  parse_table_.assign(" << parser_data->parse_table.size() << ", std::vector<Entry>("
+           << parser_data->parse_table[0].size() << ","
+           << "Entry()"
+           << "));\n\n";
+
+  // TODO: Serialize this in a better way.
+
+  code_out << "  // Create the table. There are better, though more difficult, "
+              "ways to serialize this information.\n";
+  auto row_it = 0u;
+  for (auto& row : parser_data->parse_table) {
+    for (auto col_it = 0u; col_it < row.size(); ++col_it) {
+      auto& entry = row[col_it];
+      if (!entry.IsError()) {
+        code_out << "  parse_table_[" << row_it << "][" << col_it << "] = ";
+        if (entry.IsReduce()) {
+          auto& annotated_production_rule = entry.GetAnnotatedRule();
+
+          // Look up the item number.
+          auto item_number = annotated_production_rule.production_item_number;
+
+          code_out << "Entry(ProductionRule(" << annotated_production_rule.rule.produced_nonterminal << ", {";
+          for (auto i = 0u; i < annotated_production_rule.rule.rhs.size(); ++i) {
+            if (i != 0) code_out << ", ";
+            code_out << annotated_production_rule.rule.rhs[i];
+          }
+          code_out << "}), " << item_number << ");  // Reduce\n";
+        }
+        else if (entry.IsShift()) {
+          code_out << "Entry(" << entry.GetState() << ");  // Shift\n";
+        }
+        else if (entry.IsAccept()) {
+          code_out << "Entry(true);  // Accept\n";
+        }
+      }
+    }
+    ++row_it;
+  }
+  code_out << "\n";
+
+  // Create the all states vector.
+  // parser_data->all_states;
+
+  // Create the inverse production map.
+  code_out << "  // Create inverse non-terminal map.\n";
+  for (auto const& [id, name] : parser_data->production_rules_data->inverse_nonterminal_map) {
+    code_out << "  inverse_nonterminal_map_.emplace(" << id << ", \"" << name << "\");\n";
+  }
+  code_out << "\n";
+
+  code_out << "  createLexer();\n";
+  code_out << "}\n\n";
+
+  // Note - making this function inline, since right now, these definitions are going into the header.
+  code_out << "inline std::shared_ptr<ASTNodeBase> Parser::ParseInput() {\n  return parse();\n}\n\n";
+
+  // Generate the code to create the lexer.
+  // Note - making this function inline, since right now, these definitions are going into the header.
+  code_out << "inline void Parser::createLexer() {\n";
+  auto& lex_gen = parser_data->GetLexerGenerator();
+  code_out << "  auto lexer_generator = std::make_shared<manta::LexerGenerator>();\n\n";
+
+  auto&& ordered_definitions  = lex_gen.GetOrderedLexemeDefinitions();
+  int count_lexemes           = 0;
+  for (auto& [lexeme_name, regex, prec] : ordered_definitions) {
+    if (lexeme_name == "eof") {
+      code_out << "  // Lexeme \"eof\" will be automatically added as the first (0-th) "
+                  "lexeme.\n";
+      MANTA_ASSERT(count_lexemes == 0, "'eof' is not the 0-th lexeme");
+    }
+    else if (lex_gen.IsReserved(lexeme_name)) {
+      auto escaped_regex = treatLiteral(regex);
+      LOG_SEV(Debug) << "Adding (non-reserved) lexeme names '" << lexeme_name << "' with precedence " << prec
+                     << ", (literal-treated) pattern is '" << CLBG(escaped_regex)
+                     << "' (non-literal-treated: '" << CLX(regex) << "')";
+      code_out << "  lexer_generator->AddReserved(\"" << escaped_regex << "\", " << prec << ");  // Lexeme #"
+               << count_lexemes << "\n";
+    }
+    else {
+      auto escaped_regex = escape(regex);
+      LOG_SEV(Debug) << "Adding (non-reserved) lexeme names '" << lexeme_name << "' with precedence " << prec
+                     << ", (escaped) pattern is '" << CLBG(escaped_regex) << "' (un-escaped: '" << CLX(regex)
+                     << "')";
+      code_out << "  lexer_generator->AddLexeme(\"" << lexeme_name << "\", \"" << escaped_regex << "\", "
+               << prec << ");  // Lexeme #" << count_lexemes << "\n";
+    }
+    ++count_lexemes;
+  }
+  code_out << "\n";
+
+  // Add all skip lexemes.
+  code_out << "  // Add the skip-lexemes (these will be lexed, but skipped, by the lexer).\n";
+  auto skip_lexemes = lex_gen.GetSkipLexemeNames();
+  for (const auto& skip_lexeme_name : skip_lexemes) {
+    code_out << "  lexer_generator->AddSkip(\"" << skip_lexeme_name << "\");\n";
+  }
+  code_out << "\n";
+
+  code_out << "  lexer_ = lexer_generator->CreateLexer();\n";
+  code_out << "}\n\n";
+
+  // Note - making this function inline, since right now, these definitions are going into the header.
+  code_out << "inline std::shared_ptr<ASTNodeBase> Parser::reduce(unsigned "
+              "reduction_id, const std::vector<std::shared_ptr<ASTNodeBase>>& "
+              "collected_nodes) {\n";
+
+  {
+    unsigned item_number = 0u;
+
+    code_out << "  switch (reduction_id) {\n";
+    for (auto& annotated_production_rule : parser_data->production_rules_data->all_productions) {
+      // TODO: Sanitize names.
+
+      const auto& node_type_name = node_types_for_item.at(item_number);
+      code_out << "    case " << item_number << ": {\n";
+
+      // Make sure there are enough nodes in the collect vector.
+      code_out << "      REDUCE_ASSERT(" << annotated_production_rule.rule.rhs.size() << ", " << item_number
+               << ", collected_nodes.size());\n";
+
+      //      code_out << "      MANTA_REQUIRE(" << item.rhs.size() << " <= collected_nodes.size(), \"in
+      //      reduction "
+      //               << item_number << ", not enough nodes in the collect vector, needed at least "
+      //               << item.rhs.size() << ", actual size was \" << collected_nodes.size());\n";
+      auto function_name = Format("ReduceTo_{}_ViaItem_{}", node_type_name, item_number);
+      code_out << "      LOG_SEV_TO(logger_, Debug) << \"Calling reduce function '" << function_name
+               << "'.\";\n";
+      code_out << "      return " << function_name << "(";
+      auto i = 0;
+      for (auto id : annotated_production_rule.rule.rhs) {
+        if (i != 0) code_out << ",";
+        if (parser_data->production_rules_data->IsNonTerminal(id)) {
+          // Get the base type for this non-terminal.
+          code_out << "\n          std::reinterpret_pointer_cast<";
+
+          auto& base_type = deduced_types.GetBaseTypeName(id);
+          code_out << base_type << ">(collected_nodes[" << i << "])";
+        }
+        else {
+          code_out << "\n          reinterpret_cast<ASTLexeme*>(collected_nodes[" << i << "].get())->literal";
+        }
+        ++i;
+      }
+      code_out << ");\n";
+      code_out << "    }\n";
+
+      ++item_number;
+    }
+    code_out << "    default: {\n";
+    code_out << "      MANTA_FAIL(\"unrecognized production\" << reduction_id << "
+                "\", cannot reduce\");\n";
+    code_out << "    }\n";
+    code_out << "  }\n";
+
+    code_out << "}\n\n";
+  }
+
+  {
+    unsigned item_number = 0u;
+    for (const auto& annotated_production_rule : parser_data->production_rules_data->all_productions) {
+      const auto& node_type_name = node_types_for_item.at(item_number);
+
+      // Note - making this function inline, since right now, these definitions are going into the header.
+      code_out << "inline std::shared_ptr<" << node_type_name << ">\n";
+      auto function_name =
+          Format("{}::ReduceTo_{}_ViaItem_{}", parser_class_name, node_type_name, item_number);
+      code_out << function_name;
+      code_out << "(";
+
+      LOG_SEV(Info) << "Creating reduction function '" << CLY(function_name) << "' for item " << item_number
+                    << ". Node type name is " << CLBB(node_type_name) << ".";
+
+      // Arguments.
+      auto i = 0;
+      LOG_SEV(Debug) << "Creating function arguments.";
+      for (auto id : annotated_production_rule.rule.rhs) {
+        LOG_SEV(Debug) << "Looking at element " << i << " in the production, id = " << id << ".";
+        if (i != 0) {
+          code_out << ",";
+        }
+        if (parser_data->production_rules_data->IsNonTerminal(id)) {
+          // Get the base type for this non-terminal.
+          auto& base_type = deduced_types.GetBaseTypeName(id);
+          code_out << "\n    [[maybe_unused]] const std::shared_ptr<" << base_type << ">& argument_" << i;
+
+          LOG_SEV(Debug) << "  * Argument " << i << " is a non-terminal. Base type is named "
+                         << CLBB(base_type) << ".";
+        }
+        else {
+          // NOTE: Potentially better to use string_view here.
+          LOG_SEV(Debug) << "  * Argument " << i << " is a terminal. Parameter will be a std::string.";
+          code_out << "\n    [[maybe_unused]] const std::string& argument_" << i;
+        }
+        ++i;
+      }
+      LOG_SEV(Debug) << "Done creating function arguments.";
+      code_out << ") {\n";
+
+      if (auto it = relationships.find(node_type_name); it != relationships.end()) {
+        code_out << "  auto new_node = std::make_shared<" << node_type_name << ">(" << item_number << ");\n";
+
+        // Get relationships for this node. We only keep the ones for this item number.
+        auto& relationships_for_node = it->second;
+        std::sort(relationships_for_node.end(), relationships_for_node.end(), [](auto& l, auto& r) {
+          return l.position < r.position;
+        });
+        LOG_SEV(Debug) << "Node " << CLBB(node_type_name) << " has " << relationships_for_node.size()
+                       << " relationships, creating function body.";
+        for (auto& rel : relationships_for_node) {
+          if (rel.item_number != item_number) {
+            continue;
+          }
+          auto&& field_name = rel.target_field_name;
+          switch (rel.check_type) {
+            case CheckType::PUSH: {
+              LOG_SEV(Debug) << "  * PUSH relationship for arg " << rel.position << " into field named '"
+                             << field_name << "'.";
+              code_out << "  new_node->" << field_name << ".push_back(argument_" << rel.position << ");\n";
+              break;
+            }
+            case CheckType::APPEND: {
+              const std::string arg_name = Format("argument_{}", rel.position);
+
+              LOG_SEV(Debug) << "  * APPEND relationship for arg " << rel.position << " into field named '"
+                             << field_name << "'.";
+
+              code_out << Format(
+                  "  new_node->{}.insert(new_node->{}.end(), {}->{}.cbegin(), {}->{}.cend());\n",
+                  field_name,
+                  field_name,
+                  arg_name,
+                  *rel.source_field_name,
+                  arg_name,
+                  *rel.source_field_name);
+              break;
+            }
+            case CheckType::FIELD: {
+              LOG_SEV(Debug) << "  * FIELD relationship for arg " << rel.position << " into field named '"
+                             << field_name << "'.";
+
+              if (rel.source_field_name) {
+                code_out << "  new_node->" << field_name << " = argument_" << rel.position << "->"
+                         << *rel.source_field_name << ";\n";
+              }
+              else {
+                code_out << "  new_node->" << field_name << " = argument_" << rel.position << ";\n";
+              }
+              break;
+            }
+          }
+        }
+        code_out << "\n";
+        code_out << "  return new_node;\n";
+      }
+      else {
+        LOG_SEV(Info) << "Node " << CLBB(node_type_name) << " has no relationships.";
+        code_out << "  return std::make_shared<" << node_type_name << ">(" << item_number << ");\n";
+      }
+      code_out << "}\n" << std::endl;
+
+      LOG_SEV(Info) << "Done writing code for reduction of item " << item_number << ".";
+      ++item_number;
+    }
+  }
+
+  // ===========================================================
+  //  Generate any additional visitor classes.
+  // ===========================================================
+
+  // Create a map from item number to the type for that item.
+
+  auto&& all_types = node_manager.GetAllNodeTypesForNonterminals();
+
+  // Invert the map node_types_for_item, forming a map where the values in the original map are the keys, and
+  // the keys are the values.
+  std::map<std::string, std::set<ItemID>> type_names_to_ids;
+  for (const auto& [key, value] : node_types_for_item) {
+    type_names_to_ids[value].insert(key);
+  }
+
+  std::map<ItemID, const TypeDescriptionStructure*> types_by_item;
+  for (const auto& [_, types] : all_types) {
+    for (const auto& [name, type] : types.child_types) {
+      if (auto it = type_names_to_ids.find(name); it != type_names_to_ids.end()) {
+        for (const auto& item_id : it->second) {
+          types_by_item[item_id] = type;
+        }
+      }
+    }
+  }
+
+  const auto& visitor_data = parser_data->production_rules_data->visitor_data;
+  for (const auto& [name, data] : visitor_data.visitors) {
+    auto visitor = createVisitorFromTemplate(node_manager, data, types_by_item);
+    codegen.WriteDefinition(code_out, visitor);
+    code_out << "\n";
+  }
+
+  // Define a macro that indicates that the parser has been generated.
+  // Obviously, C++ specific.
+  code_out << "#define MANTA_PARSER_GENERATED\n";
+}
+
+void ParserCodegen::GenerateParserCode(std::ostream& code_out,
+                                       std::istream& parser_description,
+                                       ParserType parser_type) {
+  generator_ = ParserGenerator(parser_type);
+  generator_.SetLogger(generator_logger_);
+  generator_.SetDescriptionParser(description_parser_);
+  // Read the parser description and create the parser data.
+  parser_data_ = generator_.CreateParserData(parser_description);
+
+  GenerateParserCode(code_out, parser_data_);
+}
+
+TypeDescriptionStructure* ParserCodegen::createBaseVisitor(ASTNodeManager& node_manager) const {
+  auto visitor         = node_manager.GetVisitorStructure();
+  auto& all_node_types = node_manager.GetAllNodeTypesForNonterminals();
+
+  auto accept_signature = FunctionType {}.WithArguments({ElaboratedType {visitor, false, true}});
+
+  // Create base function in ASTNode base.
+  auto accept_function = StructureFunction {}
+                             .WithName("Accept")
+                             .WithType(accept_signature)
+                             .WithArgumentNames({"visitor"})
+                             .BindToStructure(node_manager.GetASTNodeBase(), false, false);
+
+  auto create_visitor_functions = [&](TypeDescriptionStructure* visitable_type) {
+    // Add the accept function to the visitable type.
+    accept_function.WithBody("visitor.Visit(*this);").BindToStructure(visitable_type, false, true);
+
+    // Add the visitor's visit function.
+    auto visit_signature = FunctionType {}.WithArguments({ElaboratedType {visitable_type, false, true}});
+    StructureFunction {}
+        .WithName("Visit")
+        .WithType(visit_signature)
+        .WithArgumentNames({"object"})
+        .BindToStructure(visitor, false, false);
+  };
+
+  for (auto& [_, node_types] : all_node_types) {
+    for (auto& [name, child_type] : node_types.child_types) {
+      create_visitor_functions(child_type);
+    }
+  }
+  // Create visitor for ASTLexeme.
+  create_visitor_functions(node_manager.GetASTLexeme());
+
+  return visitor;
+}
+
+TypeDescriptionStructure* ParserCodegen::createPrintingVisitor(ASTNodeManager& node_manager) const {
+  auto& type_system    = node_manager.GetTypeSystem();
+  auto visitor         = node_manager.GetVisitorStructure();
+  auto& all_node_types = node_manager.GetAllNodeTypesForNonterminals();
+
+  auto printing_visitor = type_system.Structure("PrintingVisitor");
+  printing_visitor->AddParent(visitor);
+  // Add an integer field for keeping track of spacing.
+  printing_visitor->AddField("indentation", type_system.Integer());
+
+  auto create_visit_function = [&](const TypeDescriptionStructure* visitable_type) {
+    auto& type_name = visitable_type->type_name;
+    std::string body =
+        "LOG_SEV(Info) << lightning::PadUntil(indentation) << \"Visiting type \" << "
+        "manta::formatting::CLBG(\""
+        + type_name + "\") << \".\";\n\n";
+
+    // If this is a child type, visit the parent.
+    for (auto& parent : visitable_type->parent_classes) {
+      if (parent->type_name == "ASTNodeBase") continue;
+      body += "Visit(static_cast<" + parent->type_name + "&>(object));\n";
+    }
+
+    // Indent.
+    body += "indentation += 2;\n";
+
+    for (auto& [name, type] : visitable_type->fields) {
+      if (type == type_system.String()) {
+        body += "LOG_SEV(Info) << lightning::PadUntil(indentation) << \"[\" << manta::formatting::CLBW(\""
+            + name + "\") << \"] = '\" << manta::formatting::CLB(object." + name
+            + ") << \"'\"; // Print literals.\n";
+      }
+      else if (type->general_type == TSGeneralType::Vector) {
+        // auto vector_type = reinterpret_cast<const TypeDescriptionVector*>(type);
+        body += "for (auto& ptr : object." + name + ") {\n";
+        body += "  if (ptr) ptr->Accept(*this);\n";
+        body +=
+            "  else LOG_SEV(Error) << \"An element of a vector is null: " + type_name + "::" + name + "\";\n";
+        body += "}\n";
+      }
+      else if (type->general_type == TSGeneralType::SharedPointer) {
+        body += "if (object." + name + ") {\n";
+        body += "  object." + name + "->Accept(*this);\n";
+        body += "}\n";
+        body += "else {\n";
+        body += "  LOG_SEV(Error) << \"Field is null: " + type_name + "::" + name + "\";\n";
+        body += "}\n";
+      }
+    }
+
+    // Un-indent
+    body += "indentation = std::max(0, indentation - 2);\n";
+
+    auto visit_signature = FunctionType {}.WithArguments({ElaboratedType {visitable_type, false, true}});
+    StructureFunction {}
+        .WithName("Visit")
+        .WithType(visit_signature)
+        .WithArgumentNames({"object"})
+        .WithBody(body)
+        .BindToStructure(printing_visitor, false /* is const */, true /* is override */);
+  };
+  for (auto& [_, node_types] : all_node_types) {
+    for (auto& [name, child_type] : node_types.child_types) {
+      create_visit_function(child_type);
+    }
+  }
+  // Create visitor for ASTLexeme.
+  create_visit_function(node_manager.GetASTLexeme());
+
+  return printing_visitor;
+}
+
+TypeDescriptionStructure* ParserCodegen::createVisitorFromTemplate(
+    ASTNodeManager& node_manager,
+    const VisitorData::Visitor& visitor_data,
+    const std::map<ItemID, const TypeDescriptionStructure*>& node_types_for_item) const {
+  auto& type_system = node_manager.GetTypeSystem();
+  auto base_visitor = node_manager.GetVisitorStructure();
+
+  auto visitor = type_system.Structure(visitor_data.name);
+  visitor->AddParent(base_visitor);
+
+  // Invert the node_types_for_item data, grouping items by node type.
+  // Store by name instead of pointers so the order is deterministic.
+  std::map<std::string, std::pair<const TypeDescriptionStructure*, std::vector<unsigned>>>
+      node_types_to_items;
+  for (auto& [item_id, structure_type] : node_types_for_item) {
+    auto& rec = node_types_to_items[structure_type->type_name];
+    rec.first = structure_type;
+    rec.second.emplace_back(item_id);
+  }
+
+  // Since a single type can be used for multiple items, we need to keep track of which piece of code should
+  // be run due to which item gave rise to the node.
+
+  struct CodeForItems {
+    std::vector<std::pair<ItemID, std::string>> code;
+    const TypeDescriptionStructure* type;
+  };
+
+  std::map<std::string, CodeForItems> code_for_items;
+  for (auto& [item_id, structure_type] : node_types_for_item) {
+    auto it = visitor_data.code.find(item_id);
+    if (it == visitor_data.code.end()) {
+      continue;
+    }
+    auto& rec = code_for_items[structure_type->type_name];
+    rec.type  = structure_type;
+    rec.code.emplace_back(item_id, it->second);
+  }
+
+  // Add the visit functions, taking care to put in switch statements that depend on which production / item
+  // gave rise to the node.
+  // Go through all the structures that need visit functions, adding the sections of code.
+  for (auto& [_, rec] : node_types_to_items) {
+    auto [structure_type, items] = rec;
+    std::ostringstream body {};
+    for (auto item_id : items) {
+      auto it = visitor_data.code.find(item_id);
+      if (it == visitor_data.code.end()) {
+        continue;
+      }
+      if (!body.str().empty()) {
+        body << "else ";
+      }
+
+      if (1 < items.size()) {
+        body << "if (object.item_id == " + std::to_string(item_id) + ") {\n";
+        // Make sure indentation is correct.
+        HandleIndentation(body, it->second, 2, true, true, true, true);
+        body << "\n} ";
+      }
+      else {
+        HandleIndentation(body, it->second, 0, true, true, true, true);
+      }
+    }
+
+    // if (!body.str().empty()) {
+    //   body << "\n  default: {};\n";
+    //   body << "}\n";  // End the switch statement.
+    // }
+
+    auto visit_signature = FunctionType {}.WithArguments({ElaboratedType {structure_type, false, true}});
+    StructureFunction {}
+        .WithName("Visit")
+        .WithType(visit_signature)
+        .WithArgumentNames({"object"})
+        .WithBody(body.str())
+        .BindToStructure(visitor, false /* is const */, true /* is override */);
+  }
+
+  // TODO: Create visitor functions for all base node types.
+  auto&& all_node_types = node_manager.GetAllNodeTypesForNonterminals();
+  for (auto& [nonterminal_id, nonterminals_types] : all_node_types) {
+    if (nonterminals_types.base_type == nullptr) {
+      continue;
+    }
+    if (code_for_items.count(nonterminals_types.base_type->type_name) == 0) {
+      // TODO: Allow for code to be injected into a base type somehow.
+      // For now, create an empty function
+      auto base_type = nonterminals_types.base_type;
+      if (!base_type) {
+        continue;  // No base type, just a single type so no base type is needed.
+      }
+
+      auto visit_signature = FunctionType {}.WithArguments({ElaboratedType {base_type, false, true}});
+      StructureFunction {}
+          .WithName("Visit")
+          .WithType(visit_signature)
+          .WithArgumentNames({"object"})
+          .WithEmptyBody()
+          .BindToStructure(visitor, false /* is const */, true /* is override */);
+    }
+  }
+
+  // Create visitor for ASTLexeme.
+  auto visit_signature =
+      FunctionType {}.WithArguments({ElaboratedType {node_manager.GetASTLexeme(), false, true}});
+  StructureFunction {}
+      .WithName("Visit")
+      .WithType(visit_signature)
+      .WithArgumentNames({"object"})
+      .WithEmptyBody()
+      .BindToStructure(visitor, false /* is const */, true /* is override */);
+
+  // Add any ad-hoc code.
+  visitor->adhoc_code = visitor_data.other_definitions;
+
+  // Add any additional base classes.
+  for (auto& base_class : visitor_data.additional_base_classes) {
+    // Just make up the base class structures, these will, in general, not be things we define in the
+    // generated code.
+    visitor->AddParent(type_system.Structure(base_class));
+  }
+
+  return visitor;
+}
+
+TypeDescriptionStructure* ParserCodegen::createTreePrintVisitor(ASTNodeManager& node_manager) const {
+  auto& type_system    = node_manager.GetTypeSystem();
+  auto visitor         = node_manager.GetVisitorStructure();
+  auto& all_node_types = node_manager.GetAllNodeTypesForNonterminals();
+
+  auto tree_length = type_system.Structure("TreeLengthVisitor");
+  tree_length->AddParent(visitor);
+
+  tree_length->AddField("tree_length", type_system.Integer());
+
+  auto create_visit_function = [&](const TypeDescriptionStructure* visitable_type) {
+    std::string body {};
+
+    // If this is a child type, visit the parent.
+    for (auto& parent : visitable_type->parent_classes) {
+      if (parent->type_name == "ASTNodeBase") continue;
+      body += "    Visit(static_cast<" + parent->type_name + "&>(object));";
+    }
+
+    for (auto& [name, type] : visitable_type->fields) {
+      if (type == type_system.String()) {
+      }
+      else if (type->general_type == TSGeneralType::Vector) {
+      }
+      else if (type->general_type == TSGeneralType::SharedPointer) {
+      }
+    }
+
+    auto visit_signature = FunctionType {}.WithArguments({ElaboratedType {visitable_type, false, true}});
+    StructureFunction {}
+        .WithName("Visit")
+        .WithType(visit_signature)
+        .WithArgumentNames({"object"})
+        .WithBody(body)
+        .BindToStructure(tree_length, false /* is const */, true /* is override */);
+  };
+  for (auto& [_, node_types] : all_node_types) {
+    for (auto& [name, child_type] : node_types.child_types) {
+      create_visit_function(child_type);
+    }
+  }
+  // Create visitor for ASTLexeme.
+  create_visit_function(node_manager.GetASTLexeme());
+
+  return {};
+}

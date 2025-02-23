@@ -1,1 +1,4 @@
 cmake-*
+.idea/*
+MODULE.bazel.lock
+bazel-*

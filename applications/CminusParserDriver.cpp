@@ -28,9 +28,14 @@ auto main() -> int {
 
 #ifdef MANTA_PARSER_GENERATED
 
+  std::string input_file = "examples/C-/C- code.cmm";
+
+  MANTA_ASSERT(std::filesystem::exists(input_file), "input file " << input_file << " does not exist");
+  LOG_SEV(Info) << "Parsing input from '" << input_file << "'.";
+
   Parser parser;
   parser.SetLogger(logger);
-  parser.SetInput(manta::utility::IStreamContainer::OpenFile("../../examples/C-/C- code.cmm"));
+  parser.SetInput(manta::utility::IStreamContainer::OpenFile(input_file));
 
   manta::utility::Timer timer {};
   std::shared_ptr<ASTNodeBase> node {};
