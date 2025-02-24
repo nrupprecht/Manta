@@ -446,7 +446,7 @@ TypeDeduction ParserDataToTypeManager::DeduceTypes() {
         auto& base_type_name = deduction.GetBaseTypeName(referenced_nonterminal);
         auto base_type       = node_manager().GetNodeDescription(base_type_name);
         if (auto ty = base_type->GetField(*rel.source_field_name);
-            ty != base_type->fields.end() && ty->second /* Type is not null - Note: can that happen? */)
+            ty != base_type->fields.end() && ty->second /* Type is not null */)
         {
           // The field has already been typed and defined. We can handle this relationship
           // right now. It must be that the target type is some vector type.

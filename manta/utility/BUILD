@@ -6,7 +6,7 @@ cc_library(
     copts = ["-std=c++20"],
     visibility=["//visibility:public"],
     deps=[
-        "@lightning//include:lightning",
+        "@lightning//:lightning",
     ],
     
 )

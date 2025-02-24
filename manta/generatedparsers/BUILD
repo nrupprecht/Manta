@@ -6,8 +6,6 @@ cc_library(
     visibility=["//visibility:public"], 
     copts = ["-std=c++20"], 
     deps=[
-        "@lightning//include:lightning",
-        "//manta/lexer",
         "//manta:generator",
     ],
 )

@@ -8,7 +8,7 @@ def manta_unit_test(src):
         deps = [
             "@googletest//:gtest",
             "@googletest//:gtest_main",
-            "@lightning//include:lightning",
+            "@lightning//:lightning",
             "//manta/lexer",
             "//manta:generator",
         ],

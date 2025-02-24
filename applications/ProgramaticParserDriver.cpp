@@ -5,8 +5,8 @@
 #include "manta/generator/ParserGenerator.h"
 #include "manta/lexer/LexerDFA.h"
 #include "manta/parser/LALRParser.h"
-#include "manta/visualization/Display.h"
 #include "manta/utility/Timer.h"
+#include "manta/visualization/Display.h"
 
 using namespace manta;
 using namespace lightning;
@@ -16,7 +16,7 @@ void compareParsers(const std::string& rules_filepath) {
   ParserGenerator slr(ParserType::SLR);
   ParserGenerator lalr(ParserType::LALR);
 
-  const auto slr_parser = slr.CreateParserFromFile(rules_filepath);
+  const auto slr_parser  = slr.CreateParserFromFile(rules_filepath);
   const auto lalr_parser = lalr.CreateParserFromFile(rules_filepath);
 
   CompareParsers(*slr_parser, *lalr_parser);
@@ -36,12 +36,10 @@ void testParser(const std::string& rules_filepath, const std::string& code_filep
   std::shared_ptr<LALRParser> parser;
   try {
     parser = generator.CreateParserFromFile(rules_filepath);
-  }
-  catch (const std::exception& ex) {
+  } catch (const std::exception& ex) {
     LOG_SEV(Fatal) << "Exception parsing rules:" << NewLineIndent << ex.what();
     return;
   }
-
 
   if (parser) {
     // Set the logger in the parser.
@@ -61,7 +59,7 @@ void testParser(const std::string& rules_filepath, const std::string& code_filep
     LOG_SEV(Info) << "Description parse successful.\n\n";
     std::shared_ptr<ParseNode> program;
     try {
-      utility::Timer timer{};
+      utility::Timer timer {};
       program = parser->ParseCodeFile(code_filepath);
       timer.Stop();
       LOG_SEV(Info) << "Parse took " << timer.Time() << " seconds.";

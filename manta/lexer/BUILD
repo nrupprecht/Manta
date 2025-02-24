@@ -7,6 +7,5 @@ cc_library(
     copts = ["-std=c++20"],
     deps=[
         "//manta/utility",
-        "@lightning//include:lightning",
     ],
 )

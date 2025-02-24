@@ -6,9 +6,6 @@ def manta_binary(src):
         name=name,
         srcs=[src],
         deps=[
-            "@lightning//include:lightning",
-            "//manta/lexer",
-            "//manta:generator",
             "//manta/generatedparsers"
         ],
         visibility=["//visibility:public"],
