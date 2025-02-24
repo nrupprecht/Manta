@@ -30,7 +30,6 @@ auto main() -> int {
 
   std::string input_file = "examples/C-/C- code.cmm";
 
-  MANTA_ASSERT(std::filesystem::exists(input_file), "input file " << input_file << " does not exist");
   LOG_SEV(Info) << "Parsing input from '" << input_file << "'.";
 
   Parser parser;
