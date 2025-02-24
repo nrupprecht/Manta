@@ -4,8 +4,6 @@
 
 #include "manta/generator/codegen/CodeGen.h"
 
-#include <iterator>
-
 namespace manta::codegen {
 
 void CppCodegen::WriteName(std::ostream& out,
