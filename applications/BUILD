@@ -1,4 +1,4 @@
-load("//applications:manta_binary.bzl", "manta_binary")
+load("//:tools.bzl", "manta_binary")
 
 
 manta_binary(src="CminusParserDriver.cpp")

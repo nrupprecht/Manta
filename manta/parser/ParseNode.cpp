@@ -86,7 +86,7 @@ std::string ParseNode::printTree(int level) const {
   if (!children.empty()) {
     str += '\n';
     //for (int i=children.size()-1; 0<=i; --i) {
-    for (int i = 0; i < children.size(); ++i) {
+    for (std::size_t i = 0; i < children.size(); ++i) {
       str += children[i]->printTree(level + 1);
       if (i != children.size() - 1) str += "\n";
     }

@@ -27,14 +27,14 @@ struct NamingUtility {
   }
 
   NO_DISCARD const std::string& GetName(int id) const {
-    if (id < NumTerminals()) {
+    if (id < static_cast<int>(NumTerminals())) {
       return lexer->LexemeName(id);
     }
     return GetNonterminalName(id);
   }
 
   NO_DISCARD std::string GetPrettyName(int id) const {
-    if (id < NumTerminals()) {
+    if (id < static_cast<int>(NumTerminals())) {
       using namespace std::string_literals;
       using namespace std::string_view_literals;
       using namespace lightning::formatting;

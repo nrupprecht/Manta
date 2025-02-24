@@ -83,9 +83,9 @@ void WriteToStream(std::ostream& out, const ParserData& parser_data) {
   out << repeat('-', 5 * (total_symbols + 2)) << "--";
   out << '\n';
   // Print transition table.
-  for (int s = 0; s < parser_data.all_states.size(); ++s) {
+  for (std::size_t s = 0; s < parser_data.all_states.size(); ++s) {
     out << buffered(s, 4) << " | ";
-    for (int j = 0; j < total_symbols; ++j) {
+    for (std::size_t j = 0; j < total_symbols; ++j) {
       out << parse_table[s][j].Write(4) << " ";
 
       if (j == num_lexemes - 1) {

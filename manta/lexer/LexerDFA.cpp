@@ -86,7 +86,7 @@ FAStatus LexerDFA::CheckStatus() const {
 }
 
 std::string LexerDFA::LexemeName(int index) const {
-  if (index < 0 || all_lexemes_.size() <= index) {
+  if (index < 0 || static_cast<int>(all_lexemes_.size()) <= index) {
     return "";
   }
   return all_lexemes_[index];
