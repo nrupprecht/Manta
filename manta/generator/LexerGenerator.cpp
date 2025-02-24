@@ -250,7 +250,7 @@ std::string LexerGenerator::escapeLiteral(const std::string& literal) {
   return output;
 }
 
-const std::string& LexerGenerator::LexemeName(int index) const {
+const std::string& LexerGenerator::LexemeName(std::size_t index) const {
   MANTA_REQUIRE(0 <= index && index < all_lexemes_.size(), "index " << index << " out of bounds");
   return all_lexemes_[index];
 }
@@ -348,7 +348,7 @@ std::size_t LexerGenerator::GetNumLexemes() const {
   return all_lexemes_.size();
 }
 
-std::string LexerGenerator::GetLexemeName(int index) const {
+std::string LexerGenerator::GetLexemeName(std::size_t index) const {
   if (index < 0 || all_lexemes_.size() <= index) {
     return "";
   }

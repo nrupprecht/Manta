@@ -3,7 +3,7 @@
 #include <Lightning/Lightning.h>
 
 #include "manta/generator/ParserCodegen.h"
-#include "manta/generator/parser/DescriptionParser.h"
+#include "manta/generator/DescriptionParser.h"
 
 using namespace manta;
 using namespace lightning;

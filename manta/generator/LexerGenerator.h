@@ -36,7 +36,7 @@ public:
   NO_DISCARD int Accepts(const std::string& word) const;
 
   //! \brief Return the name of a lexeme based on the id.
-  NO_DISCARD const std::string& LexemeName(int index) const;
+  NO_DISCARD const std::string& LexemeName(std::size_t index) const;
 
   //! \brief Returns the id of a lexeme based on the name.
   NO_DISCARD int LexemeID(const std::string& name) const;
@@ -66,7 +66,7 @@ public:
   NO_DISCARD std::size_t GetNumLexemes() const;
 
   //! \brief Get the name of the index-th lexeme.
-  NO_DISCARD std::string GetLexemeName(int index) const;
+  NO_DISCARD std::string GetLexemeName(std::size_t index) const;
 
   //! \brief Check if a lexeme is a reserved token.
   bool IsReserved(const std::string& lexeme_name) const;
@@ -108,13 +108,13 @@ private:
                                      bool make_complement = false);
 
   //! \brief Add the start (any number of instances) modifier to an NFA.
-  void makeStar(int idi, int idf, int& recent_id);
+  void makeStar(int idi, int idf, [[maybe_unused]] int& recent_id);
 
   //! \brief Add plus (at least one instance) modifier to an NFA.
-  void makePlus(int idi, int idf, int& recent_id);
+  void makePlus(int idi, int idf, [[maybe_unused]] int& recent_id);
 
   //! \brief Add the optional (zero or one instances) modifier to an NFA.
-  void makeQues(int idi, int idf, int& recent_id);
+  void makeQues(int idi, int idf, [[maybe_unused]] int& recent_id);
 
   //! \brief Add (if needed) a modifier to a sequence of nodes.
   void checkModifier(utility::IStreamContainer& container,

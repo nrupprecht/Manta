@@ -4,6 +4,8 @@
 
 #include "manta/generator/typesystem/CppCodegen.h"
 // Other files.
+#include <iterator>
+
 #include "manta/utility/Formatting.h"
 
 using namespace std::literals;

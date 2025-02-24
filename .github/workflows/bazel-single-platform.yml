@@ -1,0 +1,29 @@
+# Setup based on bazelisk https://github.com/bazelbuild/setup-bazelisk
+
+name: Bazel - Build and test
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
+
+jobs:
+  build:
+    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: bazelbuild/setup-bazelisk@v3
+    
+    # Optional
+    - name: Mount bazel cache 
+      uses: actions/cache@v4
+      with:
+        path: "~/.cache/bazel"
+        key: bazel
+
+    - run: bazel test //... -c opt
+

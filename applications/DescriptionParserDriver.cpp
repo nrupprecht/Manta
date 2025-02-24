@@ -1,6 +1,6 @@
 #include <fstream>
 
-#include "manta/generator/parser/DescriptionParser.h"
+#include "manta/generatedparsers/GeneratedDescriptionParser.h"
 
 #include <Lightning/Lightning.h>
 

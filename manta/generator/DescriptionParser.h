@@ -125,9 +125,9 @@ struct ProductionRulesData {
 
   NO_DISCARD int NumTerminals() const { return static_cast<int>(lexer_generator->GetNumLexemes()); }
 
-  NO_DISCARD bool IsNonTerminal(int id) const { return lexer_generator->GetNumLexemes() <= id; }
+  NO_DISCARD bool IsNonTerminal(std::size_t id) const { return lexer_generator->GetNumLexemes() <= id; }
 
-  NO_DISCARD bool IsTerminal(int id) const { return !IsNonTerminal(id); }
+  NO_DISCARD bool IsTerminal(std::size_t id) const { return !IsNonTerminal(id); }
 
   std::string WriteItem(const Item& item) const {
     // This may be a null production, just a placeholder for a shift.

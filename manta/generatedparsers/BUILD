@@ -1,13 +1,12 @@
+load("//:tools.bzl", "default_opts")
 
 cc_library(
     name="generatedparsers", 
     hdrs=glob(["*.h"]), 
     srcs=glob(["*.cpp"]), 
     visibility=["//visibility:public"], 
-    copts = ["-std=c++20"], 
+    copts = default_opts(), 
     deps=[
-        "@lightning//include:lightning",
-        "//manta/lexer",
         "//manta:generator",
     ],
 )
