@@ -359,7 +359,7 @@
     code ParserGenerator %{
         ParserGenerator() = default;
 
-        std::shared_ptr<manta::ProductionRulesData> ParseDescription(std::istream& stream) override { return nullptr; }
+        std::shared_ptr<manta::ProductionRulesData> ParseDescription([[maybe_unused]] std::istream& stream) override { return nullptr; }
 
         void storeCurrent() {
           LOG_SEV(Info) << "Storing item of size " << getCurrentProduction().rule.Size() << ".";
@@ -376,8 +376,8 @@
           // Any \` should be replaced with just `
           std::string buffer;
           buffer.reserve(regex_in.size() - 3);
-          auto size = regex_in.size() - 1;
-          for (auto i = 2; i < size; ++i) {
+          std::size_t size = regex_in.size() - 1;
+          for (std::size_t i = 2; i < size; ++i) {
             if (regex_in[i] == '\\' && i + 1 < size && regex_in[i + 1] == '`') {
               buffer.push_back('`');
               ++i;

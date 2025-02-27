@@ -27,6 +27,7 @@ TEST(ParserCodegen, FreeFunction_Basic) {
                             .WithBody("return X + Y + Z;");
 
   CppCodeGen codegen;
+  codegen.SetMarkParamsAsMaybeUnused(false);
   std::stringstream stream;
   codegen.WriteDefinition(stream, &function_value);
 
@@ -49,6 +50,7 @@ TEST(ParserCodegen, FreeFunction_Void) {
                             .WithBody("std::cout << X + Y + Z << std::endl;");
 
   CppCodeGen codegen;
+  codegen.SetMarkParamsAsMaybeUnused(false);
   std::stringstream stream;
   codegen.WriteDefinition(stream, &function_value);
 
@@ -73,6 +75,7 @@ TEST(ParserCodegen, FreeFunction_Indentation) {
                             .WithBody("int x = X + Y;\nauto Z = Y + Z;\nreturn x * y;");
 
   CppCodeGen codegen;
+  codegen.SetMarkParamsAsMaybeUnused(false);
   std::stringstream stream;
   codegen.WriteDefinition(stream, &function_value);
 

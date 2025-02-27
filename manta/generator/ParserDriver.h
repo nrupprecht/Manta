@@ -41,7 +41,7 @@ protected:
     if (id < 0) {
       return "ERROR";
     }
-    if (id < lexer_->GetNumLexemes()) {
+    if (id < static_cast<int>(lexer_->GetNumLexemes())) {
       auto&& name = lexer_->LexemeName(id);
       if (std::string_view(name).substr(0, 4) == "RES:"sv) {
         return name.substr(4);
@@ -56,7 +56,7 @@ protected:
   void printFatalParseError(int state) const {
     using namespace lightning;
     // Record error in parse trace.
-    if (auto handle = LOG_HANDLER_FOR(logger_, Error))) {
+    if (auto handle = LOG_HANDLER_FOR(logger_, Error)) {
       handle << "Lexer is at Line " << lexer_->GetLine() << ", Column " << lexer_->GetColumn() << ".";
       // Print out what valid options would have been recognized.
       int print_count = 0;

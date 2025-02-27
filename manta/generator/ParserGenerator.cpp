@@ -303,7 +303,7 @@ void ParserGenerator::computeGoto(int s, std::deque<int>& work_list) {
   const State closed = closure(s);
 
   // Try advancing the dot for every symbol.
-  for (int x = 0; x < production_rules_data_->total_symbols; ++x) {
+  for (std::size_t x = 0; x < production_rules_data_->total_symbols; ++x) {
     const State relevant_items = advanceDot(closed, x);
     if (!relevant_items.empty()) {
       // Get the resolution info for the shift.

@@ -33,6 +33,12 @@ public:
 
   void AddBreak(std::ostream& out) const override;
 
+  // C++ specific configs
+
+  void SetMarkParamsAsMaybeUnused(bool flag) {
+    mark_params_as_maybe_unused_ = flag;
+  }
+
 protected:
   // =========================================================================================================
   // Protected implementations.
@@ -55,6 +61,8 @@ private:
                      bool is_const                   = false) const;
 
   void writeBody(std::ostream& out, std::string_view body) const;
+
+  bool mark_params_as_maybe_unused_ = true;
 };
 
 }  // namespace manta

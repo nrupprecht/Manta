@@ -186,6 +186,9 @@ void CppCodeGen::WriteDefinition(std::ostream& out, const TypeDescriptionStructu
       if (count != 0) {
         out << ", ";
       }
+      if (mark_params_as_maybe_unused_) {
+        out << "[[maybe_unused]] ";
+      }
       out << WriteName(function.function_type.arguments[count]) << " " << argument_name;
       // out << WriteName(function.function_type.arguments[count].arg_type) << " " << argument_name;
       ++count;
@@ -368,6 +371,9 @@ void CppCodeGen::writeFunction(std::ostream& out,
   for (std::size_t i = 0; i < function->GetArity(); ++i) {
     if (i != 0) {
       out << ", ";
+    }
+    if (mark_params_as_maybe_unused_) {
+      out << "[[maybe_unused]] ";
     }
     out << WriteName(function->function_type.arguments[i]) << " " << function->argument_names[i];
   }
