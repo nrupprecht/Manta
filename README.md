@@ -1,6 +1,6 @@
 # Manta
 
-[![Build and test](https://github.com/nrupprecht/Manta/actions/workflows/cmake-single-platform.yml/badge.svg)](https://github.com/nrupprecht/Manta/actions/workflows/cmake-single-platform.yml)
+[![Build and test](https://github.com/nrupprecht/Manta/actions/workflows/bazel-single-platform.yml/badge.svg)](https://github.com/nrupprecht/Manta/actions/workflows/bazel-single-platform.yml)
 
 Manta lexer and parser generators.
 
