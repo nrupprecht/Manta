@@ -352,13 +352,13 @@ State ParserGenerator::closure(int s) const {
     // For all productions in ans.
     for (auto A : ans) {
       const int bookmark = A.bookmark;
-      const int next     = -1 < bookmark && bookmark < A.rhs.size() ? A.rhs.at(bookmark) : -1;
+      const int next     = -1 < bookmark && bookmark < static_cast<int>(A.rhs.size()) ? A.rhs.at(bookmark) : -1;
 
       // If the bookmark was behind a non-terminal, we need to add that non-terminal to the closure.
-      if (production_rules_data_->lexer_generator->GetNumLexemes() < next) {
+      if (static_cast<int>(production_rules_data_->lexer_generator->GetNumLexemes()) < next) {
         // Find the production for next.
         auto it = production_rules_data_->productions_for.find(next);
-        if (it == production_rules_data_->productions_for.end()) {
+        if (it == production_rules_data_->productions_for.end()) { 
           continue;
         }
 
@@ -395,14 +395,14 @@ void ParserGenerator::completeTable() {
   if (parser_type_ == ParserType::LALR) {
     // Used by LALR(k) parser.
     const auto item_follow = computeLookahead();
-    for (int state_index = 0; state_index < all_states_.size(); ++state_index) {
+    for (std::size_t state_index = 0; state_index < all_states_.size(); ++state_index) {
       for (const auto& rule : production_rules_data_->all_productions) {
         tryRuleInStateLALR(state_index, rule, item_follow);
       }
     }
   }
   else {
-    for (int state_index = 0; state_index < all_states_.size(); ++state_index) {
+    for (std::size_t state_index = 0; state_index < all_states_.size(); ++state_index) {
       for (const auto& rule : production_rules_data_->all_productions) {
         tryRuleInState(state_index, rule);
       }
@@ -571,7 +571,7 @@ ItemFollowSet ParserGenerator::buildItemForPropGraph() {
 }
 
 void ParserGenerator::evalItemForPropGraph(ItemFollowSet& item_follow) const {
-  bool changed       = false;
+  bool changed = false;
   do {
     changed = false;
     // Iterate through all the edges in the LALR propagation graph.
@@ -619,7 +619,7 @@ void ParserGenerator::tryRuleInState(int state, const AnnotatedProductionRule& r
     case ParserType::LR0: {
       // === LR(0) ===
       if (state_set.Contains(rule_reduce)) {  // If LHS(rule) -> RHS(rule) * is in State(state)
-        for (int sym = 0; sym < production_rules_data_->total_symbols; ++sym) {
+        for (std::size_t sym = 0; sym < production_rules_data_->total_symbols; ++sym) {
           assertEntry(state, sym, Entry(rule));
         }
       }
@@ -629,7 +629,7 @@ void ParserGenerator::tryRuleInState(int state, const AnnotatedProductionRule& r
       // === SLR ===
       if (state_set.Contains(rule_reduce)) {  // If LHS(rule) -> RHS(rule) * is in State(state)
         auto follow_set = FollowSet(rule.rule.produced_nonterminal);
-        for (int sym : follow_set) {
+        for (std::size_t sym : follow_set) {
           assertEntry(state, sym, Entry(rule));
         }
       }

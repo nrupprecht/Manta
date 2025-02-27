@@ -115,7 +115,7 @@ struct StructureConstructor {
   std::vector<std::pair<FieldName, Value>> additional_initializations {};
 
   //! \brief Constructor function body. This is literally inserted as the body, as is.
-  std::string function_body;
+  std::string function_body {};
 
   // =====================================================================================
   //  Builder functions

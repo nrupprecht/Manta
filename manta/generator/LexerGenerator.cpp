@@ -654,16 +654,16 @@ void LexerGenerator::specialCharacters(utility::IStreamContainer& stream_contain
   }
 }
 
-void LexerGenerator::makeStar(int idi, int idf, int& recent_id) {
+void LexerGenerator::makeStar(int idi, int idf, [[maybe_unused]] int& recent_id) {
   lexer_dfa_.AddTransition(idi, idf);
   lexer_dfa_.AddTransition(idf, idi);
 }
 
-void LexerGenerator::makePlus(int idi, int idf, int& recent_id) {
+void LexerGenerator::makePlus(int idi, int idf, [[maybe_unused]] int& recent_id) {
   lexer_dfa_.AddTransition(idf, idi);
 }
 
-void LexerGenerator::makeQues(int idi, int idf, int& recent_id) {
+void LexerGenerator::makeQues(int idi, int idf, [[maybe_unused]] int& recent_id) {
   lexer_dfa_.AddTransition(idi, idf);
 }
 

@@ -365,7 +365,7 @@ void CppCodeGen::writeFunction(std::ostream& out,
     out << structure_name << "::";
   }
   out << function->function_name << "(";
-  for (auto i = 0; i < function->GetArity(); ++i) {
+  for (std::size_t i = 0; i < function->GetArity(); ++i) {
     if (i != 0) {
       out << ", ";
     }

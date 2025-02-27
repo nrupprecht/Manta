@@ -79,7 +79,7 @@ struct ProductionRulesData {
 
   //! \brief The total number of lexer ids (terminals) plus non-terminal symbols. This is the number of
   //!        columns in the parse_table_.
-  int total_symbols = 0;
+  std::size_t total_symbols = 0;
 
   //! \brief Code that should be injected after an item reduce occurs.
   std::map<ItemID, std::string> reduction_code;

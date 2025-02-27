@@ -82,7 +82,7 @@ void testParser(const std::string& rules_filepath, const std::string& code_filep
   }
 }
 
-int main(int argc, char** argv) {
+int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
   Global::GetCore()->AddSink(NewSink<StdoutSink>());
 
   // testParser("../../examples/C-/C- grammar.txt", "../../examples/C-/C- code.cmm");

@@ -51,12 +51,12 @@ protected:
     return inverse_nonterminal_map_.at(id);
   }
 
-  NO_DISCARD bool isLexeme(int id) const { return id < lexer_->GetNumLexemes(); }
+  NO_DISCARD bool isLexeme(int id) const { return id < static_cast<int>(lexer_->GetNumLexemes()); }
 
   void printFatalParseError(int state) const {
     using namespace lightning;
     // Record error in parse trace.
-    if (auto handle = logger_.Log(Severity::Error)) {
+    if (auto handle = LOG_HANDLER_FOR(logger_, Error))) {
       handle << "Lexer is at Line " << lexer_->GetLine() << ", Column " << lexer_->GetColumn() << ".";
       // Print out what valid options would have been recognized.
       int print_count = 0;

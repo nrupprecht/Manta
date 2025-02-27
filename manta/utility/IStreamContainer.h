@@ -52,6 +52,10 @@ public:
   //! \brief Default constructor.
   IStreamContainer() = default;
 
+  IStreamContainer(const IStreamContainer& container) {
+    stream_container_ = container.stream_container_;
+  }
+
   static IStreamContainer OpenFile(const std::string& filename) {
     std::shared_ptr<std::istream> strm = std::make_shared<std::ifstream>(filename);
     return IStreamContainer(std::make_shared<container_ptr>(strm));

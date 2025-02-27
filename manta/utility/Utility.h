@@ -96,4 +96,13 @@ inline int stoi(const std::string& input) {
   }
 }
 
+inline unsigned long long stoull(const std::string& input) {
+  try {
+    return std::stoull(input);
+  }
+  catch ([[maybe_unused]] const std::exception& ex) {
+    MANTA_FAIL("could not convert '" << input << "' to an unsigned long long");
+  }
+}
+
 } // namespace manta

@@ -129,7 +129,7 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
     LOG_SEV_TO(logger_, Debug) << "Step " << num_parse_steps_ << ", State: " << state << ", lexer is at line "
                                << lexer_->GetLine() << ", column " << lexer_->GetColumn();
 
-    if (incoming_symbol < 0 || total_symbols_ <= incoming_symbol) {
+    if (incoming_symbol < 0 || static_cast<int>(total_symbols_) <= incoming_symbol) {
       LOG_SEV_TO(logger_, Error) << "Bad symbol: " << incoming_symbol << ", Literal: ["
                                  << incoming_deque.front().literal << "]. Exiting.";
       break;
@@ -207,7 +207,7 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
             MANTA_ASSERT(!instruction->children.empty(),
                          "instruction must not have no children");
             int index = manta::stoi(instruction->children[0]->designator);
-            if (0 <= index && index < collect.size()) {
+            if (0 <= index && index < static_cast<int>(collect.size())) {
               instructionAdd(production_node, collect[index]);
             }
             LOG_SEV_TO(logger_, Debug) << "Executing ADD instruction.";
@@ -217,7 +217,7 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
             MANTA_ASSERT(!instruction->children.empty(),
                          "instruction must not have no children");
             int index = manta::stoi(instruction->children[0]->designator);
-            if (0 <= index && index < collect.size()) {
+            if (0 <= index && index < static_cast<int>(collect.size())) {
               instructionAdopt(production_node, collect[index]);
             }
             LOG_SEV_TO(logger_, Debug) << "Executing ADOPT instruction.";
@@ -227,7 +227,7 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
             MANTA_ASSERT(!instruction->children.empty(),
                          "instruction must not have no children");
             int index = manta::stoi(instruction->children[0]->designator);
-            if (0 <= index && index < collect.size()) {
+            if (0 <= index && index < static_cast<int>(collect.size())) {
               instructionReplace(production_node, collect[index]);
               collect[index] = nullptr;
             }
@@ -239,7 +239,7 @@ std::shared_ptr<ParseNode> LALRParser::parse() {
             MANTA_ASSERT(1 < instruction->children.size(),
                          "instruction must have at least two children");
             int index = manta::stoi(instruction->children[1]->designator);
-            if (0 <= index && index < collect.size()) {
+            if (0 <= index && index < static_cast<int>(collect.size())) {
               instructionPush(
                   production_node, instruction->children[0]->designator, collect[index]);
             }
@@ -302,7 +302,7 @@ std::string LALRParser::PrintTable() const {
   str += repeat('-', (total_symbols_ + 1) * 5) + "--";
   str += '\n';
   str += "   -- (Lexemes) -- \n";
-  int i = 0;
+  std::size_t i = 0;
   for (; i < lexer_->GetNumLexemes(); ++i) {
     str += buffered(i, 4) + ": " + lexer_->LexemeName(i) + "\n";
   }
@@ -360,9 +360,9 @@ std::string LALRParser::PrintTable() const {
   str += repeat('-', 5 * (total_symbols_ + 2)) + "--";
   str += '\n';
   // Print transition table.
-  for (int s = 0; s < all_states_.size(); ++s) {
+  for (std::size_t s = 0; s < all_states_.size(); ++s) {
     str += buffered(s, 4) + " | ";
-    for (int j = 0; j < total_symbols_; ++j) {
+    for (std::size_t j = 0; j < total_symbols_; ++j) {
       str += parse_table_[s][j].Write(4) + " ";
 
       if (j == lexer_->GetNumLexemes() - 1) {
@@ -420,7 +420,7 @@ std::string LALRParser::PrintAsMathematica(const std::shared_ptr<ParseNode>& hea
 
   // First, form connectivity.
   std::string mathematicaCommand = "TreePlot[{";
-  for (int i = 0; i < connectivity.size(); ++i) {
+  for (std::size_t i = 0; i < connectivity.size(); ++i) {
     auto [first, second] = connectivity[i];
     mathematicaCommand += std::to_string(first) + "->" + std::to_string(second) + "";
     if (i != connectivity.size() - 1) {
@@ -429,7 +429,7 @@ std::string LALRParser::PrintAsMathematica(const std::shared_ptr<ParseNode>& hea
   }
   mathematicaCommand += "},Top,0,VertexLabels->{";
   // Then form vertex labels.
-  for (int i = 0; i < labels.size(); ++i) {
+  for (std::size_t i = 0; i < labels.size(); ++i) {
     auto [first, name] = labels[i];
     mathematicaCommand += std::to_string(first) + "->\"" + clean(name) + "\"";
     if (i != labels.size() - 1) {
@@ -509,7 +509,7 @@ std::string LALRParser::idToString(int id) const {
   if (id < 0) {
     return "ERROR";
   }
-  else if (id < lexer_->GetNumLexemes()) {
+  else if (id < static_cast<int>(lexer_->GetNumLexemes())) {
     auto name = lexer_->LexemeName(id);
     if (name[0] == 'R' && name[1] == 'E' && name[2] == 'S' && name[3] == ':') {
       return std::string(name.begin() + 4, name.end());
@@ -520,7 +520,7 @@ std::string LALRParser::idToString(int id) const {
 }
 
 bool LALRParser::isLexeme(int id) const {
-  return id < lexer_->GetNumLexemes();
+  return id < static_cast<int>(lexer_->GetNumLexemes());
 }
 
 void LALRParser::printFatalParseError(int state) {

@@ -11,7 +11,7 @@ using namespace lightning;
 
 void InitializeLogging();
 
-int main(int argc, char** argv) {
+int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
   // Set up the global core to an OstreamSink.
   InitializeLogging();
 

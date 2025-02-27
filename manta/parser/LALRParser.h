@@ -115,8 +115,8 @@ private:
   int start_production_ = 0;
 
   //! \brief The total number of lexer ids plus production symbols. The number of columns
-  //! in the parse_table_.
-  int total_symbols_ = 0;
+  //!        in the parse_table_.
+  std::size_t total_symbols_ = 0;
 
   //! \brief The parse table. It is a vector so we can add new states.
   //!

@@ -33,7 +33,10 @@ ASTNodeManager::ASTNodeManager() {
       // List initialized fields.
       {{"node_type", "node_type"}, {"nonterminal_type", "nonterminal_type"}, {"item_id", "item_id"}},
       // Additional list initialized values
-      {}});
+      {},
+      // Function body.
+      {}
+    });
 
   // Create lexeme node.
   lexeme_node_ = type_system_.Structure("ASTLexeme");
@@ -52,7 +55,10 @@ ASTNodeManager::ASTNodeManager() {
       },
       // List initialized args, (arg name, field name)
       {{"literal", "literal"}},
-      {}  // Additional initialized values (field name, value)
+      // Additional initialized values (field name, value)
+      {},  
+      // Function body
+      {}
   });
 
   // Create the visitor struct. We will add the visitor functions at the end, once we know all the node types.

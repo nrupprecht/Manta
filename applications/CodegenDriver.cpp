@@ -12,7 +12,7 @@ using namespace lightning::time;
 std::unique_ptr<formatting::BaseMessageFormatter> MakeFormatter();
 void InitializeLogging();
 
-int main(int argc, char** argv) {
+int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
   // Set up the global logger.
   InitializeLogging();
 

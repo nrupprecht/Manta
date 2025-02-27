@@ -251,8 +251,8 @@ std::string FunctionPrototype::Write() const {
   return output;
 }
 
-std::string FunctionPrototype::Write(const SubstitutionCallback& substitution_callback,
-                                     std::span<std::size_t> vars) const {
+std::string FunctionPrototype::Write([[maybe_unused]] const SubstitutionCallback& substitution_callback,
+                                     [[maybe_unused]] std::span<std::size_t> vars) const {
   std::ostringstream out;
   out << "func ";
   if (0 < num_type_vars_) {

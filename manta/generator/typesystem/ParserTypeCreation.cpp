@@ -4,6 +4,7 @@
 
 #include "manta/generator/typesystem/ParserTypeCreation.h"
 // Other files.
+#include "manta/utility/Utility.h"
 #include "manta/generator/typesystem/TypeDeduction.h"
 #include "manta/generator/typesystem/TypeRelationship.h"
 #include "manta/utility/Formatting.h"
@@ -682,7 +683,8 @@ std::tuple<int, NonterminalID, std::optional<std::string>> ParserDataToTypeManag
   auto segments = split(argument_string, '.');
   MANTA_ASSERT(segments.size() == 1 || segments.size() == 2,
                "argument name must be in one of the forms '$N' or '$N.<field-name>'");
-  auto position = manta::stoi(segments[0]);
+               
+  auto position = manta::stoull(segments[0]);
   MANTA_REQUIRE(position < rule.rhs.size(),
                 "trying to reference argument " << position << " but there are only " << rule.rhs.size()
                                                 << " arguments");
@@ -765,7 +767,7 @@ void ParserDataToTypeManager::createGeneralNode(const std::string& type_name,
   }
 
   LOG_SEV(Debug) << "  * Adding all fields to type " << formatting::CLBB(type_name) << ".";
-  for (auto i = 0; i < field_names.size(); ++i) {
+  for (std::size_t i = 0; i < field_names.size(); ++i) {
     auto& referenced_type = annotated_rule.rule.rhs[i];
     auto& field_name      = field_names[i];
 

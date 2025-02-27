@@ -21,7 +21,7 @@ void WriteToStream(std::ostream& out, const ParserData& parser_data) {
   out << repeat('-', (total_symbols + 1) * 5) << "--";
   out << '\n';
   out << "   -- (Lexemes) -- \n";
-  int i = 0;
+  std::size_t i = 0;
   for (; i < num_lexemes; ++i) {
     out << buffered(i, 4) << ": " << lg.GetLexemeName(i) << "\n";
   }

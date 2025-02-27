@@ -27,7 +27,7 @@ bool Item::IsBookmarkAtBeginning() const {
 }
 
 bool Item::IsBookmarkAtEnd() const {
-  return bookmark == rhs.size();
+  return bookmark == static_cast<int>(rhs.size());
 }
 
 Item Item::MakeReducibleForm() const {
@@ -46,7 +46,7 @@ std::optional<Item> Item::AdvanceDot() const {
 }
 
 std::optional<int> Item::GetElementFollowingBookmark() const {
-  if (rhs.size() <= bookmark) {
+  if (static_cast<int>(rhs.size()) <= bookmark) {
     return {};
   }
   return rhs[bookmark];

@@ -231,7 +231,7 @@ void FiniteAutomaton::AddAcceptance(int index, int lexeme_id, Precedence precede
 }
 
 void FiniteAutomaton::ToStream(std::ostream& out) const {
-  for (int i = 0; i < dfa_nodes_.size(); ++i) {
+  for (std::size_t i = 0; i < dfa_nodes_.size(); ++i) {
     out << "Node " << i << ", ";
     dfa_nodes_[i].ToStream(out);
     out << "\n";
@@ -490,7 +490,7 @@ inline void FiniteAutomaton::computeTransitions(
 }
 
 inline void FiniteAutomaton::consolidateRanges(
-    std::vector<std::pair<char, char>>& vector_of_ranges) {
+    [[maybe_unused]] std::vector<std::pair<char, char>>& vector_of_ranges) {
   // TODO: Write this function.
 }
 
